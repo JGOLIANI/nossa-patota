@@ -23,7 +23,10 @@ import type {
   TeamInput,
 } from './types'
 
-const STORAGE_KEY = 'nossa-patota:demo:v1'
+// A versão faz parte da chave: quando o formato do snapshot muda, os dados
+// antigos são descartados em vez de carregarem sem os campos novos.
+const STORAGE_KEY = 'nossa-patota:demo:v2'
+const LEGACY_KEYS = ['nossa-patota:demo:v1']
 const SESSION_KEY = 'nossa-patota:demo:session'
 
 const listeners = new Set<(user: SessionUser | null) => void>()
@@ -33,19 +36,36 @@ function uid(): string {
   return `id-${Math.random().toString(36).slice(2)}-${Date.now()}`
 }
 
+function seed(): Snapshot {
+  const seeded = createDemoSnapshot()
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded))
+  return seeded
+}
+
+/** Só aceita um snapshot que tenha tudo que as telas atuais esperam. */
+function isUsable(value: unknown): value is Snapshot {
+  const candidate = value as Partial<Snapshot> | null
+  return Boolean(
+    candidate &&
+      Array.isArray(candidate.players) &&
+      Array.isArray(candidate.rounds) &&
+      Array.isArray(candidate.roundPlayers) &&
+      candidate.settings &&
+      typeof candidate.settings.weekday === 'number',
+  )
+}
+
 function load(): Snapshot {
+  for (const key of LEGACY_KEYS) localStorage.removeItem(key)
+
   const raw = localStorage.getItem(STORAGE_KEY)
-  if (!raw) {
-    const seeded = createDemoSnapshot()
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded))
-    return seeded
-  }
+  if (!raw) return seed()
+
   try {
-    return JSON.parse(raw) as Snapshot
+    const parsed = JSON.parse(raw)
+    return isUsable(parsed) ? parsed : seed()
   } catch {
-    const seeded = createDemoSnapshot()
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded))
-    return seeded
+    return seed()
   }
 }
 
@@ -77,7 +97,7 @@ function readSession(): SessionUser | null {
 /** Restaura a patota fictícia original. Só existe no modo demonstração. */
 export function resetDemoData(): void {
   localStorage.removeItem(STORAGE_KEY)
-  load()
+  seed()
 }
 
 export const localBackend: Backend = {
