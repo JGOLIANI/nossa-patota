@@ -152,17 +152,8 @@ export function ListRow({
   accent?: string
   className?: string
 }) {
-  const interactive = Boolean(to || onClick)
-
   const content = (
     <>
-      {accent && (
-        <span
-          aria-hidden="true"
-          className="absolute inset-y-2 left-0 w-1 rounded-r-full"
-          style={{ backgroundColor: accent }}
-        />
-      )}
       {leading}
       <span className="min-w-0 flex-1 text-left">
         <span className="flex items-center gap-1.5">
@@ -172,34 +163,70 @@ export function ListRow({
           <span className="mt-0.5 block truncate text-[13px] text-muted">{subtitle}</span>
         )}
       </span>
-      {trailing}
-      {chevron && <IconChevronRight className="size-4 shrink-0 text-faint" />}
     </>
   )
 
-  const base = cn(
-    'relative flex w-full items-center gap-3 px-3.5 py-3 text-left transition',
-    accent && 'pl-5',
+  const wrapper = cn(
+    'relative flex w-full items-center',
+    accent && 'pl-2',
     selected ? 'bg-brand-soft' : 'bg-card',
-    interactive && 'hover:bg-fill active:bg-fill',
     className,
   )
 
+  const main = cn(
+    'flex min-w-0 flex-1 items-center gap-3 px-3.5 py-3 text-left transition',
+    (to || onClick) && 'hover:bg-fill active:bg-fill',
+  )
+
+  const edge = (
+    <>
+      {trailing && <span className="shrink-0 pr-3">{trailing}</span>}
+      {chevron && <IconChevronRight className="mr-3.5 size-4 shrink-0 text-faint" />}
+    </>
+  )
+
+  const stripe = accent ? (
+    <span
+      aria-hidden="true"
+      className="absolute inset-y-2 left-0 w-1 rounded-r-full"
+      style={{ backgroundColor: accent }}
+    />
+  ) : null
+
+  // O conteúdo interativo e a área final são irmãos, nunca aninhados: um
+  // botão dentro de um link navega ao ser clicado, o que já quebrou o
+  // seletor de posição na escalação.
   if (to) {
     return (
-      <Link to={to} className={base}>
-        {content}
-      </Link>
+      <div className={wrapper}>
+        {stripe}
+        <Link to={to} className={main}>
+          {content}
+        </Link>
+        {edge}
+      </div>
     )
   }
+
   if (onClick) {
     return (
-      <button type="button" onClick={onClick} className={base}>
-        {content}
-      </button>
+      <div className={wrapper}>
+        {stripe}
+        <button type="button" onClick={onClick} className={main}>
+          {content}
+        </button>
+        {edge}
+      </div>
     )
   }
-  return <div className={base}>{content}</div>
+
+  return (
+    <div className={wrapper}>
+      {stripe}
+      <div className={main}>{content}</div>
+      {edge}
+    </div>
+  )
 }
 
 /** Agrupa linhas em um cartão único, com divisórias — padrão de lista de app. */

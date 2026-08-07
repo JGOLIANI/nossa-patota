@@ -7,6 +7,7 @@ import type {
   MatchEvent,
   PatotaSettings,
   Player,
+  PlayerPosition,
   Round,
   RoundPlayer,
   SessionUser,
@@ -215,6 +216,15 @@ export const supabaseBackend: Backend = {
       const { error } = await db.from('round_players').update(patch).eq('id', row.id)
       if (error) throw new Error(translate(error.message))
     }
+  },
+
+  async setRoundPosition(roundId: string, playerId: string, position: PlayerPosition) {
+    const { error } = await client()
+      .from('round_players')
+      .update({ position })
+      .eq('round_id', roundId)
+      .eq('player_id', playerId)
+    if (error) throw new Error(translate(error.message))
   },
 
   async removeFromRound(roundId: string, playerId: string) {

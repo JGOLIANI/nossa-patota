@@ -88,6 +88,9 @@ create table if not exists public.round_players (
   attendance text not null default 'confirmado'
     check (attendance in ('confirmado', 'espera', 'fora')),
   responded_at timestamptz not null default now(),
+  -- Posição realmente ocupada nesta rodada. Nulo mantém a do cadastro; é o
+  -- que permite ao goleiro jogar na linha sem levar os gols sofridos junto.
+  position text check (position in ('goleiro', 'linha')),
   unique (round_id, player_id)
 );
 
@@ -95,6 +98,7 @@ alter table public.round_players
   add column if not exists attendance text not null default 'confirmado';
 alter table public.round_players
   add column if not exists responded_at timestamptz not null default now();
+alter table public.round_players add column if not exists position text;
 
 create table if not exists public.matches (
   id uuid primary key default gen_random_uuid(),

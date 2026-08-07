@@ -1,10 +1,10 @@
-import type { AwardType, Snapshot } from '../types'
+import type { AwardType, PlayerPosition, Snapshot } from '../types'
 import { computeStats, type PlayerStats } from './stats'
 
 export interface RoundAwards {
-  /** Maior número de participações em gols entre os jogadores de linha. */
+  /** Mais participações em gols, entre os jogadores de linha que venceram. */
   jogador_rodada: string[]
-  /** Menor número de participações em gols dentro do time que perdeu. */
+  /** Menos participações em gols, entre os jogadores de linha que perderam. */
   pior_jogador: string[]
   /** Goleiro(s) que sofreram menos gols na rodada. */
   goleiro_menos_vazado: string[]
@@ -27,19 +27,25 @@ function bestBy(
   return entries.filter((entry) => value(entry) === target).map((entry) => entry.playerId)
 }
 
+export interface RoundOutcome {
+  winner: string | null
+  loser: string | null
+  /** Verdadeiro quando não houve vencedor nem perdedor. */
+  draw: boolean
+}
+
 /**
- * O time que perdeu a rodada.
+ * Como a rodada terminou.
  *
- * Com uma partida por rodada isso é simplesmente quem tomou a virada. A
+ * Com uma partida por rodada isso é apenas quem ganhou e quem perdeu. A
  * função também aguenta rodadas antigas com várias partidas, somando pontos
- * no critério 3-1-0; se houver empate na lanterna não existe um perdedor
- * único, e o prêmio de pior jogador fica sem dono.
+ * no critério 3-1-0; empate na ponta ou na lanterna equivale a empate.
  */
-export function losingTeam(snapshot: Snapshot, roundId: string): string | null {
+export function roundOutcome(snapshot: Snapshot, roundId: string): RoundOutcome {
   const matches = snapshot.matches.filter(
     (match) => match.round_id === roundId && match.status === 'encerrada',
   )
-  if (matches.length === 0) return null
+  if (matches.length === 0) return { winner: null, loser: null, draw: false }
 
   const points = new Map<string, number>()
   const add = (teamId: string, value: number) =>
@@ -56,49 +62,69 @@ export function losingTeam(snapshot: Snapshot, roundId: string): string | null {
     }
   }
 
-  const ranked = [...points.entries()].sort((a, b) => a[1] - b[1])
-  if (ranked.length < 2) return null
-  // Empate na última colocação: ninguém é "o" perdedor.
-  if (ranked[0][1] === ranked[1][1]) return null
-  return ranked[0][0]
+  const ranked = [...points.entries()].sort((a, b) => b[1] - a[1])
+  if (ranked.length < 2) return { winner: null, loser: null, draw: false }
+
+  const first = ranked[0]
+  const last = ranked[ranked.length - 1]
+  if (first[1] === last[1]) return { winner: null, loser: null, draw: true }
+
+  const tiedOnTop = ranked[1][1] === first[1]
+  const tiedOnBottom = ranked[ranked.length - 2][1] === last[1]
+
+  return {
+    winner: tiedOnTop ? null : first[0],
+    loser: tiedOnBottom ? null : last[0],
+    draw: false,
+  }
 }
 
 /**
- * Calcula os destaques de uma rodada. Empates são sempre devolvidos por
- * completo — cabe à interface decidir como exibir.
+ * Calcula os destaques de uma rodada.
+ *
+ * Os dois prêmios de linha são simétricos: o melhor sai de quem venceu e o
+ * pior de quem perdeu. No empate não há de onde separar, então os dois olham
+ * a rodada inteira. Empates dentro do próprio prêmio devolvem todos os
+ * empatados — cabe à interface decidir como exibir.
+ *
+ * A posição considerada é a da rodada, não a do cadastro: o goleiro que foi
+ * para a linha disputa os prêmios de linha, e quem assumiu o gol disputa o de
+ * goleiro menos vazado.
  */
 export function computeRoundAwards(snapshot: Snapshot, roundId: string): RoundAwards {
   const stats = computeStats(snapshot, { roundId })
-  const positionOf = new Map(snapshot.players.map((p) => [p.id, p.position]))
-  const teamOf = new Map(
-    snapshot.roundPlayers
-      .filter((rp) => rp.round_id === roundId)
-      .map((rp) => [rp.player_id, rp.team_id]),
+  const registered = new Map(snapshot.players.map((p) => [p.id, p.position]))
+  const rows = snapshot.roundPlayers.filter((rp) => rp.round_id === roundId && rp.team_id)
+
+  const teamOf = new Map(rows.map((rp) => [rp.player_id, rp.team_id]))
+  const positionOf = new Map<string, PlayerPosition>(
+    rows.map((rp) => [rp.player_id, rp.position ?? registered.get(rp.player_id) ?? 'linha']),
   )
 
-  const participants = snapshot.roundPlayers
-    .filter((rp) => rp.round_id === roundId && rp.team_id)
+  const participants = rows
     .map((rp) => stats.get(rp.player_id))
     .filter((entry): entry is PlayerStats => Boolean(entry) && entry!.played > 0)
 
   const line = participants.filter((entry) => positionOf.get(entry.playerId) === 'linha')
   const keepers = participants.filter((entry) => positionOf.get(entry.playerId) === 'goleiro')
 
-  const bestParticipations = line.length
-    ? Math.max(...line.map((entry) => entry.participations))
+  const outcome = roundOutcome(snapshot, roundId)
+  const fromTeam = (teamId: string | null) =>
+    teamId ? line.filter((entry) => teamOf.get(entry.playerId) === teamId) : []
+
+  // No empate os dois prêmios olham a rodada toda; fora dele, cada um fica
+  // restrito ao seu lado do placar.
+  const bestPool = outcome.draw ? line : fromTeam(outcome.winner)
+  const worstPool = outcome.draw ? line : fromTeam(outcome.loser)
+
+  const topScore = bestPool.length
+    ? Math.max(...bestPool.map((entry) => entry.participations))
     : 0
 
-  // O pior jogador sai do time derrotado: quem menos participou de gols entre
-  // os jogadores de linha que perderam a rodada.
-  const loser = losingTeam(snapshot, roundId)
-  const losingLine = loser
-    ? line.filter((entry) => teamOf.get(entry.playerId) === loser)
-    : []
-
   return {
-    // Se ninguém participou de gol algum, não há jogador da rodada.
-    jogador_rodada: bestParticipations > 0 ? bestBy(line, (s) => s.participations, 'max') : [],
-    pior_jogador: bestBy(losingLine, (s) => s.participations, 'min'),
+    // Sem nenhuma participação em gol não há o que premiar.
+    jogador_rodada: topScore > 0 ? bestBy(bestPool, (s) => s.participations, 'max') : [],
+    pior_jogador: bestBy(worstPool, (s) => s.participations, 'min'),
     goleiro_menos_vazado: bestBy(keepers, (s) => s.goalsAgainst, 'min'),
   }
 }

@@ -7,6 +7,7 @@ import type {
   MatchEvent,
   PatotaSettings,
   Player,
+  PlayerPosition,
   Round,
   SessionUser,
   Snapshot,
@@ -320,6 +321,7 @@ export const localBackend: Backend = {
             team_id: null,
             attendance: change.attendance,
             responded_at: change.responded_at ?? new Date().toISOString(),
+            position: null,
           })
         }
       }
@@ -343,9 +345,20 @@ export const localBackend: Backend = {
             team_id: null,
             attendance: change.attendance,
             responded_at: change.responded_at ?? new Date().toISOString(),
+            position: null,
           })
         }
       }
+    })
+  },
+
+  async setRoundPosition(roundId: string, playerId: string, position: PlayerPosition) {
+    mutate((snapshot) => {
+      const row = snapshot.roundPlayers.find(
+        (rp) => rp.round_id === roundId && rp.player_id === playerId,
+      )
+      if (!row) throw new Error('Jogador não está nesta rodada.')
+      row.position = position
     })
   },
 

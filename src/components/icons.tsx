@@ -152,12 +152,14 @@ export const IconGoldenBall = (props: IconProps) => (
   </Base>
 )
 
-/** Bola murcha: o ar saiu, o topo afundou e ela está deitada no chão. */
-export const IconFlatBall = (props: IconProps) => (
+/** Bola furada: o rasgo no couro e o ar escapando por ele. */
+export const IconPuncturedBall = (props: IconProps) => (
   <Base {...props}>
-    <path d="M3.5 18c0-4 2.6-6.9 5.8-7.4 1.8-.3 2.5 1.2 4.1.5 2-.9 4.2.6 5.5 2.3 1 1.4 1.6 3 1.6 4.6Z" />
-    <path d="M2.5 18h19" />
-    <path d="M8 15.4c1.4-.7 3-.7 4.4-.1M14.6 13.9c1.1.3 2 1 2.6 1.9" />
+    <circle cx="11" cy="14" r="7.5" />
+    <path d="m11 10.2 3 2.2-1.1 3.5H9.1L8 12.4l3-2.2Z" />
+    <path d="M11 6.5v3.7M14 12.4l3.2-1M12.9 15.9l1.9 2.6M9.1 15.9l-1.9 2.6M8 12.4l-3.2-1" />
+    <path d="m13.4 8.6 1.9-1.9" />
+    <path d="M17.2 6.6c.6-.6 1.6-.6 2.2 0M20.4 4.6c.6-.6.6-1.6 0-2.2" />
   </Base>
 )
 

@@ -128,9 +128,29 @@ export function createDemoSnapshot(): Snapshot {
           team_id: teamId,
           attendance: 'confirmado',
           responded_at: `${date}T12:00:00.000Z`,
+          position: players.find((p) => p.id === playerId)?.position ?? 'linha',
         })
       }
     })
+
+    // Na última rodada o Carlão cansa do gol e vai para a linha; quem estava
+    // na linha assume as traves. É o caso que a posição por rodada resolve.
+    if (roundIndex === ROUND_DATES.length - 1) {
+      const swap = snapshot.roundPlayers.filter((rp) => rp.round_id === roundId)
+      const keeper = swap.find(
+        (rp) => players.find((p) => p.id === rp.player_id)?.username === 'carlao',
+      )
+      if (keeper) {
+        keeper.position = 'linha'
+        const replacement = swap.find(
+          (rp) =>
+            rp.team_id === keeper.team_id &&
+            rp.player_id !== keeper.player_id &&
+            players.find((p) => p.id === rp.player_id)?.position === 'linha',
+        )
+        if (replacement) replacement.position = 'goleiro'
+      }
+    }
 
     const teamIds = snapshot.teams
       .filter((team) => team.round_id === roundId)
@@ -235,6 +255,7 @@ export function createDemoSnapshot(): Snapshot {
         team_id: null,
         attendance: 'confirmado',
         responded_at: `${nextDate}T09:${String(index).padStart(2, '0')}:00.000Z`,
+        position: null,
       })
     })
 

@@ -27,7 +27,7 @@ export function HomePage() {
   // é que a tela cai para a última encerrada.
   const round = upcomingRound(snapshot.rounds, todayISO()) ?? highlightRound(snapshot)
   const myStats = currentPlayer ? stats.get(currentPlayer.id) : undefined
-  const isKeeper = currentPlayer?.position === 'goleiro'
+  const playedInGoal = (myStats?.keeperMatches ?? 0) > 0
 
   const lastClosed = [...snapshot.rounds]
     .filter((item) => item.status === 'encerrada')
@@ -122,16 +122,11 @@ export function HomePage() {
               <StatRow>
                 <Stat label="Jogos" value={myStats.played} />
                 <Stat label="Vitórias" value={myStats.wins} tone="win" />
-                {isKeeper ? (
-                  <>
-                    <Stat label="Gols sofridos" value={myStats.goalsAgainst} />
-                    <Stat label="Sem sofrer" value={myStats.cleanSheets} />
-                  </>
+                <Stat label="Gols" value={myStats.goals} />
+                {playedInGoal ? (
+                  <Stat label="Sofridos" value={myStats.goalsAgainst} />
                 ) : (
-                  <>
-                    <Stat label="Gols" value={myStats.goals} />
-                    <Stat label="Assistências" value={myStats.assists} />
-                  </>
+                  <Stat label="Assistências" value={myStats.assists} />
                 )}
               </StatRow>
               <p className="mt-3.5 border-t border-line pt-3 text-center text-[13px] text-muted">

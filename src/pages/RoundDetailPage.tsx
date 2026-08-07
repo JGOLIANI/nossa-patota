@@ -6,7 +6,7 @@ import { ConfirmDialog, Modal } from '../components/Modal'
 import { Page } from '../components/Page'
 import { PlayerRow } from '../components/PlayerRow'
 import { ShareRound } from '../components/ShareRound'
-import { IconBall, IconClose, IconPlus, IconShuffle } from '../components/icons'
+import { IconBall, IconClose, IconGlove, IconPlus, IconShuffle } from '../components/icons'
 import {
   ActionBar,
   Button,
@@ -21,7 +21,14 @@ import {
   Tag,
 } from '../components/ui'
 import { attendanceLists } from '../domain/attendance'
-import { findRound, playerMap, roundMatches, roundTeams, teamPlayers } from '../domain/selectors'
+import {
+  findRound,
+  playerMap,
+  positionInRound,
+  roundMatches,
+  roundTeams,
+  teamPlayers,
+} from '../domain/selectors'
 import { computeStats } from '../domain/stats'
 import { formatDate, formatWeekday } from '../lib/format'
 import { playerCaption } from '../lib/player'
@@ -204,15 +211,39 @@ export function RoundDetailPage() {
                     <ListGroup>
                       {squad.map((player) => {
                         const entry = roundStats.get(player.id)
+                        const playing = positionInRound(snapshot, roundId, player.id)
                         return (
                           <PlayerRow
                             key={player.id}
                             player={player}
                             to={`/jogadores/${player.id}`}
                             subtitle={
-                              player.position === 'goleiro'
-                                ? `Goleiro · ${entry?.goalsAgainst ?? 0} sofridos`
-                                : `${entry?.goals ?? 0} gols · ${entry?.assists ?? 0} assistências`
+                              playing === 'goleiro'
+                                ? `No gol · ${entry?.goalsAgainst ?? 0} sofridos`
+                                : `Na linha · ${entry?.goals ?? 0} gols · ${entry?.assists ?? 0} assist.`
+                            }
+                            trailing={
+                              isAdmin && !closed ? (
+                                <IconButton
+                                  label={
+                                    playing === 'goleiro'
+                                      ? `Passar ${player.full_name} para a linha`
+                                      : `Colocar ${player.full_name} no gol`
+                                  }
+                                  className={playing === 'goleiro' ? 'text-brand' : undefined}
+                                  onClick={() =>
+                                    guard(() =>
+                                      actions.setRoundPosition(
+                                        roundId,
+                                        player.id,
+                                        playing === 'goleiro' ? 'linha' : 'goleiro',
+                                      ),
+                                    )
+                                  }
+                                >
+                                  <IconGlove className="size-5" />
+                                </IconButton>
+                              ) : undefined
                             }
                           />
                         )
@@ -221,6 +252,13 @@ export function RoundDetailPage() {
                   </section>
                 )
               })}
+
+              {isAdmin && !closed && (
+                <Note>
+                  Toque na luva para trocar quem está no gol nesta rodada. Os gols sofridos
+                  contam só para quem estiver debaixo das traves.
+                </Note>
+              )}
 
               <ShareRound round={round} kind="escalacao" />
 

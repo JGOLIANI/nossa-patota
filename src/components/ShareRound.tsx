@@ -1,5 +1,12 @@
 import { useState } from 'react'
-import { playerMap, roundAwards, roundMatches, roundTeams, teamPlayers } from '../domain/selectors'
+import {
+  playerMap,
+  positionInRound,
+  roundAwards,
+  roundMatches,
+  roundTeams,
+  teamPlayers,
+} from '../domain/selectors'
 import { computeStats } from '../domain/stats'
 import { formatDate, formatWeekday } from '../lib/format'
 import {
@@ -63,7 +70,7 @@ export function ShareRound({ round, kind }: { round: Round; kind: 'escalacao' | 
       color: team.color,
       players: teamPlayers(snapshot, team.id).map((player) => ({
         name: player.full_name,
-        position: player.position,
+        position: positionInRound(snapshot, round.id, player.id),
         photoUrl: player.photo_url,
       })),
     }))

@@ -60,8 +60,10 @@ export function buildRankings(snapshot: Snapshot, options: Options = {}): Rankin
   const stats = computeStats(filtered)
   const logs = computeMatchLogs(filtered)
   const active = snapshot.players.filter((player) => (stats.get(player.id)?.played ?? 0) > 0)
-  const line = active.filter((player) => player.position === 'linha')
-  const keepers = active.filter((player) => player.position === 'goleiro')
+  // Gol é gol: o goleiro que sobe para a linha e marca entra na artilharia
+  // como qualquer outro. O ranking de goleiro é que continua restrito a quem
+  // realmente jogou debaixo das traves.
+  const keepers = active.filter((player) => (stats.get(player.id)?.keeperMatches ?? 0) > 0)
 
   const qualified = (players: Player[]) =>
     players.filter((player) => (stats.get(player.id)?.played ?? 0) >= minMatches)
@@ -87,7 +89,7 @@ export function buildRankings(snapshot: Snapshot, options: Options = {}): Rankin
       key: 'artilheiro',
       title: 'Artilharia',
       description: 'Gols marcados',
-      entries: rank(line, stats, (s) => s.goals, (s) => String(s.goals)).filter(
+      entries: rank(active, stats, (s) => s.goals, (s) => String(s.goals)).filter(
         (entry) => entry.value > 0,
       ),
     },
@@ -95,7 +97,7 @@ export function buildRankings(snapshot: Snapshot, options: Options = {}): Rankin
       key: 'assistencias',
       title: 'Assistências',
       description: 'Passes para gol',
-      entries: rank(line, stats, (s) => s.assists, (s) => String(s.assists)).filter(
+      entries: rank(active, stats, (s) => s.assists, (s) => String(s.assists)).filter(
         (entry) => entry.value > 0,
       ),
     },
@@ -104,7 +106,7 @@ export function buildRankings(snapshot: Snapshot, options: Options = {}): Rankin
       title: 'Participações em gols',
       description: 'Gols + assistências',
       entries: rank(
-        line,
+        active,
         stats,
         (s) => s.participations,
         (s) => String(s.participations),
@@ -138,9 +140,9 @@ export function buildRankings(snapshot: Snapshot, options: Options = {}): Rankin
     {
       key: 'goleiro_menos_vazado',
       title: 'Goleiro menos vazado',
-      description: 'Média de gols sofridos por partida',
+      description: 'Média de gols sofridos por partida como goleiro',
       entries: rank(
-        qualified(keepers),
+        keepers.filter((player) => (stats.get(player.id)?.keeperMatches ?? 0) >= minMatches),
         stats,
         (s) => s.goalsAgainstPerMatch,
         (s) => decimal(s.goalsAgainstPerMatch, 2),

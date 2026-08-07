@@ -1,4 +1,4 @@
-import type { Match, MatchEvent, Snapshot } from '../types'
+import type { Match, MatchEvent, PlayerPosition, Snapshot } from '../types'
 
 export type MatchResult = 'V' | 'E' | 'D'
 
@@ -15,6 +15,8 @@ export interface MatchLogEntry {
   result: MatchResult
   goals: number
   assists: number
+  /** Posição ocupada naquela partida — pode diferir do cadastro. */
+  position: PlayerPosition
 }
 
 export interface PlayerStats {
@@ -27,9 +29,11 @@ export interface PlayerStats {
   assists: number
   /** Gols + assistências. */
   participations: number
-  /** Gols sofridos pelo time do jogador (métrica de goleiro). */
+  /** Partidas disputadas debaixo das traves. */
+  keeperMatches: number
+  /** Gols sofridos enquanto era o goleiro. */
   goalsAgainst: number
-  /** Partidas em que o time do jogador não sofreu gols. */
+  /** Partidas como goleiro sem sofrer gols. */
   cleanSheets: number
   /** Pontos no critério 3-1-0. */
   points: number
@@ -46,6 +50,7 @@ export function emptyStats(playerId: string): PlayerStats {
   return {
     playerId,
     played: 0,
+    keeperMatches: 0,
     wins: 0,
     draws: 0,
     losses: 0,
@@ -82,14 +87,28 @@ function groupEventsByMatch(events: MatchEvent[]): Map<string, MatchEvent[]> {
   return map
 }
 
-/** teamId -> ids dos jogadores escalados naquele time. */
-function groupPlayersByTeam(snapshot: Snapshot): Map<string, string[]> {
-  const map = new Map<string, string[]>()
+interface Lineup {
+  playerId: string
+  position: PlayerPosition
+}
+
+/**
+ * teamId -> quem jogou naquele time, com a posição daquela rodada.
+ * A posição do cadastro é apenas o padrão: o que vale é o que a rodada diz.
+ */
+function groupPlayersByTeam(snapshot: Snapshot): Map<string, Lineup[]> {
+  const registered = new Map(snapshot.players.map((player) => [player.id, player.position]))
+  const map = new Map<string, Lineup[]>()
+
   for (const rp of snapshot.roundPlayers) {
     if (!rp.team_id) continue
+    const entry: Lineup = {
+      playerId: rp.player_id,
+      position: rp.position ?? registered.get(rp.player_id) ?? 'linha',
+    }
     const list = map.get(rp.team_id)
-    if (list) list.push(rp.player_id)
-    else map.set(rp.team_id, [rp.player_id])
+    if (list) list.push(entry)
+    else map.set(rp.team_id, [entry])
   }
   return map
 }
@@ -162,8 +181,9 @@ export function computeMatchLogs(
     ]
 
     for (const side of sides) {
-      for (const playerId of playersByTeam.get(side.teamId) ?? []) {
+      for (const { playerId, position } of playersByTeam.get(side.teamId) ?? []) {
         push(playerId, {
+          position,
           matchId: match.id,
           roundId: match.round_id,
           date: round?.date ?? '',
@@ -192,8 +212,11 @@ export function statsFromLogs(playerId: string, entries: MatchLogEntry[]): Playe
     else stats.losses += 1
     stats.goals += entry.goals
     stats.assists += entry.assists
-    stats.goalsAgainst += entry.scoreAgainst
-    if (entry.scoreAgainst === 0) stats.cleanSheets += 1
+    if (entry.position === 'goleiro') {
+      stats.keeperMatches += 1
+      stats.goalsAgainst += entry.scoreAgainst
+      if (entry.scoreAgainst === 0) stats.cleanSheets += 1
+    }
   }
   stats.participations = stats.goals + stats.assists
   stats.points = stats.wins * 3 + stats.draws
@@ -203,7 +226,9 @@ export function statsFromLogs(playerId: string, entries: MatchLogEntry[]): Playe
     stats.goalsPerMatch = stats.goals / stats.played
     stats.assistsPerMatch = stats.assists / stats.played
     stats.participationsPerMatch = stats.participations / stats.played
-    stats.goalsAgainstPerMatch = stats.goalsAgainst / stats.played
+  }
+  if (stats.keeperMatches > 0) {
+    stats.goalsAgainstPerMatch = stats.goalsAgainst / stats.keeperMatches
   }
   return stats
 }

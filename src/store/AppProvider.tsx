@@ -8,7 +8,14 @@ import { missingRoundDates, roundTitle } from '../domain/schedule'
 import { scoreFromEvents } from '../domain/score'
 import { computeMatchLogs, computeStats } from '../domain/stats'
 import { todayISO } from '../lib/format'
-import type { Attendance, Match, PatotaSettings, SessionUser, Snapshot } from '../types'
+import type {
+  Attendance,
+  Match,
+  PatotaSettings,
+  PlayerPosition,
+  SessionUser,
+  Snapshot,
+} from '../types'
 import { EMPTY_SNAPSHOT, TEAM_PRESETS } from '../types'
 import { AppContext, type AppActions, type AppValue } from './context'
 
@@ -139,6 +146,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setAttendance: (roundId: string, playerId: string, attendance: Attendance) =>
         run(() => backend.setAttendance(roundId, [{ player_id: playerId, attendance }])),
 
+      setRoundPosition: (roundId: string, playerId: string, position: PlayerPosition) =>
+        run(() => backend.setRoundPosition(roundId, playerId, position)),
+
       removeFromRound: (roundId: string, playerId: string) =>
         run(async () => {
           await backend.removeFromRound(roundId, playerId)
@@ -197,6 +207,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const teams = fresh.teams
             .filter((team) => team.round_id === roundId)
             .sort((a, b) => a.position - b.position)
+
+          // A posição da rodada começa igual à do cadastro; o administrador
+          // ajusta quando o goleiro decide jogar na linha.
+          for (const player of roster) {
+            await backend.setRoundPosition(roundId, player.id, player.position)
+          }
 
           if (teams.length === 2) {
             await backend.createMatch(roundId, teams[0].id, teams[1].id)

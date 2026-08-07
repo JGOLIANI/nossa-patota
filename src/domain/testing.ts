@@ -49,7 +49,12 @@ export function makeTeam(id: string, roundId: string, position: number): Team {
   return { id, round_id: roundId, position, name: `Time ${position + 1}`, color: '#22c55e' }
 }
 
-export function makeRoundPlayer(roundId: string, playerId: string, teamId: string | null): RoundPlayer {
+export function makeRoundPlayer(
+  roundId: string,
+  playerId: string,
+  teamId: string | null,
+  position: RoundPlayer['position'] = null,
+): RoundPlayer {
   return {
     id: `${roundId}-${playerId}`,
     round_id: roundId,
@@ -57,6 +62,7 @@ export function makeRoundPlayer(roundId: string, playerId: string, teamId: strin
     team_id: teamId,
     attendance: 'confirmado',
     responded_at: '2026-01-09T12:00:00.000Z',
+    position,
   }
 }
 

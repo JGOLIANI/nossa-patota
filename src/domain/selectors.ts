@@ -1,4 +1,13 @@
-import type { Award, Match, MatchEvent, Player, Round, Snapshot, Team } from '../types'
+import type {
+  Award,
+  Match,
+  MatchEvent,
+  Player,
+  PlayerPosition,
+  Round,
+  Snapshot,
+  Team,
+} from '../types'
 
 export function playerMap(snapshot: Snapshot): Map<string, Player> {
   return new Map(snapshot.players.map((player) => [player.id, player]))
@@ -72,6 +81,22 @@ export function highlightRound(snapshot: Snapshot): Round | null {
     byDate[0] ??
     null
   )
+}
+
+/**
+ * Posição que o jogador ocupou numa rodada. Cai na posição do cadastro
+ * quando a rodada não diz nada.
+ */
+export function positionInRound(
+  snapshot: Snapshot,
+  roundId: string,
+  playerId: string,
+): PlayerPosition {
+  const row = snapshot.roundPlayers.find(
+    (rp) => rp.round_id === roundId && rp.player_id === playerId,
+  )
+  if (row?.position) return row.position
+  return snapshot.players.find((player) => player.id === playerId)?.position ?? 'linha'
 }
 
 export function playerAwards(snapshot: Snapshot, playerId: string): Award[] {

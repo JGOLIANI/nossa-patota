@@ -173,13 +173,29 @@ No celular abre direto o menu de compartilhar; no computador, baixa o arquivo.
 
 | Prêmio | Critério |
 | --- | --- |
-| Jogador da Rodada | Jogador de linha com mais participações em gols (gols + assistências) |
-| Pior Jogador da Rodada | Jogador de linha do **time derrotado** com menos participações em gols |
-| Goleiro Menos Vazado | Goleiro que sofreu menos gols na rodada |
+| Jogador da Rodada | Mais participações em gols (gols + assistências) no **time vencedor** |
+| Pior Jogador da Rodada | Menos participações em gols no **time derrotado** |
+| Goleiro Menos Vazado | Quem sofreu menos gols entre os que jogaram no gol |
 
-Empates devolvem todos os empatados. Se ninguém participou de gol algum, não há
-Jogador da Rodada; se a partida termina empatada não existe time derrotado, e
-o Pior Jogador fica sem dono.
+Os dois prêmios de linha são simétricos, cada um preso ao seu lado do placar.
+
+No empate não há vencedor nem derrotado, então os dois prêmios passam a olhar
+a rodada inteira: o melhor é quem mais participou de gols entre todos, o pior é
+quem menos participou. Empates dentro do prêmio devolvem todos os empatados. Se
+o time vencedor não participou de nenhum gol — um 1 a 0 de gol contra, por
+exemplo — não há Jogador da Rodada.
+
+### Goleiro que joga na linha
+
+A posição é registrada **por rodada**, não só no cadastro. Na aba Times o
+administrador toca na luva para trocar quem está no gol, e isso muda tudo que
+depende da posição: gols sofridos e jogos sem sofrer gol contam apenas para
+quem esteve debaixo das traves, e quem subiu para a linha passa a disputar os
+prêmios de linha.
+
+Gol é gol: o goleiro que marca entra na artilharia como qualquer outro. O único
+ranking restrito é o de goleiro menos vazado, que considera só as partidas
+disputadas no gol.
 
 ---
 

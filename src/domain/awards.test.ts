@@ -1,89 +1,60 @@
 import { describe, expect, it } from 'vitest'
-import { computeRoundAwards, losingTeam } from './awards'
+import { computeRoundAwards, roundOutcome } from './awards'
 import { baseScenario, makeEvent, makeRoundPlayer } from './testing'
 
 /**
  * No cenário base o Time A (p1, p2, gk1) vence o Time B (p3, p4, gk2) por
- * 3 a 1, então o pior jogador tem de sair do Time B.
+ * 3 a 1. Os prêmios de linha são simétricos: o melhor sai de quem venceu, o
+ * pior de quem perdeu.
  */
 describe('computeRoundAwards', () => {
-  it('elege o jogador com mais participações em gols', () => {
+  it('elege o melhor entre os vencedores', () => {
     expect(computeRoundAwards(baseScenario(), 'r1').jogador_rodada).toEqual(['p1'])
+  })
+
+  it('elege o pior entre os derrotados', () => {
+    expect(computeRoundAwards(baseScenario(), 'r1').pior_jogador).toEqual(['p4'])
   })
 
   it('premia o goleiro menos vazado', () => {
     expect(computeRoundAwards(baseScenario(), 'r1').goleiro_menos_vazado).toEqual(['gk1'])
   })
 
-  it('não inclui goleiros na disputa de jogador da rodada', () => {
+  it('não deixa o time perdedor levar o prêmio de melhor', () => {
     const snapshot = baseScenario()
-    snapshot.events.push(makeEvent('m1', 'tA', 'gk1'), makeEvent('m1', 'tA', 'gk1'))
-    snapshot.matches[0].score_a = 5
+    // p3 marca duas vezes e passa p1 em participações, mas perdeu o jogo.
+    snapshot.events.push(makeEvent('m1', 'tB', 'p3'), makeEvent('m1', 'tB', 'p3'))
+    snapshot.matches[0].score_b = 3
+    snapshot.matches[0].score_a = 4
 
     const awards = computeRoundAwards(snapshot, 'r1')
     expect(awards.jogador_rodada).toEqual(['p1'])
-    expect(awards.pior_jogador).not.toContain('gk1')
+    expect(awards.pior_jogador).toEqual(['p4'])
   })
 
-  it('devolve todos os empatados no jogador da rodada', () => {
+  it('não elege melhor jogador quando o vencedor não participou de gols', () => {
     const snapshot = baseScenario()
-    snapshot.events.push(makeEvent('m1', 'tB', 'p3'), makeEvent('m1', 'tB', 'p4', 'p3'))
-    snapshot.matches[0].score_b = 3
-
-    expect(computeRoundAwards(snapshot, 'r1').jogador_rodada.sort()).toEqual(['p1', 'p3'])
-  })
-
-  it('não elege jogador da rodada quando ninguém participou de gols', () => {
-    const snapshot = baseScenario()
-    snapshot.events = []
+    // Time A vence só com gol contra: ninguém do time participou de gol.
+    snapshot.events = [makeEvent('m1', 'tA', 'p3', null, true)]
     snapshot.matches[0].score_a = 1
     snapshot.matches[0].score_b = 0
 
     expect(computeRoundAwards(snapshot, 'r1').jogador_rodada).toEqual([])
   })
-})
 
-describe('pior jogador — sai do time derrotado', () => {
-  it('escolhe quem menos participou de gols no time que perdeu', () => {
-    // No Time B, p3 fez um gol e p4 não fez nada.
-    expect(computeRoundAwards(baseScenario(), 'r1').pior_jogador).toEqual(['p4'])
-  })
-
-  it('nunca escolhe alguém do time vencedor, mesmo sem participação', () => {
+  it('devolve todos os empatados dentro de cada prêmio', () => {
     const snapshot = baseScenario()
-    // p2 perde as participações: passa a ser o único zerado da rodada, mas
-    // está no time que ganhou.
+    // p1 e p2 terminam com as mesmas participações no time vencedor.
     snapshot.events = [
-      makeEvent('m1', 'tA', 'p1'),
-      makeEvent('m1', 'tA', 'p1'),
-      makeEvent('m1', 'tA', 'p1'),
-      makeEvent('m1', 'tB', 'p3'),
-    ]
-
-    const awards = computeRoundAwards(snapshot, 'r1')
-    expect(awards.pior_jogador).not.toContain('p2')
-    expect(awards.pior_jogador).toEqual(['p4'])
-  })
-
-  it('devolve todos os empatados dentro do time perdedor', () => {
-    const snapshot = baseScenario()
-    // Ninguém do Time B participa de gol: p3 e p4 empatam em zero.
-    snapshot.events = [
-      makeEvent('m1', 'tA', 'p1'),
+      makeEvent('m1', 'tA', 'p1', 'p2'),
+      makeEvent('m1', 'tA', 'p2', 'p1'),
       makeEvent('m1', 'tA', 'p1'),
       makeEvent('m1', 'tA', 'p2'),
+      makeEvent('m1', 'tB', 'p3'),
     ]
-    snapshot.matches[0].score_b = 0
+    snapshot.matches[0].score_a = 4
 
-    expect(computeRoundAwards(snapshot, 'r1').pior_jogador.sort()).toEqual(['p3', 'p4'])
-  })
-
-  it('não premia ninguém quando a partida termina empatada', () => {
-    const snapshot = baseScenario()
-    snapshot.matches[0].score_a = 1
-    snapshot.matches[0].score_b = 1
-
-    expect(computeRoundAwards(snapshot, 'r1').pior_jogador).toEqual([])
+    expect(computeRoundAwards(snapshot, 'r1').jogador_rodada.sort()).toEqual(['p1', 'p2'])
   })
 
   it('ignora quem foi inscrito mas não entrou em campo', () => {
@@ -95,20 +66,83 @@ describe('pior jogador — sai do time derrotado', () => {
   })
 })
 
-describe('losingTeam', () => {
-  it('aponta o time derrotado da rodada', () => {
-    expect(losingTeam(baseScenario(), 'r1')).toBe('tB')
+describe('empate — os dois prêmios olham a rodada inteira', () => {
+  function drawn() {
+    const snapshot = baseScenario()
+    // 2 a 2: p1 marca os dois do Time A, p3 os dois do Time B.
+    snapshot.events = [
+      makeEvent('m1', 'tA', 'p1'),
+      makeEvent('m1', 'tA', 'p1'),
+      makeEvent('m1', 'tB', 'p3'),
+      makeEvent('m1', 'tB', 'p3'),
+    ]
+    snapshot.matches[0].score_a = 2
+    snapshot.matches[0].score_b = 2
+    return snapshot
+  }
+
+  it('busca o melhor nos dois times', () => {
+    expect(computeRoundAwards(drawn(), 'r1').jogador_rodada.sort()).toEqual(['p1', 'p3'])
   })
 
-  it('não aponta ninguém no empate', () => {
+  it('busca o pior nos dois times', () => {
+    expect(computeRoundAwards(drawn(), 'r1').pior_jogador.sort()).toEqual(['p2', 'p4'])
+  })
+
+  it('premia os dois goleiros quando ambos sofreram o mesmo', () => {
+    expect(computeRoundAwards(drawn(), 'r1').goleiro_menos_vazado.sort()).toEqual(['gk1', 'gk2'])
+  })
+})
+
+describe('goleiro que joga na linha', () => {
+  it('disputa os prêmios de linha quando a rodada o coloca na linha', () => {
+    const snapshot = baseScenario()
+    // gk1 vira jogador de linha nesta rodada e faz quatro gols, passando as
+    // três participações de p1.
+    const row = snapshot.roundPlayers.find((rp) => rp.player_id === 'gk1')!
+    row.position = 'linha'
+    for (let goal = 0; goal < 4; goal += 1) {
+      snapshot.events.push(makeEvent('m1', 'tA', 'gk1'))
+    }
+    snapshot.matches[0].score_a = 7
+
+    const awards = computeRoundAwards(snapshot, 'r1')
+    expect(awards.jogador_rodada).toEqual(['gk1'])
+    // E some da disputa de goleiro menos vazado.
+    expect(awards.goleiro_menos_vazado).toEqual(['gk2'])
+  })
+
+  it('deixa o jogador de linha que foi para o gol disputar o prêmio de goleiro', () => {
+    const snapshot = baseScenario()
+    snapshot.roundPlayers.find((rp) => rp.player_id === 'gk1')!.position = 'linha'
+    snapshot.roundPlayers.find((rp) => rp.player_id === 'p2')!.position = 'goleiro'
+
+    const awards = computeRoundAwards(snapshot, 'r1')
+    // O Time A sofreu 1 gol e o Time B sofreu 3: p2 leva.
+    expect(awards.goleiro_menos_vazado).toEqual(['p2'])
+    expect(awards.jogador_rodada).not.toContain('p2')
+  })
+})
+
+describe('roundOutcome', () => {
+  it('aponta vencedor e derrotado', () => {
+    expect(roundOutcome(baseScenario(), 'r1')).toEqual({
+      winner: 'tA',
+      loser: 'tB',
+      draw: false,
+    })
+  })
+
+  it('marca empate quando os times terminam iguais', () => {
     const snapshot = baseScenario()
     snapshot.matches[0].score_b = 3
-    expect(losingTeam(snapshot, 'r1')).toBeNull()
+    expect(roundOutcome(snapshot, 'r1')).toEqual({ winner: null, loser: null, draw: true })
   })
 
   it('ignora partidas ainda em andamento', () => {
     const snapshot = baseScenario()
     snapshot.matches[0].status = 'em_andamento'
-    expect(losingTeam(snapshot, 'r1')).toBeNull()
+    expect(roundOutcome(snapshot, 'r1').draw).toBe(false)
+    expect(roundOutcome(snapshot, 'r1').winner).toBeNull()
   })
 })

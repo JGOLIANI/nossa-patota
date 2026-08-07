@@ -6,6 +6,7 @@ import type {
   Match,
   PatotaSettings,
   Player,
+  PlayerPosition,
   Round,
   SessionUser,
   Snapshot,
@@ -30,6 +31,8 @@ export interface AppActions {
   /** Ajuste manual feito pelo administrador. */
   setAttendance(roundId: string, playerId: string, attendance: Attendance): Promise<void>
   removeFromRound(roundId: string, playerId: string): Promise<void>
+  /** Marca em que posição o jogador atuou nesta rodada. */
+  setRoundPosition(roundId: string, playerId: string, position: PlayerPosition): Promise<void>
 
   /** Sorteia os dois times com quem confirmou e já cria a partida da rodada. */
   generateTeamsForRound(roundId: string): Promise<void>

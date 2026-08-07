@@ -94,6 +94,14 @@ export interface RoundPlayer {
   attendance: Attendance
   /** Momento da confirmação — define a ordem da lista de espera. */
   responded_at: string
+  /**
+   * Posição realmente ocupada nesta rodada.
+   *
+   * Na pelada o goleiro cansa e vai para a linha, e um jogador de linha
+   * assume o gol. Sem isso, os gols sofridos seriam atribuídos a quem nem
+   * estava debaixo das traves. `null` mantém a posição do cadastro.
+   */
+  position: PlayerPosition | null
 }
 
 export interface Match {

@@ -43,7 +43,7 @@ export function ProfilePage() {
   }
 
   const entry = stats.get(currentPlayer.id)!
-  const isKeeper = currentPlayer.position === 'goleiro'
+  const playedInGoal = (entry?.keeperMatches ?? 0) > 0
 
   async function upload(file: File | undefined) {
     if (!file || !currentPlayer) return
@@ -117,16 +117,11 @@ export function ProfilePage() {
           <StatRow>
             <Stat label="Jogos" value={entry.played} />
             <Stat label="Vitórias" value={entry.wins} tone="win" />
-            {isKeeper ? (
-              <>
-                <Stat label="Sofridos" value={entry.goalsAgainst} />
-                <Stat label="Sem sofrer" value={entry.cleanSheets} />
-              </>
+            <Stat label="Gols" value={entry.goals} />
+            {playedInGoal ? (
+              <Stat label="Sofridos" value={entry.goalsAgainst} />
             ) : (
-              <>
-                <Stat label="Gols" value={entry.goals} />
-                <Stat label="Assistências" value={entry.assists} />
-              </>
+              <Stat label="Assistências" value={entry.assists} />
             )}
           </StatRow>
           <p className="mt-3.5 border-t border-line pt-3 text-center text-[13px] text-muted">

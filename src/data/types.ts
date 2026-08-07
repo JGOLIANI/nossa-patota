@@ -6,6 +6,7 @@ import type {
   MatchEvent,
   PatotaSettings,
   Player,
+  PlayerPosition,
   Round,
   SessionUser,
   Snapshot,
@@ -87,6 +88,12 @@ export interface Backend {
   /** Ajuste manual do administrador. */
   setAttendance(roundId: string, changes: AttendanceInput[]): Promise<void>
   removeFromRound(roundId: string, playerId: string): Promise<void>
+  /** Troca a posição que o jogador ocupa nesta rodada. */
+  setRoundPosition(
+    roundId: string,
+    playerId: string,
+    position: PlayerPosition,
+  ): Promise<void>
 
   createMatch(roundId: string, teamAId: string, teamBId: string): Promise<Match>
   updateMatch(id: string, patch: Partial<Match>): Promise<void>

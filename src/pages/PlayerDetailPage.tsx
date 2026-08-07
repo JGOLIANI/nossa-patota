@@ -47,10 +47,12 @@ export function PlayerDetailPage() {
   const entry = stats.get(player.id)!
   const history = playerHistory(snapshot, player.id).slice(0, 8)
   const awards = awardCounts(snapshot, player.id)
-  const isKeeper = player.position === 'goleiro'
+  // A posição do cadastro é só o padrão: quem já pegou no gol ganha o bloco
+  // de goleiro, e todo mundo tem gols e assistências, inclusive o goleiro.
+  const playedInGoal = entry.keeperMatches > 0
 
   const description = [
-    isKeeper ? 'Goleiro' : 'Jogador de linha',
+    player.position === 'goleiro' ? 'Goleiro' : 'Jogador de linha',
     player.player_type === 'mensalista' ? 'Mensalista' : 'Visitante',
     FOOT[player.dominant_foot],
     player.status === 'inativo' ? 'Inativo' : null,
@@ -86,21 +88,25 @@ export function PlayerDetailPage() {
           </StatRow>
           <div className="my-3.5 border-t border-line" />
           <StatRow>
-            {isKeeper ? (
-              <>
+            <Stat label="Gols" value={entry.goals} />
+            <Stat label="Assistências" value={entry.assists} />
+            <Stat label="Participações" value={entry.participations} />
+            <Stat label="Aproveitamento" value={percent(entry.pointsPct)} tone="brand" />
+          </StatRow>
+
+          {playedInGoal && (
+            <>
+              <div className="my-3.5 border-t border-line" />
+              <p className="mb-2.5 text-center text-[13px] text-muted">
+                Como goleiro · {entry.keeperMatches} jogo(s)
+              </p>
+              <StatRow>
                 <Stat label="Gols sofridos" value={entry.goalsAgainst} />
                 <Stat label="Sem sofrer" value={entry.cleanSheets} />
                 <Stat label="Média sofrida" value={decimal(entry.goalsAgainstPerMatch)} />
-              </>
-            ) : (
-              <>
-                <Stat label="Gols" value={entry.goals} />
-                <Stat label="Assistências" value={entry.assists} />
-                <Stat label="Participações" value={entry.participations} />
-              </>
-            )}
-            <Stat label="Aproveitamento" value={percent(entry.pointsPct)} tone="brand" />
-          </StatRow>
+              </StatRow>
+            </>
+          )}
         </Card>
 
         <section>
@@ -140,16 +146,14 @@ export function PlayerDetailPage() {
                     title={`${item.scoreFor} – ${item.scoreAgainst}`}
                     subtitle={round ? `${round.title} · ${formatDate(round.date)}` : undefined}
                     trailing={
-                      isKeeper ? (
-                        item.scoreAgainst === 0 ? (
-                          <span className="text-[13px] font-medium text-brand">Não sofreu</span>
-                        ) : undefined
-                      ) : item.goals > 0 || item.assists > 0 ? (
+                      item.goals > 0 || item.assists > 0 ? (
                         <span className="text-[13px] text-muted">
                           {item.goals > 0 && `${item.goals}G`}
                           {item.goals > 0 && item.assists > 0 && ' '}
                           {item.assists > 0 && `${item.assists}A`}
                         </span>
+                      ) : item.position === 'goleiro' && item.scoreAgainst === 0 ? (
+                        <span className="text-[13px] font-medium text-brand">Não sofreu</span>
                       ) : undefined
                     }
                   />
