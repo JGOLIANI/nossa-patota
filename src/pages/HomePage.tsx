@@ -15,7 +15,7 @@ import {
 } from '../components/ui'
 import { attendanceSummary } from '../domain/attendance'
 import { upcomingRound } from '../domain/schedule'
-import { highlightRound, roundMatches } from '../domain/selectors'
+import { highlightRound, roundEntries, roundMatches } from '../domain/selectors'
 import { firstName, formatDate, formatWeekday, percent, todayISO } from '../lib/format'
 import { useApp } from '../store/useApp'
 
@@ -69,10 +69,7 @@ export function HomePage() {
               <p className="mt-3 text-sm text-muted">
                 {round.status === 'encerrada'
                   ? `${roundMatches(snapshot, round.id).length} partidas disputadas`
-                  : attendanceSummary(
-                      snapshot.roundPlayers.filter((rp) => rp.round_id === round.id),
-                      round.max_players,
-                    )}
+                  : attendanceSummary(roundEntries(snapshot, round.id), round.max_players)}
               </p>
 
               {round.status !== 'encerrada' && (

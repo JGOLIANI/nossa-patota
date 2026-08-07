@@ -199,6 +199,47 @@ disputadas no gol.
 
 ---
 
+## Desempenho
+
+Nada é pré-calculado no banco: estatísticas, rankings e prêmios saem sempre do
+histórico completo. Isso mantém os números coerentes, mas coloca o custo dessas
+funções no caminho da interface — então ele é medido.
+
+```bash
+npm run bench
+```
+
+Medido com a CPU quatro vezes mais lenta que a da máquina de desenvolvimento,
+o que aproxima um celular mediano:
+
+| Patota | `computeStats` | `buildRankings` | Lista de rodadas | Abrir rodada |
+| --- | --- | --- | --- | --- |
+| 30 jogadores, 2 anos | 0,5 ms | 1,0 ms | 252 ms | 187 ms |
+| 60 jogadores, 5 anos | 1,6 ms | 3,4 ms | 263 ms | 244 ms |
+| 120 jogadores, 10 anos | 4,8 ms | 8,4 ms | 360 ms | 194 ms |
+
+As contas nunca foram o gargalo — o tempo estava em varrer o histórico inteiro
+uma vez por linha da lista. Duas medidas resolveram:
+
+- **Índices por snapshot** em [`src/domain/selectors.ts`](src/domain/selectors.ts):
+  um `WeakMap` guarda mapas de rodada, time e partida montados uma única vez.
+  Como cada recarga cria um objeto novo, o cache se invalida sozinho.
+- **Lista de rodadas paginada**, 24 por vez. Renderizar 520 linhas custava mais
+  de um segundo sem que ninguém rolasse até o fim.
+
+Na maior escala a lista caiu de 2884 ms para 360 ms e a pior travada do
+aplicativo, de 1238 ms para 181 ms.
+
+O aplicativo baixa cerca de 175 KB comprimidos na primeira visita e nada nas
+seguintes, já que o service worker serve tudo do cache.
+
+### O limite conhecido
+
+O aplicativo carrega o histórico inteiro a cada abertura: 61 KB comprimidos
+para cinco anos de patota, 132 KB para dez. É aceitável hoje e simplifica todo
+o resto, mas cresce para sempre. Quando incomodar, o caminho é buscar as
+rodadas por página e guardar um resumo por jogador, em vez de recalcular tudo.
+
 ## Estrutura
 
 ```
@@ -232,6 +273,7 @@ lá que estão os testes e é lá que se muda o comportamento do sistema.
 | `npm run lint` | ESLint |
 | `npm run setup` | Configuração do Supabase |
 | `npm run icons` | Regenera os ícones do PWA |
+| `npm run bench` | Benchmarks das regras de negócio em quatro escalas |
 
 ### Testando as políticas de segurança
 

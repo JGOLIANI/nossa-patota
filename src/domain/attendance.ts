@@ -1,3 +1,4 @@
+import { playerMap, roundEntries } from './selectors'
 import type { Attendance, Player, RoundPlayer, Snapshot } from '../types'
 
 /**
@@ -105,9 +106,9 @@ export function rebalanceWaitlist(rows: AttendanceRow[], max: number): Attendanc
 
 /** Jogadores que confirmaram presença numa rodada, na ordem da confirmação. */
 export function confirmedPlayers(snapshot: Snapshot, roundId: string): Player[] {
-  const byId = new Map(snapshot.players.map((player) => [player.id, player]))
-  return snapshot.roundPlayers
-    .filter((rp) => rp.round_id === roundId && rp.attendance === 'confirmado')
+  const byId = playerMap(snapshot)
+  return roundEntries(snapshot, roundId)
+    .filter((rp) => rp.attendance === 'confirmado')
     .sort((a, b) => a.responded_at.localeCompare(b.responded_at))
     .map((rp) => byId.get(rp.player_id))
     .filter((player) => player !== undefined)

@@ -25,6 +25,7 @@ import {
   findRound,
   playerMap,
   positionInRound,
+  roundEntries,
   roundMatches,
   roundTeams,
   teamPlayers,
@@ -63,7 +64,7 @@ export function RoundDetailPage() {
 
   const closed = round.status === 'encerrada'
   const byId = playerMap(snapshot)
-  const rows = snapshot.roundPlayers.filter((rp) => rp.round_id === roundId)
+  const rows = roundEntries(snapshot, roundId)
   const lists = attendanceLists(rows)
   const responded = new Set(rows.map((row) => row.player_id))
   const available = snapshot.players.filter(

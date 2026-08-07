@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "setup": "node scripts/setup.mjs",
-    "icons": "node scripts/generate-icons.mjs"
+    "icons": "node scripts/generate-icons.mjs",
+    "bench": "vitest bench --run"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.58.0",

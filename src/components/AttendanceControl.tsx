@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { attendanceLists } from '../domain/attendance'
+import { roundEntries } from '../domain/selectors'
 import type { Round } from '../types'
 import { useApp } from '../store/useApp'
 import { Button, Note } from './ui'
@@ -17,7 +18,7 @@ export function AttendanceControl({ round }: { round: Round }) {
 
   if (!currentPlayer || round.status === 'encerrada') return null
 
-  const rows = snapshot.roundPlayers.filter((rp) => rp.round_id === round.id)
+  const rows = roundEntries(snapshot, round.id)
   const lists = attendanceLists(rows)
   const mine = rows.find((rp) => rp.player_id === currentPlayer.id)?.attendance ?? null
 

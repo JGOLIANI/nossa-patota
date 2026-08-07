@@ -1,8 +1,9 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Page } from '../components/Page'
 import { IconPlus } from '../components/icons'
-import { EmptyState, ListGroup, ListRow, Tag } from '../components/ui'
-import { roundMatches, roundRoster } from '../domain/selectors'
+import { Button, EmptyState, ListGroup, ListRow, Tag } from '../components/ui'
+import { roundEntries, roundMatches } from '../domain/selectors'
 import { formatDate } from '../lib/format'
 import { useApp } from '../store/useApp'
 
@@ -19,14 +20,26 @@ function DateBlock({ date }: { date: string }) {
   )
 }
 
+/**
+ * Quantas rodadas aparecem de uma vez.
+ *
+ * Uma patota com anos de acervo chega a centenas de rodadas, e renderizar
+ * todas de uma vez custa mais de um segundo num celular mediano — sem que
+ * ninguém role até o fim. Meio ano por vez cobre o uso real.
+ */
+const PAGE_SIZE = 24
+
 export function RoundsPage() {
   const { snapshot, isAdmin } = useApp()
-  const rounds = [...snapshot.rounds].sort((a, b) => b.date.localeCompare(a.date))
+  const [limit, setLimit] = useState(PAGE_SIZE)
+
+  const all = [...snapshot.rounds].sort((a, b) => b.date.localeCompare(a.date))
+  const rounds = all.slice(0, limit)
 
   return (
     <Page
       title="Rodadas"
-      subtitle={rounds.length > 0 ? `${rounds.length} no histórico` : undefined}
+      subtitle={all.length > 0 ? `${all.length} no histórico` : undefined}
       profile
       action={
         isAdmin ? (
@@ -40,7 +53,7 @@ export function RoundsPage() {
         ) : undefined
       }
     >
-      {rounds.length === 0 ? (
+      {all.length === 0 ? (
         <EmptyState
           title="Nenhuma rodada ainda"
           description={
@@ -63,8 +76,8 @@ export function RoundsPage() {
                 title={round.title}
                 subtitle={
                   matches.length > 0
-                    ? `${roundRoster(snapshot, round.id).length} jogadores · ${matches.length} partidas · ${goals} gols`
-                    : `${roundRoster(snapshot, round.id).length} jogadores · ${formatDate(round.date)}`
+                    ? `${roundEntries(snapshot, round.id).length} jogadores · ${matches.length} partidas · ${goals} gols`
+                    : `${roundEntries(snapshot, round.id).length} jogadores · ${formatDate(round.date)}`
                 }
                 trailing={
                   round.status !== 'encerrada' ? (
@@ -77,6 +90,17 @@ export function RoundsPage() {
             )
           })}
         </ListGroup>
+      )}
+
+      {limit < all.length && (
+        <Button
+          variant="secondary"
+          block
+          className="mt-3"
+          onClick={() => setLimit((current) => current + PAGE_SIZE)}
+        >
+          Mostrar mais {Math.min(PAGE_SIZE, all.length - limit)}
+        </Button>
       )}
     </Page>
   )

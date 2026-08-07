@@ -1,4 +1,5 @@
 import type { AwardType, PlayerPosition, Snapshot } from '../types'
+import { roundEntries } from './selectors'
 import { computeStats, type PlayerStats } from './stats'
 
 export interface RoundAwards {
@@ -94,7 +95,7 @@ export function roundOutcome(snapshot: Snapshot, roundId: string): RoundOutcome 
 export function computeRoundAwards(snapshot: Snapshot, roundId: string): RoundAwards {
   const stats = computeStats(snapshot, { roundId })
   const registered = new Map(snapshot.players.map((p) => [p.id, p.position]))
-  const rows = snapshot.roundPlayers.filter((rp) => rp.round_id === roundId && rp.team_id)
+  const rows = roundEntries(snapshot, roundId).filter((rp) => rp.team_id)
 
   const teamOf = new Map(rows.map((rp) => [rp.player_id, rp.team_id]))
   const positionOf = new Map<string, PlayerPosition>(

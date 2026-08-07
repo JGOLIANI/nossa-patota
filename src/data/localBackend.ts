@@ -37,8 +37,19 @@ function uid(): string {
   return `id-${Math.random().toString(36).slice(2)}-${Date.now()}`
 }
 
+/**
+ * Cópia já desserializada do histórico.
+ *
+ * Sem ela, cada leitura refazia o `JSON.parse` do acervo inteiro — que passa
+ * de um megabyte numa patota de anos — e toda gravação repetia o
+ * `JSON.stringify`. O cache é invalidado por toda escrita, então nunca
+ * devolve dado velho.
+ */
+let cached: Snapshot | null = null
+
 function seed(): Snapshot {
   const seeded = createDemoSnapshot()
+  cached = seeded
   localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded))
   return seeded
 }
@@ -57,6 +68,8 @@ function isUsable(value: unknown): value is Snapshot {
 }
 
 function load(): Snapshot {
+  if (cached) return cached
+
   for (const key of LEGACY_KEYS) localStorage.removeItem(key)
 
   const raw = localStorage.getItem(STORAGE_KEY)
@@ -64,13 +77,15 @@ function load(): Snapshot {
 
   try {
     const parsed = JSON.parse(raw)
-    return isUsable(parsed) ? parsed : seed()
+    cached = isUsable(parsed) ? parsed : null
+    return cached ?? seed()
   } catch {
     return seed()
   }
 }
 
 function save(snapshot: Snapshot): void {
+  cached = snapshot
   localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot))
 }
 
@@ -97,6 +112,7 @@ function readSession(): SessionUser | null {
 
 /** Restaura a patota fictícia original. Só existe no modo demonstração. */
 export function resetDemoData(): void {
+  cached = null
   localStorage.removeItem(STORAGE_KEY)
   seed()
 }
@@ -188,7 +204,9 @@ export const localBackend: Backend = {
   },
 
   async fetchAll() {
-    return load()
+    // Objeto novo a cada leitura: é a identidade dele que invalida os
+    // índices memorizados e os `useMemo` das telas.
+    return { ...load() }
   },
 
   async createPlayer(input: PlayerInput) {
