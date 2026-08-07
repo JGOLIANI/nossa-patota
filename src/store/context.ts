@@ -31,8 +31,8 @@ export interface AppActions {
   setAttendance(roundId: string, playerId: string, attendance: Attendance): Promise<void>
   removeFromRound(roundId: string, playerId: string): Promise<void>
 
-  /** Gera os times equilibrados com quem confirmou presença. */
-  generateTeamsForRound(roundId: string, teamCount: number): Promise<void>
+  /** Sorteia os dois times com quem confirmou e já cria a partida da rodada. */
+  generateTeamsForRound(roundId: string): Promise<void>
   startRound(roundId: string): Promise<void>
   closeRound(roundId: string): Promise<void>
 

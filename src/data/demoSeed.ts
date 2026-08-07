@@ -146,7 +146,8 @@ export function createDemoSnapshot(): Snapshot {
       ]),
     )
 
-    for (let matchIndex = 0; matchIndex < 2; matchIndex += 1) {
+    // Uma partida por rodada, como no aplicativo.
+    for (let matchIndex = 0; matchIndex < 1; matchIndex += 1) {
       const match: Match = {
         id: `${roundId}-match-${matchIndex + 1}`,
         round_id: roundId,
@@ -163,7 +164,7 @@ export function createDemoSnapshot(): Snapshot {
       const events: MatchEvent[] = []
       for (const teamId of teamIds) {
         const squad = lineByTeam.get(teamId) ?? []
-        const goals = Math.floor(random() * 5)
+        const goals = 1 + Math.floor(random() * 5)
         for (let goal = 0; goal < goals; goal += 1) {
           const scorer = squad[Math.floor(random() * squad.length)]
           const assistCandidates = squad.filter((player) => player.id !== scorer.id)

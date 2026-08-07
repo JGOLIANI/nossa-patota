@@ -39,8 +39,11 @@ export function Button({
   return (
     <button
       className={cn(
-        'inline-flex shrink-0 items-center justify-center gap-2 rounded-control',
-        'font-semibold transition disabled:pointer-events-none disabled:opacity-45',
+        // `min-w-0` e a ausência de `shrink-0` são o que permite dois botões
+        // de largura total dividirem a mesma linha sem estourar a tela; só o
+        // ícone é que não pode encolher.
+        'inline-flex min-w-0 items-center justify-center gap-2 rounded-control [&>svg]:shrink-0',
+        'font-semibold whitespace-nowrap transition disabled:pointer-events-none disabled:opacity-45',
         size === 'lg' ? 'h-13 px-5 text-[15px]' : 'h-11 px-4 text-sm',
         destructive
           ? variant === 'primary'

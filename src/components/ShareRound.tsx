@@ -64,6 +64,7 @@ export function ShareRound({ round, kind }: { round: Round; kind: 'escalacao' | 
       players: teamPlayers(snapshot, team.id).map((player) => ({
         name: player.full_name,
         position: player.position,
+        photoUrl: player.photo_url,
       })),
     }))
     return drawLineupCard(header, teams)

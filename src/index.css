@@ -34,6 +34,7 @@
   --color-loss: #c53434;
   --color-warn: #a35b06;
   --color-warn-soft: #fdf3e3;
+  --color-gold: #c99700;
 
   --radius-card: 16px;
   --radius-control: 12px;
@@ -63,6 +64,7 @@
     --color-loss: #f87171;
     --color-warn: #fbbf24;
     --color-warn-soft: #2c2410;
+    --color-gold: #f0c33c;
 
     --shadow-card: none;
     --shadow-raised: 0 12px 32px -16px rgb(0 0 0 / 0.7);

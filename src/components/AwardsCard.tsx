@@ -3,17 +3,15 @@ import { playerMap, roundAwards } from '../domain/selectors'
 import type { AwardType, Snapshot } from '../types'
 import { AWARD_LABELS } from '../types'
 import { Avatar } from './Avatar'
-import { IconGlove, IconMedal, IconThumbDown } from './icons'
+import { IconFlatBall, IconGlove, IconGoldenBall } from './icons'
 import { EmptyState, ListGroup } from './ui'
 
 const ORDER: AwardType[] = ['jogador_rodada', 'goleiro_menos_vazado', 'pior_jogador']
 
-const STYLES: Record<AwardType, { tone: string; Icon: typeof IconMedal }> = {
-  jogador_rodada: { tone: 'text-brand', Icon: IconMedal },
+const STYLES: Record<AwardType, { tone: string; Icon: typeof IconGlove }> = {
+  jogador_rodada: { tone: 'text-gold', Icon: IconGoldenBall },
   goleiro_menos_vazado: { tone: 'text-brand', Icon: IconGlove },
-  // Antes era uma lixeira, que lia como "excluir". Um polegar para baixo diz
-  // o que o prêmio realmente é: a zoação da rodada.
-  pior_jogador: { tone: 'text-muted', Icon: IconThumbDown },
+  pior_jogador: { tone: 'text-muted', Icon: IconFlatBall },
 }
 
 export function AwardsCard({ snapshot, roundId }: { snapshot: Snapshot; roundId: string }) {

@@ -143,7 +143,8 @@ A patota tem dia fixo, então o administrador descreve o compromisso uma vez e o
 sistema mantém as próximas semanas sempre criadas. Cada jogador confirma a
 própria presença; quando as vagas acabam, quem confirma entra na **lista de
 espera** e sobe automaticamente se alguém desiste — a ordem é a da confirmação.
-Os times são gerados a partir de quem confirmou.
+A rodada tem uma partida: o sorteio divide quem confirmou em dois times
+equilibrados e já abre o jogo, sem um segundo passo para criar a partida.
 
 A confirmação roda em uma função dentro do banco, e não no aplicativo, por dois
 motivos: promover alguém da espera altera a linha de outro jogador, o que as
@@ -156,21 +157,29 @@ pessoas confirmando ao mesmo tempo ocupem a mesma última vaga.
 ### Compartilhar no WhatsApp
 
 Duas imagens são geradas no próprio aparelho, em canvas, sem biblioteca
-nenhuma: a **escalação** no estilo dos jogos de videogame, com o campo visto de
-cima e os goleiros destacados, e o **resumo da rodada**, com placares,
-premiações e artilharia. No celular abre direto o menu de compartilhar; no
-computador, baixa o arquivo.
+nenhuma.
+
+A **escalação** mostra uma quadra de futsal com os cinco titulares de cada time
+nas posições reais — goleiro, fixo, alas e pivô —, cada um com a foto do perfil
+e o nome. Quem passa de cinco vai para o banco de reservas, na lateral da
+quadra. Fotos que o servidor não libera por CORS caem nas iniciais, porque uma
+imagem sem permissão impediria a geração do PNG.
+
+O **resumo da rodada** traz placar, premiações e artilharia.
+
+No celular abre direto o menu de compartilhar; no computador, baixa o arquivo.
 
 ### Premiações da rodada
 
 | Prêmio | Critério |
 | --- | --- |
 | Jogador da Rodada | Jogador de linha com mais participações em gols (gols + assistências) |
-| Pior Jogador da Rodada | Jogadores de linha que terminaram sem nenhuma participação em gol |
+| Pior Jogador da Rodada | Jogador de linha do **time derrotado** com menos participações em gols |
 | Goleiro Menos Vazado | Goleiro que sofreu menos gols na rodada |
 
 Empates devolvem todos os empatados. Se ninguém participou de gol algum, não há
-Jogador da Rodada.
+Jogador da Rodada; se a partida termina empatada não existe time derrotado, e
+o Pior Jogador fica sem dono.
 
 ---
 

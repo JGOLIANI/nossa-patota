@@ -141,11 +141,23 @@ export const IconWhistle = (props: IconProps) => (
   </Base>
 )
 
-export const IconMedal = (props: IconProps) => (
+/** Bola de ouro: a esfera sobre o pedestal, como o troféu da France Football. */
+export const IconGoldenBall = (props: IconProps) => (
   <Base {...props}>
-    <circle cx="12" cy="15" r="5" />
-    <path d="M8 3h8l-2.5 6M8 3l2.5 6" />
-    <path d="m12 13 .8 1.6 1.7.2-1.2 1.2.3 1.7-1.6-.8-1.6.8.3-1.7-1.2-1.2 1.7-.2L12 13Z" />
+    <circle cx="12" cy="8" r="5.4" />
+    <path d="m12 4.4 3.2 2.3-1.2 3.8h-4L8.8 6.7 12 4.4Z" />
+    <path d="M12 3v1.4M15.2 6.7l2.1-.7M14 10.5l1.3 1.8M10 10.5l-1.3 1.8M8.8 6.7l-2.1-.7" />
+    <path d="M12 13.4v3.1" />
+    <path d="M8.6 21h6.8l-1-4.5H9.6L8.6 21Z" />
+  </Base>
+)
+
+/** Bola murcha: o ar saiu, o topo afundou e ela está deitada no chão. */
+export const IconFlatBall = (props: IconProps) => (
+  <Base {...props}>
+    <path d="M3.5 18c0-4 2.6-6.9 5.8-7.4 1.8-.3 2.5 1.2 4.1.5 2-.9 4.2.6 5.5 2.3 1 1.4 1.6 3 1.6 4.6Z" />
+    <path d="M2.5 18h19" />
+    <path d="M8 15.4c1.4-.7 3-.7 4.4-.1M14.6 13.9c1.1.3 2 1 2.6 1.9" />
   </Base>
 )
 

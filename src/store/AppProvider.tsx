@@ -151,14 +151,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
           if (promotions.length > 0) await backend.setAttendance(roundId, promotions)
         }),
 
-      generateTeamsForRound: (roundId, teamCount) =>
+      /**
+       * Sorteia dois times e já cria a partida da rodada.
+       *
+       * A rodada tem uma partida só, então não faz sentido pedir ao
+       * administrador que a crie num segundo passo: sortear os times é o
+       * mesmo ato de começar o jogo.
+       */
+      generateTeamsForRound: (roundId) =>
         run(async () => {
           const current = snapshotRef.current
           const roster = confirmedPlayers(current, roundId)
 
-          if (roster.length < teamCount) {
+          if (roster.length < 2) {
             throw new Error(
-              `Só ${roster.length} jogador(es) confirmaram presença — não dá para montar ${teamCount} times.`,
+              `Só ${roster.length} jogador(es) confirmaram presença — não dá para dividir em dois times.`,
             )
           }
 
@@ -172,7 +179,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             players: roster,
             stats: computeStats(history),
             logs: computeMatchLogs(history),
-            teamCount,
+            teamCount: 2,
             seed: seedFromString(roundId),
           })
 
@@ -184,7 +191,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
               playerIds: team.playerIds,
             })),
           )
-          await backend.updateRound(roundId, { team_count: teamCount })
+
+          // Recarrega para conhecer os ids dos times recém-criados.
+          const fresh = await backend.fetchAll()
+          const teams = fresh.teams
+            .filter((team) => team.round_id === roundId)
+            .sort((a, b) => a.position - b.position)
+
+          if (teams.length === 2) {
+            await backend.createMatch(roundId, teams[0].id, teams[1].id)
+          }
+          await backend.updateRound(roundId, { team_count: 2, status: 'em_andamento' })
         }),
 
       startRound: (roundId) =>
