@@ -38,11 +38,11 @@ export function AwardsCard({ snapshot, roundId }: { snapshot: Snapshot; roundId:
 
         const { tone, Icon } = STYLES[type]
         return (
-          <div key={type} className="flex items-center gap-3 px-3.5 py-3">
+          <div key={type} className="flex items-center gap-3 px-4 py-3">
             <Icon className={`size-6 shrink-0 ${tone}`} />
             <div className="min-w-0 flex-1">
-              <p className="text-[13px] text-muted">{AWARD_LABELS[type]}</p>
-              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+              <p className="text-footnote text-muted">{AWARD_LABELS[type]}</p>
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
                 {winners.map((player) => (
                   <Link
                     key={player.id}
@@ -50,7 +50,7 @@ export function AwardsCard({ snapshot, roundId }: { snapshot: Snapshot; roundId:
                     className="flex items-center gap-1.5"
                   >
                     <Avatar player={player} size="sm" />
-                    <span className="text-sm font-medium text-ink">{player.full_name}</span>
+                    <span className="text-subhead font-medium text-ink">{player.full_name}</span>
                   </Link>
                 ))}
               </div>

@@ -30,7 +30,7 @@ export function ProfilePage() {
     return (
       <Page title="Perfil" back>
         <Card className="p-4">
-          <p className="text-sm text-muted">
+          <p className="text-subhead text-muted">
             Sua conta ainda não está vinculada a um jogador da patota. Peça ao administrador para
             cadastrar seu nome de usuário.
           </p>
@@ -91,7 +91,7 @@ export function ProfilePage() {
               onClick={() => fileInput.current?.click()}
               disabled={busy}
               aria-label="Alterar foto"
-              className="absolute right-0 bottom-0 inline-flex size-9 items-center justify-center rounded-full bg-brand text-brand-ink ring-4 ring-canvas"
+              className="absolute right-0 bottom-0 inline-flex size-9 items-center justify-center rounded-full bg-brand text-brand-ink ring-4 ring-canvas transition duration-200 ease-ios active:scale-90"
             >
               <IconCamera className="size-4" />
             </button>
@@ -103,8 +103,8 @@ export function ProfilePage() {
               onChange={(event) => upload(event.target.files?.[0])}
             />
           </div>
-          <h2 className="mt-3 text-xl font-semibold text-ink">{currentPlayer.full_name}</h2>
-          <p className="mt-0.5 text-sm text-muted">
+          <h2 className="mt-3 text-title2 text-ink">{currentPlayer.full_name}</h2>
+          <p className="mt-0.5 text-subhead text-muted">
             @{currentPlayer.username}
             {isAdmin && ' · administrador'}
           </p>
@@ -124,7 +124,7 @@ export function ProfilePage() {
               <Stat label="Assistências" value={entry.assists} />
             )}
           </StatRow>
-          <p className="mt-3.5 border-t border-line pt-3 text-center text-[13px] text-muted">
+          <p className="hairline-top mt-3.5 pt-3 text-center text-footnote text-muted">
             Aproveitamento de {percent(entry.pointsPct)}
           </p>
         </Card>

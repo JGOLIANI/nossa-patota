@@ -10,6 +10,7 @@ import {
   Card,
   EmptyState,
   IconButton,
+  ListGroup,
   Note,
   Switch,
   Tag,
@@ -33,20 +34,19 @@ function PlayerPicker({
   onChange: (playerId: string | null) => void
   allowNone?: boolean
 }) {
-  const cell = 'flex h-22 flex-col items-center justify-center gap-1.5 rounded-card border px-1 text-center transition'
+  const cell =
+    'flex h-[86px] flex-col items-center justify-center gap-1.5 rounded-[14px] px-1 text-center ' +
+    'transition duration-200 ease-ios active:scale-[0.96]'
   return (
     <div className="grid grid-cols-3 gap-2">
       {allowNone && (
         <button
           type="button"
           onClick={() => onChange(null)}
-          className={cn(
-            cell,
-            value === null ? 'border-brand bg-brand-soft' : 'border-line bg-card',
-          )}
+          className={cn(cell, value === null ? 'bg-brand text-brand-ink' : 'bg-fill text-muted')}
         >
-          <span className="text-xl text-muted">—</span>
-          <span className="text-[12px] font-medium text-muted">Ninguém</span>
+          <span className="text-title3">—</span>
+          <span className="text-caption font-medium">Ninguém</span>
         </button>
       )}
       {players.map((player) => (
@@ -56,11 +56,11 @@ function PlayerPicker({
           onClick={() => onChange(player.id)}
           className={cn(
             cell,
-            value === player.id ? 'border-brand bg-brand-soft' : 'border-line bg-card',
+            value === player.id ? 'bg-brand text-brand-ink' : 'bg-fill text-ink',
           )}
         >
           <Avatar player={player} size="sm" />
-          <span className="line-clamp-2 text-[12px] font-medium text-ink">
+          <span className="line-clamp-2 text-caption font-medium">
             {firstName(player.full_name)}
           </span>
         </button>
@@ -162,25 +162,25 @@ export function LiveMatchPage() {
             de gol logo abaixo — não há como marcar para o time errado. */}
         <Card className="overflow-hidden">
           <div className="flex items-stretch">
-            <div className="flex-1 p-4 text-center">
-              <span
-                aria-hidden="true"
-                className="mx-auto mb-2 block h-1.5 w-10 rounded-full"
-                style={{ backgroundColor: home?.color }}
-              />
-              <p className="truncate text-sm font-medium text-muted">{home?.name}</p>
-              <p className="mt-1 text-4xl font-semibold tabular-nums text-ink">{match.score_a}</p>
-            </div>
-            <div className="w-px bg-line" />
-            <div className="flex-1 p-4 text-center">
-              <span
-                aria-hidden="true"
-                className="mx-auto mb-2 block h-1.5 w-10 rounded-full"
-                style={{ backgroundColor: away?.color }}
-              />
-              <p className="truncate text-sm font-medium text-muted">{away?.name}</p>
-              <p className="mt-1 text-4xl font-semibold tabular-nums text-ink">{match.score_b}</p>
-            </div>
+            {[
+              { team: home, score: match.score_a },
+              { team: away, score: match.score_b },
+            ].map(({ team, score }, index) => (
+              <div key={team?.id ?? index} className="contents">
+                {index > 0 && <span aria-hidden="true" className="w-px bg-line" />}
+                <div className="min-w-0 flex-1 p-4 text-center">
+                  <span
+                    aria-hidden="true"
+                    className="mx-auto mb-2 block size-2.5 rounded-full"
+                    style={{ backgroundColor: team?.color }}
+                  />
+                  <p className="truncate text-subhead text-muted">{team?.name}</p>
+                  <p className="mt-1 font-rounded text-[44px] leading-none font-semibold tabular-nums text-ink">
+                    {score}
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
         </Card>
 
@@ -197,7 +197,7 @@ export function LiveMatchPage() {
                 type="button"
                 onClick={() => openGoal(id)}
                 disabled={busy}
-                className="flex h-14 items-center justify-center gap-2 rounded-control text-[15px] font-semibold transition active:opacity-80 disabled:opacity-45"
+                className="flex h-14 items-center justify-center gap-2 rounded-[14px] text-headline transition duration-200 ease-ios active:scale-[0.97] active:opacity-80 disabled:opacity-35"
                 style={{
                   backgroundColor: team?.color ?? '#333',
                   color: readableInk(team?.color ?? '#333333'),
@@ -211,39 +211,37 @@ export function LiveMatchPage() {
         )}
 
         <section>
-          <h2 className="mb-2.5 text-[15px] font-semibold text-ink">
+          <h2 className="mb-2.5 px-1 text-title3 text-ink">
             Gols {events.length > 0 && <span className="text-muted">· {events.length}</span>}
           </h2>
 
           {events.length === 0 ? (
             <EmptyState title="Nenhum gol registrado" />
           ) : (
-            <div className="divide-y divide-line overflow-hidden rounded-card border border-line bg-card">
+            <ListGroup>
               {events.map((event) => {
                 const team = findTeam(snapshot, event.team_id)
                 const scorerPlayer = snapshot.players.find((p) => p.id === event.scorer_id)
                 const assistPlayer = snapshot.players.find((p) => p.id === event.assist_id)
                 return (
-                  <div key={event.id} className="relative flex items-center gap-3 py-3 pr-2 pl-5">
+                  <div key={event.id} className="flex items-center gap-3 py-2.5 pr-2 pl-5">
                     <span
                       aria-hidden="true"
                       className="absolute inset-y-2 left-0 w-1 rounded-r-full"
                       style={{ backgroundColor: team?.color }}
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium text-ink">
+                      <p className="truncate text-body text-ink">
                         {scorerPlayer ? (
                           <Link to={`/jogadores/${scorerPlayer.id}`}>{scorerPlayer.full_name}</Link>
                         ) : (
                           'Jogador removido'
                         )}
                         {event.own_goal && (
-                          <span className="ml-2 text-[13px] font-normal text-loss">
-                            (contra)
-                          </span>
+                          <span className="ml-2 text-footnote text-loss">(contra)</span>
                         )}
                       </p>
-                      <p className="mt-0.5 truncate text-[13px] text-muted">
+                      <p className="mt-0.5 truncate text-footnote text-muted">
                         {assistPlayer ? `Assistência de ${assistPlayer.full_name}` : team?.name}
                       </p>
                     </div>
@@ -255,7 +253,7 @@ export function LiveMatchPage() {
                   </div>
                 )
               })}
-            </div>
+            </ListGroup>
           )}
         </section>
       </div>
@@ -286,7 +284,7 @@ export function LiveMatchPage() {
       >
         <div className="space-y-5">
           <div>
-            <p className="mb-2 text-sm font-medium text-muted">
+            <p className="mb-2 px-1 text-footnote font-medium text-muted">
               {ownGoal ? 'Quem marcou contra?' : 'Quem marcou?'}
             </p>
             <PlayerPicker players={scorerOptions} value={scorer} onChange={setScorer} />
@@ -294,7 +292,7 @@ export function LiveMatchPage() {
 
           {!ownGoal && (
             <div>
-              <p className="mb-2 text-sm font-medium text-muted">Assistência</p>
+              <p className="mb-2 px-1 text-footnote font-medium text-muted">Assistência</p>
               <PlayerPicker players={assistOptions} value={assist} onChange={setAssist} allowNone />
             </div>
           )}

@@ -65,16 +65,17 @@ export function AdminPage() {
                     player.id === currentPlayer?.id ? (
                       <Tag tone="live">você</Tag>
                     ) : (
-                      <Select
-                        value={player.role}
-                        disabled={busy}
-                        aria-label={`Permissão de ${player.full_name}`}
-                        onChange={(event) => changeRole(player, event.target.value as Role)}
-                        className="w-36 py-2 text-sm"
-                      >
-                        <option value="jogador">Jogador</option>
-                        <option value="admin">Administrador</option>
-                      </Select>
+                      <span className="block w-36">
+                        <Select
+                          value={player.role}
+                          disabled={busy}
+                          aria-label={`Permissão de ${player.full_name}`}
+                          onChange={(event) => changeRole(player, event.target.value as Role)}
+                        >
+                          <option value="jogador">Jogador</option>
+                          <option value="admin">Administrador</option>
+                        </Select>
+                      </span>
                     )
                   }
                 />
@@ -87,13 +88,13 @@ export function AdminPage() {
           <SectionHeader title="Aguardando primeiro acesso" />
           {waiting.length === 0 ? (
             <Card className="p-4">
-              <p className="text-sm text-muted">
+              <p className="text-subhead text-muted">
                 Todos os mensalistas já criaram a própria senha.
               </p>
             </Card>
           ) : (
             <>
-              <p className="mb-3 text-sm text-muted">
+              <p className="mb-3 px-1 text-footnote text-muted">
                 Peça para cada um abrir o aplicativo, tocar em “Primeiro acesso” e usar exatamente
                 o nome de usuário abaixo.
               </p>

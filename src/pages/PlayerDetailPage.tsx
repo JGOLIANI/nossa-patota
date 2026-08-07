@@ -25,9 +25,9 @@ import { AWARD_LABELS, type AwardType } from '../types'
 const FOOT = { direita: 'Destro', esquerda: 'Canhoto', ambidestro: 'Ambidestro' }
 
 const RESULT = {
-  V: { label: 'V', className: 'bg-win/12 text-win' },
+  V: { label: 'V', className: 'bg-win/15 text-win' },
   E: { label: 'E', className: 'bg-fill text-muted' },
-  D: { label: 'D', className: 'bg-loss/12 text-loss' },
+  D: { label: 'D', className: 'bg-loss/15 text-loss' },
 }
 
 export function PlayerDetailPage() {
@@ -75,8 +75,8 @@ export function PlayerDetailPage() {
       <div className="space-y-7">
         <div className="flex flex-col items-center text-center">
           <Avatar player={player} size="xl" />
-          <h2 className="mt-3 text-xl font-semibold text-ink">{player.full_name}</h2>
-          <p className="mt-1 text-sm text-muted">{description}</p>
+          <h2 className="mt-3 text-title2 text-ink">{player.full_name}</h2>
+          <p className="mt-1 text-subhead text-muted">{description}</p>
         </div>
 
         <Card className="p-4">
@@ -86,7 +86,7 @@ export function PlayerDetailPage() {
             <Stat label="Empates" value={entry.draws} />
             <Stat label="Derrotas" value={entry.losses} tone="loss" />
           </StatRow>
-          <div className="my-3.5 border-t border-line" />
+          <div className="hairline my-3.5 h-px" />
           <StatRow>
             <Stat label="Gols" value={entry.goals} />
             <Stat label="Assistências" value={entry.assists} />
@@ -96,8 +96,8 @@ export function PlayerDetailPage() {
 
           {playedInGoal && (
             <>
-              <div className="my-3.5 border-t border-line" />
-              <p className="mb-2.5 text-center text-[13px] text-muted">
+              <div className="hairline my-3.5 h-px" />
+              <p className="mb-2.5 text-center text-footnote text-muted">
                 Como goleiro · {entry.keeperMatches} jogo(s)
               </p>
               <StatRow>
@@ -136,24 +136,28 @@ export function PlayerDetailPage() {
                     leading={
                       <span
                         className={cn(
-                          'inline-flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold',
+                          'inline-flex size-9 shrink-0 items-center justify-center rounded-full text-subhead font-semibold',
                           result.className,
                         )}
                       >
                         {result.label}
                       </span>
                     }
-                    title={`${item.scoreFor} – ${item.scoreAgainst}`}
+                    title={
+                      <span className="font-rounded tabular-nums">
+                        {item.scoreFor} – {item.scoreAgainst}
+                      </span>
+                    }
                     subtitle={round ? `${round.title} · ${formatDate(round.date)}` : undefined}
                     trailing={
                       item.goals > 0 || item.assists > 0 ? (
-                        <span className="text-[13px] text-muted">
+                        <span className="text-footnote text-muted">
                           {item.goals > 0 && `${item.goals}G`}
                           {item.goals > 0 && item.assists > 0 && ' '}
                           {item.assists > 0 && `${item.assists}A`}
                         </span>
                       ) : item.position === 'goleiro' && item.scoreAgainst === 0 ? (
-                        <span className="text-[13px] font-medium text-brand">Não sofreu</span>
+                        <span className="text-footnote font-medium text-brand">Não sofreu</span>
                       ) : undefined
                     }
                   />
@@ -164,7 +168,7 @@ export function PlayerDetailPage() {
         </section>
 
         {isAdmin && (
-          <p className="text-center text-[13px] text-faint">
+          <p className="text-center text-footnote text-faint">
             Usuário: @{player.username}
             {' · '}
             <Link to="/admin" className="text-brand">

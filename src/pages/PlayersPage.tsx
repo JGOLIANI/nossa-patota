@@ -2,8 +2,8 @@ import { useMemo, useState } from 'react'
 import { Page } from '../components/Page'
 import { PlayerFormModal } from '../components/PlayerFormModal'
 import { PlayerRow } from '../components/PlayerRow'
-import { IconPlus, IconSearch } from '../components/icons'
-import { ChipBar, EmptyState, Input, ListGroup } from '../components/ui'
+import { IconPlus } from '../components/icons'
+import { ChipBar, EmptyState, ListGroup, SearchField } from '../components/ui'
 import { playerCaption } from '../lib/player'
 import { useApp } from '../store/useApp'
 import type { Player } from '../types'
@@ -63,24 +63,15 @@ export function PlayersPage() {
             type="button"
             onClick={() => setFormOpen(true)}
             aria-label="Cadastrar jogador"
-            className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-brand text-brand-ink"
+            className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-brand transition duration-200 ease-ios active:scale-90 active:opacity-50"
           >
-            <IconPlus className="size-6" />
+            <IconPlus className="size-6 stroke-[2.2]" />
           </button>
         ) : undefined
       }
     >
       <div className="space-y-3">
-        <div className="relative">
-          <IconSearch className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-faint" />
-          <Input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Buscar jogador"
-            type="search"
-            className="pl-11"
-          />
-        </div>
+        <SearchField value={search} onChange={setSearch} placeholder="Buscar jogador" />
         <ChipBar value={filter} options={FILTERS} onChange={setFilter} />
       </div>
 

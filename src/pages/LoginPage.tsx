@@ -35,11 +35,13 @@ export function LoginPage() {
   return (
     <div className="mx-auto flex min-h-full w-full max-w-sm flex-col justify-center px-6 py-12">
       <div className="mb-9 text-center">
-        <span className="inline-flex size-14 items-center justify-center rounded-2xl bg-brand text-brand-ink">
-          <IconBall className="size-8" />
+        {/* O ícone do aplicativo, no mesmo formato do que fica na tela de
+            início do iPhone: quadrado de cantos contínuos. */}
+        <span className="squircle inline-flex size-[72px] items-center justify-center rounded-[22px] bg-brand text-brand-ink shadow-raised">
+          <IconBall className="size-10" />
         </span>
-        <h1 className="mt-4 text-2xl font-semibold tracking-tight text-ink">Nossa Patota</h1>
-        <p className="mt-1 text-sm text-muted">
+        <h1 className="mt-5 text-title1 text-ink">Nossa Patota</h1>
+        <p className="mt-1 text-subhead text-muted">
           {mode === 'login' ? 'Entre para ver a rodada' : 'Crie seu acesso de jogador'}
         </p>
       </div>
@@ -75,7 +77,7 @@ export function LoginPage() {
 
       <button
         type="button"
-        className="mt-6 text-sm font-medium text-brand"
+        className="mt-6 text-subhead font-medium text-brand transition duration-200 ease-ios active:opacity-40"
         onClick={() => {
           setMode(mode === 'login' ? 'signup' : 'login')
           setError('')

@@ -3,78 +3,213 @@
 /*
  * Sistema visual do Nossa Patota.
  *
- * Uma única fonte de verdade para cor, raio e sombra. As telas nunca usam
- * cores cruas do Tailwind (slate-800, emerald-500...): usam sempre os papéis
- * definidos aqui, o que mantém a interface consistente e permite trocar o
- * tema inteiro em um lugar só.
+ * A referência é a interface da Apple: tipografia San Francisco, cores de
+ * sistema do iOS, fundo cinza com cartões brancos flutuando sobre ele,
+ * separadores de meio pixel, barras translúcidas e movimento com a curva de
+ * desaceleração do iOS.
+ *
+ * Este arquivo é a única fonte de verdade para cor, tipo, raio, sombra e
+ * movimento. As telas nunca usam cores cruas do Tailwind (slate-800,
+ * emerald-500...): usam sempre os papéis definidos aqui, o que mantém a
+ * interface consistente e permite trocar o tema inteiro em um lugar só.
  */
 @theme {
+  /* San Francisco no Apple, e a fonte de sistema em qualquer outro lugar. */
   --font-sans:
-    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Segoe UI Variable',
+    'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  /* SF Rounded: reservada aos números grandes, como o iOS faz nos placares. */
+  --font-rounded:
+    ui-rounded, 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', var(--font-sans);
+
+  /*
+   * Escala tipográfica do iOS. Os nomes são os mesmos dos estilos de texto
+   * do sistema, então `text-headline` na tela quer dizer exatamente o que
+   * quer dizer no aparelho.
+   */
+  --text-largetitle: 2.125rem; /* 34 */
+  --text-largetitle--line-height: 2.5rem;
+  --text-largetitle--letter-spacing: -0.028em;
+  --text-largetitle--font-weight: 700;
+
+  --text-title1: 1.75rem; /* 28 */
+  --text-title1--line-height: 2.125rem;
+  --text-title1--letter-spacing: -0.024em;
+  --text-title1--font-weight: 700;
+
+  --text-title2: 1.375rem; /* 22 */
+  --text-title2--line-height: 1.75rem;
+  --text-title2--letter-spacing: -0.021em;
+  --text-title2--font-weight: 600;
+
+  --text-title3: 1.25rem; /* 20 */
+  --text-title3--line-height: 1.5625rem;
+  --text-title3--letter-spacing: -0.019em;
+  --text-title3--font-weight: 600;
+
+  --text-headline: 1.0625rem; /* 17 */
+  --text-headline--line-height: 1.375rem;
+  --text-headline--letter-spacing: -0.024em;
+  --text-headline--font-weight: 600;
+
+  --text-body: 1.0625rem; /* 17 */
+  --text-body--line-height: 1.375rem;
+  --text-body--letter-spacing: -0.024em;
+
+  --text-callout: 1rem; /* 16 */
+  --text-callout--line-height: 1.3125rem;
+  --text-callout--letter-spacing: -0.02em;
+
+  --text-subhead: 0.9375rem; /* 15 */
+  --text-subhead--line-height: 1.25rem;
+  --text-subhead--letter-spacing: -0.014em;
+
+  --text-footnote: 0.8125rem; /* 13 */
+  --text-footnote--line-height: 1.125rem;
+  --text-footnote--letter-spacing: -0.006em;
+
+  --text-caption: 0.75rem; /* 12 */
+  --text-caption--line-height: 1rem;
+
+  --text-caption2: 0.6875rem; /* 11 */
+  --text-caption2--line-height: 0.8125rem;
+  --text-caption2--letter-spacing: 0.006em;
 
   /* Superfícies, do fundo para a frente. */
-  --color-canvas: #f4f6f8;
-  --color-card: #ffffff;
-  --color-fill: #eef1f5;
-  --color-line: #e0e5ec;
+  --color-canvas: #f2f2f7; /* systemGroupedBackground */
+  --color-card: #ffffff; /* secondarySystemGroupedBackground */
+  --color-fill: #eeeef2; /* tertiarySystemFill, achatado */
+  --color-fill-strong: #e3e3e8;
+  --color-line: #d6d6da; /* separator */
+  /* Superfície que sobe acima do preenchimento: o botão do segmentado. */
+  --color-elevated: #ffffff;
+  /* Barras translúcidas (navegação, abas, ações). */
+  --color-bar: rgb(249 249 251 / 0.78);
+  --color-scrim: rgb(0 0 0 / 0.28);
 
   /* Texto, do mais forte ao mais discreto. */
-  --color-ink: #101720;
-  --color-muted: #5b6675;
-  --color-faint: #8b95a3;
+  --color-ink: #000000; /* label */
+  --color-muted: #6c6c70; /* secondaryLabel */
+  --color-faint: #a3a3a8; /* tertiaryLabel */
 
   /* Ação. Uma cor de marca só, reservada ao que é clicável ou está ativo. */
-  --color-brand: #0f9d55;
+  --color-brand: #34c759; /* systemGreen */
   --color-brand-ink: #ffffff;
-  --color-brand-soft: #e6f6ee;
+  --color-brand-soft: #e6f7ec;
 
   /* Significado. Usadas apenas para comunicar resultado ou risco. */
-  --color-win: #16874a;
-  --color-draw: #6b7684;
-  --color-loss: #c53434;
-  --color-warn: #a35b06;
-  --color-warn-soft: #fdf3e3;
-  --color-gold: #c99700;
+  --color-win: #248a3d;
+  --color-draw: #8e8e93; /* systemGray */
+  --color-loss: #ff3b30; /* systemRed */
+  --color-warn: #b25000; /* systemOrange, legível sobre claro */
+  --color-warn-soft: #fff2e5;
+  --color-gold: #d19d00; /* systemYellow, legível sobre claro */
 
-  --radius-card: 16px;
-  --radius-control: 12px;
+  /*
+   * Raios contínuos do iOS. `--radius-card` cobre os cartões agrupados,
+   * `--radius-control` os campos e botões, e os dois maiores ficam com a
+   * folha e o alerta.
+   */
+  --radius-card: 1rem;
+  --radius-control: 0.75rem;
+  --radius-alert: 0.875rem;
+  --radius-sheet: 1.5rem;
 
-  --shadow-card: 0 1px 2px rgb(16 23 32 / 0.06);
-  --shadow-raised: 0 8px 24px -12px rgb(16 23 32 / 0.24);
+  /*
+   * Sombras discretas. No iOS o cartão se distingue pelo contraste com o
+   * fundo cinza, não por sombra — ela só aparece no que de fato flutua.
+   */
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.04);
+  --shadow-raised: 0 8px 30px rgb(0 0 0 / 0.12);
+  --shadow-knob: 0 3px 8px rgb(0 0 0 / 0.12), 0 1px 1px rgb(0 0 0 / 0.14);
+
+  /* A curva de desaceleração do iOS: sai rápido e encosta devagar. */
+  --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
+
+  --animate-fade-in: fade-in 0.24s var(--ease-ios) both;
+  --animate-sheet-in: sheet-in 0.4s var(--ease-ios) both;
+  --animate-alert-in: alert-in 0.26s var(--ease-ios) both;
+  --animate-pulse-dot: pulse-dot 1.6s ease-in-out infinite;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes sheet-in {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes alert-in {
+    from {
+      opacity: 0;
+      transform: scale(1.14);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes pulse-dot {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.35;
+    }
+  }
 }
 
 /* O tema escuro troca só os valores: nenhuma tela precisa saber que ele existe. */
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-canvas: #0c1017;
-    --color-card: #151b25;
-    --color-fill: #1c2432;
-    --color-line: #263042;
+    --color-canvas: #000000;
+    --color-card: #1c1c1e;
+    --color-fill: #2c2c2e;
+    --color-fill-strong: #3a3a3c;
+    --color-line: #38383a;
+    --color-elevated: #636366;
+    --color-bar: rgb(28 28 30 / 0.74);
+    --color-scrim: rgb(0 0 0 / 0.5);
 
-    --color-ink: #eef2f7;
-    --color-muted: #9aa5b4;
-    --color-faint: #6c7686;
+    --color-ink: #ffffff;
+    --color-muted: #98989f;
+    --color-faint: #68686e;
 
-    --color-brand: #2ecc7d;
-    --color-brand-ink: #05271a;
-    --color-brand-soft: #14301f;
+    --color-brand: #30d158;
+    --color-brand-ink: #04220f;
+    --color-brand-soft: #16341f;
 
-    --color-win: #4ade80;
-    --color-draw: #94a3b8;
-    --color-loss: #f87171;
-    --color-warn: #fbbf24;
-    --color-warn-soft: #2c2410;
-    --color-gold: #f0c33c;
+    --color-win: #30d158;
+    --color-draw: #98989f;
+    --color-loss: #ff453a;
+    --color-warn: #ff9f0a;
+    --color-warn-soft: #2e2312;
+    --color-gold: #ffd60a;
 
     --shadow-card: none;
-    --shadow-raised: 0 12px 32px -16px rgb(0 0 0 / 0.7);
+    --shadow-raised: 0 8px 34px rgb(0 0 0 / 0.6);
+    --shadow-knob: 0 3px 8px rgb(0 0 0 / 0.3);
   }
 }
 
 :root {
   color-scheme: light dark;
-  /* Altura da barra de navegação; a barra de ação se apoia nela. */
-  --nav-height: 60px;
+  /* Altura da barra de abas; a barra de ação se apoia nela. */
+  --nav-height: 52px;
+  /* Altura da barra de navegação, usada pelo recolhimento do título grande. */
+  --bar-height: 44px;
 }
 
 html,
@@ -86,7 +221,9 @@ body,
 body {
   background-color: var(--color-canvas);
   color: var(--color-ink);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   /* Evita o "puxão" de recarregar a página dentro do PWA. */
   overscroll-behavior-y: none;
   -webkit-tap-highlight-color: transparent;
@@ -101,6 +238,10 @@ body {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+.top-safe {
+  top: env(safe-area-inset-top);
+}
+
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -109,11 +250,131 @@ body {
   scrollbar-width: none;
 }
 
+/*
+ * Os materiais abaixo vivem na camada de componentes de propósito: vários
+ * deles precisam de `position: relative` para ancorar um pseudo-elemento, e
+ * fora de uma camada eles venceriam as classes utilitárias — foi assim que a
+ * barra de abas, que é `fixed`, virou `relative` e sumiu do rodapé.
+ */
+@layer components {
+  /*
+   * Material translúcido das barras. O desfoque com saturação é o que dá a
+   * sensação de vidro do iOS: o conteúdo por baixo continua visível, só que
+   * suavizado e com a cor puxada para cima.
+   */
+  .material {
+    background-color: var(--color-bar);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+  }
+
+  /* Sem suporte a desfoque, o vidro vira uma superfície opaca honesta. */
+  @supports not (backdrop-filter: blur(1px)) {
+    .material {
+      background-color: var(--color-card);
+    }
+  }
+
+  /*
+   * Separador de meio pixel. A borda de 1px do CSS fica grossa nas telas
+   * Retina; escalar um pseudo-elemento é como o iOS desenha a linha fina.
+   */
+  .hairline,
+  .hairline-top {
+    position: relative;
+  }
+
+  .hairline::after,
+  .hairline-top::before {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    height: 1px;
+    background-color: var(--color-line);
+    transform: scaleY(0.5);
+    pointer-events: none;
+  }
+
+  .hairline::after {
+    bottom: 0;
+    transform-origin: bottom;
+  }
+
+  .hairline-top::before {
+    top: 0;
+    transform-origin: top;
+  }
+
+  /*
+   * Lista agrupada. O separador é desenhado pelo grupo, não pela linha, e
+   * começa onde começa o texto — o recuo que faz a lista do iOS parecer
+   * alinhada mesmo quando as linhas têm avatar. Cada linha diz de onde a sua
+   * linha divisória parte através de `--sep-inset`.
+   */
+  .list-group > * {
+    position: relative;
+  }
+
+  .list-group > *:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: var(--sep-inset, 1rem);
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background-color: var(--color-line);
+    transform: scaleY(0.5);
+    transform-origin: bottom;
+    pointer-events: none;
+  }
+
+  /*
+   * Cantos contínuos. O Safari e o Chrome recentes desenham a superelipse que
+   * a Apple usa nos ícones e cartões; onde não houver suporte, fica o arco
+   * comum.
+   */
+  @supports (corner-shape: squircle) {
+    .squircle {
+      corner-shape: squircle;
+    }
+  }
+
+  /*
+   * Indicador de atividade do iOS: doze raios em volta do centro, cada um
+   * apagando um pouco depois do anterior. É desenhado em CSS para não custar
+   * nenhum kilobyte de imagem.
+   */
+  .activity {
+    position: relative;
+    display: inline-block;
+    aspect-ratio: 1;
+  }
+
+  .activity span {
+    position: absolute;
+    inset: 0;
+    animation: activity-fade 1s linear infinite;
+  }
+
+  .activity span::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 9%;
+    height: 27%;
+    border-radius: 999px;
+    background-color: currentColor;
+    transform: translateX(-50%);
+  }
+}
+
 input,
 select,
 textarea {
   /* Abaixo de 16px o iOS dá zoom ao focar o campo. */
   font-size: 16px;
+  font-family: inherit;
 }
 
 /* Um único estilo de foco visível em toda a aplicação. */
@@ -121,4 +382,29 @@ textarea {
   outline: 2px solid var(--color-brand);
   outline-offset: 2px;
   border-radius: 8px;
+}
+
+@keyframes activity-fade {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.15;
+  }
+}
+
+/* Quem prefere menos movimento recebe a interface parada. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+
+  .activity span {
+    animation: none !important;
+    opacity: 0.4;
+  }
 }

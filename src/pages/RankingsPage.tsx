@@ -24,7 +24,7 @@ export function RankingsPage() {
 
       {list && (
         <>
-          <p className="mt-3 mb-4 text-sm text-muted">{list.description}</p>
+          <p className="mt-3 mb-4 px-1 text-footnote text-muted">{list.description}</p>
 
           {list.entries.length === 0 ? (
             <EmptyState
@@ -44,7 +44,7 @@ export function RankingsPage() {
                     to={`/jogadores/${player.id}`}
                     subtitle={player.position === 'goleiro' ? 'Goleiro' : 'Linha'}
                     trailing={
-                      <span className="text-lg font-semibold tabular-nums text-ink">
+                      <span className="font-rounded text-title3 tabular-nums text-ink">
                         {entry.display}
                       </span>
                     }

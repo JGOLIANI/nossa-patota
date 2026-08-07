@@ -13,9 +13,13 @@ const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', '
 function DateBlock({ date }: { date: string }) {
   const month = Number(date.slice(5, 7)) - 1
   return (
-    <span className="flex size-11 shrink-0 flex-col items-center justify-center rounded-control bg-fill">
-      <span className="text-base leading-none font-semibold text-ink">{date.slice(8, 10)}</span>
-      <span className="mt-0.5 text-[11px] leading-none text-muted">{MONTHS[month] ?? ''}</span>
+    <span className="squircle flex size-11 shrink-0 flex-col items-center justify-center rounded-[13px] bg-fill">
+      <span className="font-rounded text-callout leading-none font-semibold text-ink">
+        {date.slice(8, 10)}
+      </span>
+      <span className="mt-0.5 text-caption2 leading-none text-muted uppercase">
+        {MONTHS[month] ?? ''}
+      </span>
     </span>
   )
 }
@@ -46,9 +50,9 @@ export function RoundsPage() {
           <Link
             to="/rodadas/nova"
             aria-label="Nova rodada"
-            className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-brand text-brand-ink"
+            className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-brand transition duration-200 ease-ios active:scale-90 active:opacity-50"
           >
-            <IconPlus className="size-6" />
+            <IconPlus className="size-6 stroke-[2.2]" />
           </Link>
         ) : undefined
       }
