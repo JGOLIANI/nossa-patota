@@ -82,6 +82,12 @@ export const IconChevronRight = (props: IconProps) => (
   </Base>
 )
 
+export const IconChevronDown = (props: IconProps) => (
+  <Base {...props}>
+    <path d="m6 9 6 6 6-6" />
+  </Base>
+)
+
 export const IconCheck = (props: IconProps) => (
   <Base {...props}>
     <path d="m5 12.5 4.5 4.5L19 7" />
@@ -189,4 +195,47 @@ export const IconGlove = (props: IconProps) => (
   <Base {...props}>
     <path d="M6 21V9.5a1.8 1.8 0 0 1 3.6 0V11V5.2a1.8 1.8 0 0 1 3.6 0V11V6.6a1.8 1.8 0 0 1 3.6 0V13c0 4-1.6 8-4.4 8H6Z" />
   </Base>
+)
+
+/* ------------------------------------------------------- Ícones sólidos ---- */
+
+/**
+ * A barra de abas do iOS troca o ícone vazado pelo preenchido no destino
+ * ativo — é assim que ela mostra onde você está sem depender só da cor.
+ */
+function Solid({ children, ...props }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
+      {children}
+    </svg>
+  )
+}
+
+export const IconHomeSolid = (props: IconProps) => (
+  <Solid {...props}>
+    <path d="M11.35 2.83a1 1 0 0 1 1.3 0l9 7.85c.33.29.37.79.08 1.12a.8.8 0 0 1-.6.27H20V19a2.5 2.5 0 0 1-2.5 2.5H14.5V16a2.5 2.5 0 0 0-5 0v5.5H6.5A2.5 2.5 0 0 1 4 19v-6.93h-1.13a.8.8 0 0 1-.6-.27.79.79 0 0 1 .08-1.12l9-7.85Z" />
+  </Solid>
+)
+
+export const IconCalendarSolid = (props: IconProps) => (
+  <Solid {...props}>
+    <path d="M7.5 2.4a1 1 0 0 1 1 1V5h7V3.4a1 1 0 1 1 2 0v1.72A4 4 0 0 1 21 9v.5H3V9a4 4 0 0 1 3.5-3.88V3.4a1 1 0 0 1 1-1Z" />
+    <path d="M3 11.5h18V18a3.5 3.5 0 0 1-3.5 3.5h-11A3.5 3.5 0 0 1 3 18v-6.5Z" />
+  </Solid>
+)
+
+export const IconTrophySolid = (props: IconProps) => (
+  <Solid {...props}>
+    <path d="M6.8 3h10.4a1 1 0 0 1 1 1v4.5a6.2 6.2 0 0 1-5.2 6.12V17h2.13a1 1 0 0 1 .98.8l.62 3.1a1 1 0 0 1-.98 1.2H9.23a1 1 0 0 1-.98-1.2l.62-3.1a1 1 0 0 1 .98-.8H12v-2.38A6.2 6.2 0 0 1 5.8 8.5V4a1 1 0 0 1 1-1Z" />
+    <path d="M4.6 5.6v5.34A4.3 4.3 0 0 1 2 7V6.6a1 1 0 0 1 1-1h1.6ZM19.4 5.6H21a1 1 0 0 1 1 1V7a4.3 4.3 0 0 1-2.6 3.94V5.6Z" />
+  </Solid>
+)
+
+export const IconUsersSolid = (props: IconProps) => (
+  <Solid {...props}>
+    <circle cx="9.2" cy="8" r="3.7" />
+    <path d="M9.2 13.2a6.7 6.7 0 0 1 6.7 6.5c0 .9-.75 1.6-1.65 1.6H4.15c-.9 0-1.65-.7-1.65-1.6a6.7 6.7 0 0 1 6.7-6.5Z" />
+    <circle cx="17.6" cy="7.4" r="2.9" />
+    <path d="M17.6 12.2c-.85 0-1.66.16-2.4.45a8.6 8.6 0 0 1 2.5 5.75c0 .38-.06.75-.17 1.1h2.99c.87 0 1.58-.7 1.58-1.57a5.7 5.7 0 0 0-4.5-5.73Z" />
+  </Solid>
 )

@@ -46,8 +46,8 @@ export function HomePage() {
             <Card className="p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <h3 className="truncate text-lg font-semibold text-ink">{round.title}</h3>
-                  <p className="mt-0.5 text-sm text-muted">
+                  <h3 className="truncate text-title3 text-ink">{round.title}</h3>
+                  <p className="mt-0.5 text-subhead text-muted">
                     {formatWeekday(round.date)}, {formatDate(round.date)}
                   </p>
                 </div>
@@ -61,12 +61,12 @@ export function HomePage() {
               </div>
 
               {round.location && (
-                <p className="mt-2 text-sm text-muted">
+                <p className="mt-1 text-subhead text-muted">
                   {round.start_time} · {round.location}
                 </p>
               )}
 
-              <p className="mt-3 text-sm text-muted">
+              <p className="mt-3 text-subhead text-muted">
                 {round.status === 'encerrada'
                   ? `${roundMatches(snapshot, round.id).length} partidas disputadas`
                   : attendanceSummary(roundEntries(snapshot, round.id), round.max_players)}
@@ -126,7 +126,7 @@ export function HomePage() {
                   <Stat label="Assistências" value={myStats.assists} />
                 )}
               </StatRow>
-              <p className="mt-3.5 border-t border-line pt-3 text-center text-[13px] text-muted">
+              <p className="hairline-top mt-3.5 pt-3 text-center text-footnote text-muted">
                 Aproveitamento de {percent(myStats.pointsPct)}
               </p>
             </Card>

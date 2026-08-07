@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Page } from '../components/Page'
-import { ActionBar, Button, Card, Field, Input, Note, Select } from '../components/ui'
+import { ActionBar, Button, Card, Field, Input, ListGroup, Note, Select } from '../components/ui'
 import { missingRoundDates, nextOccurrences } from '../domain/schedule'
 import { formatDate, todayISO } from '../lib/format'
 import { useApp } from '../store/useApp'
@@ -116,15 +116,15 @@ export function SettingsPage() {
 
         {Number(weeksAhead) > 0 && (
           <section>
-            <h2 className="mb-2 text-[15px] font-semibold text-ink">Próximas rodadas</h2>
-            <Card className="divide-y divide-line">
+            <h2 className="mb-2 px-1 text-title3 text-ink">Próximas rodadas</h2>
+            <ListGroup>
               {preview.map((date) => (
-                <p key={date} className="px-4 py-2.5 text-sm text-muted">
+                <p key={date} className="px-4 py-3 text-subhead text-muted">
                   {formatDate(date)} às {startTime}
                   {location.trim() && ` · ${location.trim()}`}
                 </p>
               ))}
-            </Card>
+            </ListGroup>
           </section>
         )}
 

@@ -149,7 +149,7 @@ export function RoundDetailPage() {
         {tab === 'presenca' && (
           <>
             <Card className="p-4">
-              <p className="mb-3 text-center text-sm text-muted">
+              <p className="mb-3 text-center text-subhead text-muted">
                 {round.max_players > 0
                   ? `${lists.confirmed.length} de ${round.max_players} vagas preenchidas`
                   : `${lists.confirmed.length} confirmados`}
@@ -200,14 +200,14 @@ export function RoundDetailPage() {
                 const squad = teamPlayers(snapshot, team.id)
                 return (
                   <section key={team.id}>
-                    <div className="mb-2 flex items-center gap-2">
+                    <div className="mb-2 flex items-center gap-2 px-1">
                       <span
                         aria-hidden="true"
-                        className="h-4 w-1.5 rounded-full"
+                        className="size-2.5 rounded-full"
                         style={{ backgroundColor: team.color }}
                       />
-                      <h2 className="text-[15px] font-semibold text-ink">{team.name}</h2>
-                      <span className="text-sm text-muted">{squad.length} jogadores</span>
+                      <h2 className="text-headline text-ink">{team.name}</h2>
+                      <span className="text-subhead text-muted">{squad.length} jogadores</span>
                     </div>
                     <ListGroup>
                       {squad.map((player) => {
@@ -303,7 +303,7 @@ export function RoundDetailPage() {
                       match.status === 'em_andamento' ? 'Registrar gols' : 'Partida encerrada'
                     }
                     trailing={
-                      <span className="text-lg font-semibold tabular-nums text-ink">
+                      <span className="font-rounded text-title3 tabular-nums text-ink">
                         {match.score_a}–{match.score_b}
                       </span>
                     }
@@ -338,7 +338,7 @@ export function RoundDetailPage() {
       )}
 
       <Modal open={addPlayer} title="Confirmar jogador" onClose={() => setAddPlayer(false)}>
-        <p className="mb-3 text-sm text-muted">
+        <p className="mb-3 px-1 text-footnote text-muted">
           Para quem avisou por fora que vai jogar. Ele entra como confirmado, ou na lista de
           espera se as vagas já acabaram.
         </p>

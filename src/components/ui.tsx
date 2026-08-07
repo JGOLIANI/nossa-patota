@@ -1,5 +1,6 @@
 import type {
   ButtonHTMLAttributes,
+  CSSProperties,
   HTMLAttributes,
   InputHTMLAttributes,
   ReactNode,
@@ -7,16 +8,27 @@ import type {
 } from 'react'
 import { Link } from 'react-router-dom'
 import { cn } from '../lib/cn'
-import { IconChevronRight } from './icons'
+import { IconChevronDown, IconChevronRight, IconClose, IconSearch } from './icons'
 
 /* -------------------------------------------------------------- Button ---- */
 
 type Variant = 'primary' | 'secondary' | 'quiet'
 
+/**
+ * Os três botões do iOS: o preenchido da ação principal, o cinza da ação
+ * secundária e o de texto puro, que no sistema aparece sempre na cor de
+ * destaque.
+ */
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-brand text-brand-ink hover:opacity-90 active:opacity-80',
-  secondary: 'bg-fill text-ink hover:brightness-95 active:brightness-90',
-  quiet: 'text-muted hover:bg-fill',
+  primary: 'bg-brand text-brand-ink',
+  secondary: 'bg-fill text-ink',
+  quiet: 'text-brand',
+}
+
+const DESTRUCTIVE: Record<Variant, string> = {
+  primary: 'bg-loss text-white',
+  secondary: 'bg-loss/12 text-loss',
+  quiet: 'text-loss',
 }
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -36,20 +48,28 @@ export function Button({
   className,
   ...props
 }: ButtonProps) {
+  // O botão de texto puro não tem caixa, então também não tem a altura nem o
+  // peso dos preenchidos: ele é só o rótulo, em 17px, como no iOS.
+  const shape =
+    variant === 'quiet'
+      ? 'h-11 rounded-control px-4 text-body'
+      : size === 'lg'
+        ? 'h-[50px] rounded-[14px] px-5 text-headline'
+        : 'h-11 rounded-control px-4 text-subhead font-semibold'
+
   return (
     <button
       className={cn(
         // `min-w-0` e a ausência de `shrink-0` são o que permite dois botões
         // de largura total dividirem a mesma linha sem estourar a tela; só o
         // ícone é que não pode encolher.
-        'inline-flex min-w-0 items-center justify-center gap-2 rounded-control [&>svg]:shrink-0',
-        'font-semibold whitespace-nowrap transition disabled:pointer-events-none disabled:opacity-45',
-        size === 'lg' ? 'h-13 px-5 text-[15px]' : 'h-11 px-4 text-sm',
-        destructive
-          ? variant === 'primary'
-            ? 'bg-loss text-white hover:opacity-90'
-            : 'text-loss hover:bg-fill'
-          : VARIANTS[variant],
+        'inline-flex min-w-0 items-center justify-center gap-2 [&>svg]:shrink-0',
+        'whitespace-nowrap select-none disabled:pointer-events-none disabled:opacity-35',
+        // O afundamento ao toque é o retorno tátil do iOS: encolhe um pouco
+        // enquanto o dedo está em cima e volta com a curva do sistema.
+        'transition duration-200 ease-ios active:scale-[0.97] active:opacity-80',
+        shape,
+        destructive ? DESTRUCTIVE[variant] : VARIANTS[variant],
         block && 'w-full',
         className,
       )}
@@ -61,16 +81,24 @@ export function Button({
 /** Botão só de ícone. Sempre 44px, o mínimo confortável para o polegar. */
 export function IconButton({
   label,
+  tone = 'neutral',
   className,
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { label: string }) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & {
+  label: string
+  /** `tint` é a cor de destaque das ações de barra de navegação. */
+  tone?: 'neutral' | 'tint' | 'destructive'
+}) {
   return (
     <button
       aria-label={label}
       title={label}
       className={cn(
         'inline-flex size-11 shrink-0 items-center justify-center rounded-full',
-        'text-muted transition hover:bg-fill active:bg-line disabled:opacity-45',
+        'transition duration-200 ease-ios active:scale-90 active:opacity-60 disabled:opacity-35',
+        tone === 'tint' && 'text-brand',
+        tone === 'destructive' && 'text-loss',
+        tone === 'neutral' && 'text-muted',
         className,
       )}
       {...props}
@@ -80,19 +108,17 @@ export function IconButton({
 
 /* ---------------------------------------------------------------- Card ---- */
 
+/**
+ * Cartão agrupado. Sem borda: o que o separa do fundo é o contraste entre o
+ * branco do cartão e o cinza da tela, exatamente como nas listas do iOS.
+ */
 export function Card({
   className,
   children,
   ...props
 }: HTMLAttributes<HTMLDivElement> & { children: ReactNode }) {
   return (
-    <div
-      className={cn(
-        'rounded-card border border-line bg-card shadow-card',
-        className,
-      )}
-      {...props}
-    >
+    <div className={cn('rounded-card bg-card shadow-card', className)} {...props}>
       {children}
     </div>
   )
@@ -106,8 +132,8 @@ export function SectionHeader({
   action?: ReactNode
 }) {
   return (
-    <div className="mb-2.5 flex items-baseline justify-between gap-3">
-      <h2 className="text-[15px] font-semibold text-ink">{title}</h2>
+    <div className="mb-2.5 flex items-baseline justify-between gap-3 px-1">
+      <h2 className="text-title3 text-ink">{title}</h2>
       {action}
     </div>
   )
@@ -116,7 +142,7 @@ export function SectionHeader({
 /** Atalho para o link discreto ao lado de um título de seção. */
 export function SectionLink({ to, children }: { to: string; children: ReactNode }) {
   return (
-    <Link to={to} className="text-sm font-medium text-brand">
+    <Link to={to} className="shrink-0 text-subhead font-medium text-brand">
       {children}
     </Link>
   )
@@ -156,11 +182,9 @@ export function ListRow({
     <>
       {leading}
       <span className="min-w-0 flex-1 text-left">
-        <span className="flex items-center gap-1.5">
-          <span className="truncate font-medium text-ink">{title}</span>
-        </span>
+        <span className="block truncate text-body text-ink">{title}</span>
         {subtitle && (
-          <span className="mt-0.5 block truncate text-[13px] text-muted">{subtitle}</span>
+          <span className="mt-0.5 block truncate text-footnote text-muted">{subtitle}</span>
         )}
       </span>
     </>
@@ -174,14 +198,14 @@ export function ListRow({
   )
 
   const main = cn(
-    'flex min-w-0 flex-1 items-center gap-3 px-3.5 py-3 text-left transition',
-    (to || onClick) && 'hover:bg-fill active:bg-fill',
+    'flex min-h-11 min-w-0 flex-1 items-center gap-3 px-4 py-2.5 text-left transition-colors',
+    (to || onClick) && 'active:bg-fill',
   )
 
   const edge = (
     <>
       {trailing && <span className="shrink-0 pr-3">{trailing}</span>}
-      {chevron && <IconChevronRight className="mr-3.5 size-4 shrink-0 text-faint" />}
+      {chevron && <IconChevronRight className="mr-4 size-3.5 shrink-0 stroke-[3] text-faint" />}
     </>
   )
 
@@ -193,12 +217,16 @@ export function ListRow({
     />
   ) : null
 
+  // O separador do grupo começa onde começa o texto, e é a linha que informa
+  // esse recuo — com avatar ele parte de 60px, sem avatar do próprio texto.
+  const style = { '--sep-inset': leading ? '4.25rem' : '1rem' } as CSSProperties
+
   // O conteúdo interativo e a área final são irmãos, nunca aninhados: um
   // botão dentro de um link navega ao ser clicado, o que já quebrou o
   // seletor de posição na escalação.
   if (to) {
     return (
-      <div className={wrapper}>
+      <div className={wrapper} style={style}>
         {stripe}
         <Link to={to} className={main}>
           {content}
@@ -210,7 +238,7 @@ export function ListRow({
 
   if (onClick) {
     return (
-      <div className={wrapper}>
+      <div className={wrapper} style={style}>
         {stripe}
         <button type="button" onClick={onClick} className={main}>
           {content}
@@ -221,7 +249,7 @@ export function ListRow({
   }
 
   return (
-    <div className={wrapper}>
+    <div className={wrapper} style={style}>
       {stripe}
       <div className={main}>{content}</div>
       {edge}
@@ -229,7 +257,7 @@ export function ListRow({
   )
 }
 
-/** Agrupa linhas em um cartão único, com divisórias — padrão de lista de app. */
+/** Agrupa linhas em um cartão único, com separadores — a lista do iOS. */
 export function ListGroup({
   children,
   className,
@@ -238,12 +266,7 @@ export function ListGroup({
   className?: string
 }) {
   return (
-    <div
-      className={cn(
-        'divide-y divide-line overflow-hidden rounded-card border border-line bg-card shadow-card',
-        className,
-      )}
-    >
+    <div className={cn('list-group overflow-hidden rounded-card bg-card shadow-card', className)}>
       {children}
     </div>
   )
@@ -251,7 +274,10 @@ export function ListGroup({
 
 /* ------------------------------------------------------- Tabs e filtros ---- */
 
-/** Navegação entre seções de uma tela. Sublinhado, como manda o costume. */
+/**
+ * Controle segmentado: o seletor de seções do iOS. O trilho é cinza e a
+ * opção escolhida sobe como uma pastilha clara com sombra.
+ */
 export function Tabs<T extends string>({
   value,
   options,
@@ -262,7 +288,7 @@ export function Tabs<T extends string>({
   onChange: (value: T) => void
 }) {
   return (
-    <div role="tablist" className="flex border-b border-line">
+    <div role="tablist" className="flex rounded-[10px] bg-fill p-[2px]">
       {options.map((option) => {
         const active = option.value === value
         return (
@@ -273,11 +299,12 @@ export function Tabs<T extends string>({
             type="button"
             onClick={() => onChange(option.value)}
             className={cn(
-              '-mb-px flex-1 border-b-2 px-2 pb-2.5 text-sm font-medium transition',
-              active ? 'border-brand text-ink' : 'border-transparent text-muted',
+              'min-w-0 flex-1 rounded-[8px] px-2 py-1.5 text-footnote font-semibold',
+              'transition duration-200 ease-ios active:scale-[0.96]',
+              active ? 'bg-elevated text-ink shadow-knob' : 'text-ink/75',
             )}
           >
-            {option.label}
+            <span className="block truncate">{option.label}</span>
           </button>
         )
       })}
@@ -285,7 +312,7 @@ export function Tabs<T extends string>({
   )
 }
 
-/** Filtros. Sempre pílulas, nunca sublinhado — a distinção é proposital. */
+/** Filtros. Sempre cápsulas, nunca segmentado — a distinção é proposital. */
 export function ChipBar<T extends string>({
   value,
   options,
@@ -305,10 +332,9 @@ export function ChipBar<T extends string>({
             type="button"
             onClick={() => onChange(option.value)}
             className={cn(
-              'shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-medium transition',
-              active
-                ? 'border-brand bg-brand text-brand-ink'
-                : 'border-line bg-card text-muted hover:bg-fill',
+              'shrink-0 rounded-full px-3.5 py-1.5 text-subhead font-medium',
+              'transition duration-200 ease-ios active:scale-[0.96]',
+              active ? 'bg-brand text-brand-ink' : 'bg-fill text-ink',
             )}
           >
             {option.label}
@@ -321,9 +347,10 @@ export function ChipBar<T extends string>({
 
 /* -------------------------------------------------------------- Campos ---- */
 
+/** Campo do iOS: preenchimento cinza, sem borda, com o texto em 17px. */
 const CONTROL =
-  'w-full rounded-control border border-line bg-card px-3.5 py-3 text-ink ' +
-  'placeholder:text-faint focus:border-brand focus:outline-none disabled:opacity-50'
+  'w-full rounded-control bg-fill px-3.5 py-3 text-body text-ink ' +
+  'placeholder:text-faint disabled:opacity-40'
 
 export function Field({
   label,
@@ -336,9 +363,9 @@ export function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-sm font-medium text-muted">{label}</span>
+      <span className="mb-1.5 block px-1 text-footnote font-medium text-muted">{label}</span>
       {children}
-      {hint && <span className="mt-1 block text-[13px] text-faint">{hint}</span>}
+      {hint && <span className="mt-1.5 block px-1 text-caption text-faint">{hint}</span>}
     </label>
   )
 }
@@ -347,10 +374,65 @@ export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElem
   return <input className={cn(CONTROL, className)} {...props} />
 }
 
-export function Select({ className, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select className={cn(CONTROL, 'appearance-none', className)} {...props} />
+/**
+ * Campo de busca do iOS: cápsula cinza, lupa à esquerda e o botão de limpar
+ * que só existe enquanto há texto. Tem forma própria porque é mais baixo que
+ * um campo comum — ele acompanha a lista, não o formulário.
+ */
+export function SearchField({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string
+  onChange: (value: string) => void
+  placeholder: string
+}) {
+  return (
+    <div className="relative">
+      <IconSearch
+        aria-hidden="true"
+        className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 stroke-[2.2] text-faint"
+      />
+      <input
+        type="search"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        className="h-9 w-full rounded-[10px] bg-fill pr-9 pl-9 text-callout text-ink placeholder:text-faint [&::-webkit-search-cancel-button]:hidden"
+      />
+      {value && (
+        <button
+          type="button"
+          aria-label="Limpar busca"
+          onClick={() => onChange('')}
+          className="absolute top-1/2 right-2 inline-flex size-6 -translate-y-1/2 items-center justify-center rounded-full bg-faint/60 text-card"
+        >
+          <IconClose className="size-3 stroke-[3.4]" />
+        </button>
+      )}
+    </div>
+  )
 }
 
+/**
+ * O seletor nativo perde a seta quando recebe estilo próprio; a dupla de
+ * setas à direita é a mesma marca que o iOS usa para dizer "isto abre uma
+ * lista".
+ */
+export function Select({ className, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <span className="relative block">
+      <select className={cn(CONTROL, 'appearance-none pr-10', className)} {...props} />
+      <IconChevronDown
+        aria-hidden="true"
+        className="pointer-events-none absolute top-1/2 right-3.5 size-4 -translate-y-1/2 stroke-[2.4] text-faint"
+      />
+    </span>
+  )
+}
+
+/** Chave de duas posições, com o trilho e o botão nas medidas do iOS. */
 export function Switch({
   label,
   checked,
@@ -361,15 +443,29 @@ export function Switch({
   onChange: (checked: boolean) => void
 }) {
   return (
-    <label className="flex items-center justify-between gap-3 rounded-control bg-fill px-3.5 py-3">
-      <span className="text-sm font-medium text-ink">{label}</span>
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(event) => onChange(event.target.checked)}
-        className="size-6 accent-[var(--color-brand)]"
-      />
-    </label>
+    <div className="flex items-center justify-between gap-3 rounded-control bg-fill px-4 py-3">
+      <span className="text-body text-ink">{label}</span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-label={label}
+        onClick={() => onChange(!checked)}
+        className={cn(
+          'relative h-[31px] w-[51px] shrink-0 rounded-full transition-colors duration-300 ease-ios',
+          checked ? 'bg-brand' : 'bg-fill-strong',
+        )}
+      >
+        <span
+          aria-hidden="true"
+          className={cn(
+            'absolute top-[2px] left-[2px] size-[27px] rounded-full bg-white shadow-knob',
+            'transition-transform duration-300 ease-ios',
+            checked && 'translate-x-5',
+          )}
+        />
+      </button>
+    </div>
   )
 }
 
@@ -386,18 +482,21 @@ export function Tag({
 }) {
   const tones = {
     neutral: 'bg-fill text-muted',
-    live: 'bg-brand-soft text-brand',
+    live: 'bg-brand text-brand-ink',
     done: 'bg-fill text-muted',
   }
   return (
     <span
       className={cn(
-        'inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-medium',
+        'inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-caption2 font-semibold',
         tones[tone],
       )}
     >
       {tone === 'live' && (
-        <span aria-hidden="true" className="size-1.5 rounded-full bg-brand" />
+        <span
+          aria-hidden="true"
+          className="size-1.5 animate-pulse-dot rounded-full bg-current"
+        />
       )}
       {children}
     </span>
@@ -420,7 +519,10 @@ export function Note({
     error: 'bg-loss/10 text-loss',
   }
   return (
-    <p role={tone === 'error' ? 'alert' : undefined} className={cn('rounded-control px-3.5 py-2.5 text-[13px]', tones[tone])}>
+    <p
+      role={tone === 'error' ? 'alert' : undefined}
+      className={cn('rounded-control px-4 py-3 text-footnote', tones[tone])}
+    >
       {children}
     </p>
   )
@@ -436,32 +538,47 @@ export function EmptyState({
   action?: ReactNode
 }) {
   return (
-    <div className="rounded-card border border-dashed border-line px-6 py-10 text-center">
-      <p className="font-medium text-ink">{title}</p>
-      {description && <p className="mx-auto mt-1 max-w-xs text-sm text-muted">{description}</p>}
-      {action && <div className="mt-4 flex justify-center">{action}</div>}
+    <div className="px-6 py-12 text-center">
+      <p className="text-headline text-ink">{title}</p>
+      {description && (
+        <p className="mx-auto mt-1.5 max-w-xs text-subhead text-muted">{description}</p>
+      )}
+      {action && <div className="mt-5 flex justify-center">{action}</div>}
     </div>
   )
 }
+
+/**
+ * Indicador de atividade do iOS: doze raios apagando em sequência. O desenho
+ * mora no CSS; aqui só distribuímos os raios em volta do centro.
+ */
+const RAYS = Array.from({ length: 12 }, (_, index) => index)
 
 export function Spinner({ className }: { className?: string }) {
   return (
     <span
       role="status"
       aria-label="Carregando"
-      className={cn(
-        'inline-block size-5 animate-spin rounded-full border-2 border-line border-t-brand',
-        className,
-      )}
-    />
+      className={cn('activity size-5 text-faint', className)}
+    >
+      {RAYS.map((ray) => (
+        <span
+          key={ray}
+          style={{
+            transform: `rotate(${ray * 30}deg)`,
+            animationDelay: `${(ray - 12) / 12}s`,
+          }}
+        />
+      ))}
+    </span>
   )
 }
 
 export function LoadingScreen({ label = 'Carregando…' }: { label?: string }) {
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 text-muted">
+    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3">
       <Spinner className="size-7" />
-      <p className="text-sm">{label}</p>
+      <p className="text-subhead text-muted">{label}</p>
     </div>
   )
 }
@@ -470,7 +587,9 @@ export function LoadingScreen({ label = 'Carregando…' }: { label?: string }) {
 
 /**
  * Número com rótulo. Sem caixa própria: as estatísticas aparecem lado a lado
- * dentro de um cartão, o que reduz muito a quantidade de bordas na tela.
+ * dentro de um cartão, o que reduz muito a quantidade de bordas na tela. Os
+ * números usam a variante arredondada da San Francisco, como os painéis do
+ * Fitness e do Tempo.
  */
 export function Stat({
   label,
@@ -485,7 +604,7 @@ export function Stat({
     <div className="min-w-0 flex-1 text-center">
       <p
         className={cn(
-          'text-xl leading-tight font-semibold tabular-nums',
+          'font-rounded text-title2 tabular-nums',
           tone === 'brand' && 'text-brand',
           tone === 'win' && 'text-win',
           tone === 'loss' && 'text-loss',
@@ -494,7 +613,7 @@ export function Stat({
       >
         {value}
       </p>
-      <p className="mt-0.5 truncate text-[12px] text-muted">{label}</p>
+      <p className="mt-0.5 truncate text-caption text-muted">{label}</p>
     </div>
   )
 }
@@ -508,12 +627,13 @@ export function StatRow({ children }: { children: ReactNode }) {
 /**
  * Barra fixa para a ação principal da tela, ancorada logo acima da navegação.
  * Existe um componente só para isso, para que todas as telas posicionem a
- * ação primária exatamente no mesmo lugar — ao alcance do polegar.
+ * ação primária exatamente no mesmo lugar — ao alcance do polegar. O degradê
+ * dissolve o conteúdo que passa por baixo, em vez de cortá-lo com uma borda.
  */
 export function ActionBar({ children }: { children: ReactNode }) {
   return (
     <div
-      className="fixed inset-x-0 z-30 mx-auto w-full max-w-lg px-4 pb-3"
+      className="fixed inset-x-0 z-30 mx-auto w-full max-w-lg bg-gradient-to-t from-canvas via-canvas to-transparent px-4 pt-8 pb-3"
       style={{ bottom: 'calc(var(--nav-height) + env(safe-area-inset-bottom))' }}
     >
       {children}

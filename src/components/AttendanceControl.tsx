@@ -45,7 +45,9 @@ export function AttendanceControl({ round }: { round: Round }) {
     <div className="space-y-2">
       {mine === 'confirmado' && (
         <>
-          <p className="text-center text-sm font-medium text-brand">Sua presença está confirmada</p>
+          <p className="text-center text-subhead font-medium text-brand">
+            Sua presença está confirmada
+          </p>
           <Button variant="secondary" size="lg" block disabled={busy} onClick={() => respond('fora')}>
             Não vou poder ir
           </Button>
@@ -54,7 +56,7 @@ export function AttendanceControl({ round }: { round: Round }) {
 
       {mine === 'espera' && (
         <>
-          <p className="text-center text-sm text-muted">
+          <p className="text-center text-subhead text-muted">
             Você é o {waitingPosition}º da lista de espera
           </p>
           <Button variant="secondary" size="lg" block disabled={busy} onClick={() => respond('fora')}>
