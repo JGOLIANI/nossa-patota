@@ -1,7 +1,15 @@
 import { createContext } from 'react'
 import type { PlayerStats } from '../domain/stats'
 import type { AwardInput, EventInput, PlayerInput, RoundInput } from '../data/types'
-import type { Match, Player, Round, SessionUser, Snapshot } from '../types'
+import type {
+  Attendance,
+  Match,
+  PatotaSettings,
+  Player,
+  Round,
+  SessionUser,
+  Snapshot,
+} from '../types'
 
 export interface AppActions {
   createPlayer(input: PlayerInput): Promise<Player>
@@ -9,11 +17,21 @@ export interface AppActions {
   deletePlayer(id: string): Promise<void>
   uploadAvatar(playerId: string, file: File): Promise<void>
 
+  /** Salva a agenda da patota e materializa as próximas rodadas. */
+  updateSettings(patch: Partial<PatotaSettings>): Promise<void>
+  ensureUpcomingRounds(): Promise<void>
+
   createRound(input: RoundInput): Promise<Round>
   updateRound(id: string, patch: Partial<Round>): Promise<void>
   deleteRound(id: string): Promise<void>
-  setRoundRoster(roundId: string, playerIds: string[]): Promise<void>
-  /** Gera os times equilibrados e os grava na rodada. */
+
+  /** Resposta do próprio jogador ao convite, com lista de espera. */
+  respond(roundId: string, playerId: string, wants: 'confirmado' | 'fora'): Promise<void>
+  /** Ajuste manual feito pelo administrador. */
+  setAttendance(roundId: string, playerId: string, attendance: Attendance): Promise<void>
+  removeFromRound(roundId: string, playerId: string): Promise<void>
+
+  /** Gera os times equilibrados com quem confirmou presença. */
   generateTeamsForRound(roundId: string, teamCount: number): Promise<void>
   startRound(roundId: string): Promise<void>
   closeRound(roundId: string): Promise<void>

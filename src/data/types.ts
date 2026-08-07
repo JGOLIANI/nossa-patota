@@ -1,8 +1,10 @@
 import type {
+  Attendance,
   Award,
   AwardType,
   Match,
   MatchEvent,
+  PatotaSettings,
   Player,
   Round,
   SessionUser,
@@ -15,8 +17,17 @@ export type PlayerInput = Omit<Player, 'id' | 'created_at' | 'user_id'> &
 export interface RoundInput {
   date: string
   title: string
+  start_time: string
+  location: string
   team_count: number
-  playerIds: string[]
+  max_players: number
+}
+
+/** Uma alteração de presença a ser gravada. */
+export interface AttendanceInput {
+  player_id: string
+  attendance: Attendance
+  responded_at?: string
 }
 
 export interface TeamInput {
@@ -60,11 +71,22 @@ export interface Backend {
   deletePlayer(id: string): Promise<void>
   uploadAvatar(playerId: string, file: File): Promise<string>
 
+  updateSettings(patch: Partial<PatotaSettings>): Promise<void>
+
   createRound(input: RoundInput): Promise<Round>
   updateRound(id: string, patch: Partial<Round>): Promise<void>
   deleteRound(id: string): Promise<void>
-  setRoundRoster(roundId: string, playerIds: string[]): Promise<void>
   setRoundTeams(roundId: string, teams: TeamInput[]): Promise<void>
+
+  /**
+   * Resposta do próprio jogador. No Supabase é uma função no servidor, porque
+   * promover alguém da lista de espera mexe na linha de outro jogador e
+   * precisa ser atômico entre confirmações simultâneas.
+   */
+  respondAttendance(roundId: string, wants: 'confirmado' | 'fora'): Promise<void>
+  /** Ajuste manual do administrador. */
+  setAttendance(roundId: string, changes: AttendanceInput[]): Promise<void>
+  removeFromRound(roundId: string, playerId: string): Promise<void>
 
   createMatch(roundId: string, teamAId: string, teamBId: string): Promise<Match>
   updateMatch(id: string, patch: Partial<Match>): Promise<void>

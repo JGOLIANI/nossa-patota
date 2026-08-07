@@ -18,9 +18,9 @@ npm run dev
 ```
 
 Sem credenciais do Supabase o aplicativo abre em **modo demonstração**: uma
-patota fictícia com 14 jogadores e 3 rodadas já jogadas, guardada apenas no
-navegador. Entre com o usuário `admin` (administrador) ou `igor` (jogador
-comum) e qualquer senha.
+patota fictícia com 14 jogadores, 3 rodadas já jogadas e uma rodada aberta para
+confirmar presença, guardada apenas no navegador. Entre com o usuário `admin`
+(administrador) ou `igor` (jogador comum) e qualquer senha.
 
 ---
 
@@ -55,8 +55,9 @@ npm run setup -- --url=<URL> --key=<KEY> --yes # sem perguntas, para automação
 
 No painel do Supabase abra **SQL Editor → New query**, cole todo o conteúdo de
 [`supabase/schema.sql`](supabase/schema.sql) e execute. O arquivo cria as
-tabelas, os índices, as políticas de segurança (RLS), o bucket de fotos e o
-primeiro jogador administrador. Pode ser reaplicado quantas vezes quiser.
+tabelas, os índices, as políticas de segurança (RLS), a função de confirmação
+de presença e o bucket de fotos. Pode ser reaplicado quantas vezes quiser: não
+apaga nada do que já existe.
 
 ### 4. Desligue a confirmação de e-mail
 
@@ -66,10 +67,21 @@ da patota é por nome de usuário: o aplicativo converte `fulano` em
 
 ### 5. Primeiro acesso
 
-Abra o aplicativo, toque em **Primeiro acesso** e crie a senha do usuário
-`admin`. A partir daí, cadastre os jogadores; cada um cria a própria senha
-usando o mesmo fluxo, com o nome de usuário que você definiu. Quem não estiver
-cadastrado não consegue criar conta.
+Abra o aplicativo, toque em **Primeiro acesso** e escolha seu nome de usuário e
+senha. **A primeira conta criada vira a administradora da patota** — é a única
+que pode se cadastrar sem convite, já que ainda não existe ninguém para
+autorizá-la.
+
+A partir daí, cadastre os jogadores; cada um cria a própria senha pelo mesmo
+caminho. Quem não estiver cadastrado não consegue criar conta, e todas as
+contas seguintes entram como jogador comum. Promover alguém a administrador é
+sempre um ato explícito de outro administrador, em **Perfil → Administração**.
+
+### 5.1. Defina a agenda
+
+Em **Perfil → Administração → Agenda da patota**, informe o dia da semana, o
+horário, o local e quantas vagas a rodada tem. O sistema passa a criar as
+próximas rodadas sozinho, e os jogadores confirmam presença por conta própria.
 
 ### 6. Deploy automático
 
@@ -125,6 +137,30 @@ registrados, inclusive os gols contra, que contam para o time beneficiado mas
 não para a artilharia do autor. Aproveitamento usa o critério 3-1-0
 (vitória, empate, derrota).
 
+### Rodadas e presença
+
+A patota tem dia fixo, então o administrador descreve o compromisso uma vez e o
+sistema mantém as próximas semanas sempre criadas. Cada jogador confirma a
+própria presença; quando as vagas acabam, quem confirma entra na **lista de
+espera** e sobe automaticamente se alguém desiste — a ordem é a da confirmação.
+Os times são gerados a partir de quem confirmou.
+
+A confirmação roda em uma função dentro do banco, e não no aplicativo, por dois
+motivos: promover alguém da espera altera a linha de outro jogador, o que as
+políticas de segurança impediriam; e uma trava por rodada evita que duas
+pessoas confirmando ao mesmo tempo ocupem a mesma última vaga.
+
+> As rodadas futuras são materializadas quando um administrador abre o
+> aplicativo — planos gratuitos não executam tarefas agendadas no servidor.
+
+### Compartilhar no WhatsApp
+
+Duas imagens são geradas no próprio aparelho, em canvas, sem biblioteca
+nenhuma: a **escalação** no estilo dos jogos de videogame, com o campo visto de
+cima e os goleiros destacados, e o **resumo da rodada**, com placares,
+premiações e artilharia. No celular abre direto o menu de compartilhar; no
+computador, baixa o arquivo.
+
 ### Premiações da rodada
 
 | Prêmio | Critério |
@@ -142,7 +178,8 @@ Jogador da Rodada.
 
 ```
 src/
-  domain/      regras puras e testadas: estatísticas, prêmios, balanceamento, rankings
+  domain/      regras puras e testadas: estatísticas, prêmios, balanceamento,
+               rankings, agenda e confirmação de presença
   data/        persistência: backend Supabase e backend local (demonstração)
   store/       estado da aplicação e ações
   components/  peças de interface reutilizáveis
@@ -150,6 +187,8 @@ src/
 supabase/
   schema.sql   banco completo com RLS, triggers e bucket de fotos
   tests/       testes SQL das políticas de segurança
+  lib/
+    shareCard.ts      imagens de escalação e resumo, desenhadas em canvas
 scripts/
   setup.mjs           configuração guiada do .env
   generate-icons.mjs  ícones do PWA gerados sem dependências
@@ -176,7 +215,7 @@ Com um PostgreSQL local:
 ```bash
 psql -d patota -f supabase/tests/local_prelude.sql   # simula auth/storage do Supabase
 psql -d patota -f supabase/schema.sql
-psql -d patota -f supabase/tests/rls_test.sql        # 9 verificações de permissão
+psql -d patota -f supabase/tests/rls_test.sql        # 14 verificações
 ```
 
 ---

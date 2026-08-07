@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { ConfirmDialog } from '../components/Modal'
 import { Page } from '../components/Page'
 import { PlayerRow } from '../components/PlayerRow'
-import { Button, Card, ListGroup, Note, SectionHeader, Select, Tag } from '../components/ui'
+import { Button, Card, ListGroup, ListRow, Note, SectionHeader, Select, Tag } from '../components/ui'
 import { resetDemoData } from '../data/localBackend'
 import { useApp } from '../store/useApp'
 import type { Player, Role } from '../types'
+import { WEEKDAYS } from '../types'
 
 export function AdminPage() {
   const { snapshot, currentPlayer, demoMode, actions, refresh } = useApp()
@@ -34,6 +35,18 @@ export function AdminPage() {
     <Page title="Administração" subtitle="Usuários e permissões" back>
       <div className="space-y-7">
         {error && <Note tone="error">{error}</Note>}
+
+        <section>
+          <SectionHeader title="A patota" />
+          <ListGroup>
+            <ListRow
+              to="/admin/agenda"
+              title="Agenda da patota"
+              subtitle={`${WEEKDAYS[snapshot.settings.weekday]} às ${snapshot.settings.start_time}${snapshot.settings.location ? ` · ${snapshot.settings.location}` : ''}`}
+              chevron
+            />
+          </ListGroup>
+        </section>
 
         <section>
           <SectionHeader title="Contas ativas" />

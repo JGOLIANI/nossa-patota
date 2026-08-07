@@ -1,9 +1,11 @@
+import { planResponse } from '../domain/attendance'
 import { blobToDataUrl, resizeImage } from '../lib/image'
 import { normalizeUsername } from '../lib/supabase'
 import type {
   Award,
   Match,
   MatchEvent,
+  PatotaSettings,
   Player,
   Round,
   SessionUser,
@@ -12,6 +14,7 @@ import type {
 } from '../types'
 import { createDemoSnapshot } from './demoSeed'
 import type {
+  AttendanceInput,
   AwardInput,
   Backend,
   EventInput,
@@ -224,21 +227,22 @@ export const localBackend: Backend = {
         id: uid(),
         date: input.date,
         title: input.title,
+        start_time: input.start_time,
+        location: input.location,
         team_count: input.team_count,
+        max_players: input.max_players,
         status: 'rascunho',
         created_at: new Date().toISOString(),
         closed_at: null,
       }
       snapshot.rounds.push(round)
-      for (const playerId of input.playerIds) {
-        snapshot.roundPlayers.push({
-          id: uid(),
-          round_id: round.id,
-          player_id: playerId,
-          team_id: null,
-        })
-      }
       return round
+    })
+  },
+
+  async updateSettings(patch: Partial<PatotaSettings>) {
+    mutate((snapshot) => {
+      snapshot.settings = { ...snapshot.settings, ...patch, id: 'default' }
     })
   },
 
@@ -264,19 +268,72 @@ export const localBackend: Backend = {
     })
   },
 
-  async setRoundRoster(roundId: string, playerIds: string[]) {
+  async respondAttendance(roundId: string, wants: 'confirmado' | 'fora') {
+    const session = readSession()
+    if (!session) throw new Error('Você precisa estar logado.')
+
     mutate((snapshot) => {
-      const keep = new Set(playerIds)
-      snapshot.roundPlayers = snapshot.roundPlayers.filter(
-        (rp) => rp.round_id !== roundId || keep.has(rp.player_id),
+      const player = snapshot.players.find(
+        (item) => item.user_id === session.id || item.username === session.username,
       )
-      const existing = new Set(
-        snapshot.roundPlayers.filter((rp) => rp.round_id === roundId).map((rp) => rp.player_id),
-      )
-      for (const playerId of playerIds) {
-        if (existing.has(playerId)) continue
-        snapshot.roundPlayers.push({ id: uid(), round_id: roundId, player_id: playerId, team_id: null })
+      if (!player) throw new Error('Sua conta não está vinculada a um jogador da patota.')
+
+      const round = snapshot.rounds.find((item) => item.id === roundId)
+      if (!round) throw new Error('Rodada não encontrada.')
+      if (round.status === 'encerrada') throw new Error('Esta rodada já foi encerrada.')
+
+      const rows = snapshot.roundPlayers.filter((rp) => rp.round_id === roundId)
+      const changes = planResponse(rows, player.id, wants, round.max_players, new Date().toISOString())
+
+      for (const change of changes) {
+        const existing = snapshot.roundPlayers.find(
+          (rp) => rp.round_id === roundId && rp.player_id === change.player_id,
+        )
+        if (existing) {
+          existing.attendance = change.attendance
+          if (change.responded_at) existing.responded_at = change.responded_at
+        } else {
+          snapshot.roundPlayers.push({
+            id: uid(),
+            round_id: roundId,
+            player_id: change.player_id,
+            team_id: null,
+            attendance: change.attendance,
+            responded_at: change.responded_at ?? new Date().toISOString(),
+          })
+        }
       }
+    })
+  },
+
+  async setAttendance(roundId: string, changes: AttendanceInput[]) {
+    mutate((snapshot) => {
+      for (const change of changes) {
+        const existing = snapshot.roundPlayers.find(
+          (rp) => rp.round_id === roundId && rp.player_id === change.player_id,
+        )
+        if (existing) {
+          existing.attendance = change.attendance
+          if (change.responded_at) existing.responded_at = change.responded_at
+        } else {
+          snapshot.roundPlayers.push({
+            id: uid(),
+            round_id: roundId,
+            player_id: change.player_id,
+            team_id: null,
+            attendance: change.attendance,
+            responded_at: change.responded_at ?? new Date().toISOString(),
+          })
+        }
+      }
+    })
+  },
+
+  async removeFromRound(roundId: string, playerId: string) {
+    mutate((snapshot) => {
+      snapshot.roundPlayers = snapshot.roundPlayers.filter(
+        (rp) => !(rp.round_id === roundId && rp.player_id === playerId),
+      )
     })
   },
 

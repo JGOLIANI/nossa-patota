@@ -163,6 +163,14 @@ export const IconThumbDown = (props: IconProps) => (
   </Base>
 )
 
+export const IconShare = (props: IconProps) => (
+  <Base {...props}>
+    <path d="M12 3v13" />
+    <path d="m8 7 4-4 4 4" />
+    <path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" />
+  </Base>
+)
+
 export const IconGlove = (props: IconProps) => (
   <Base {...props}>
     <path d="M6 21V9.5a1.8 1.8 0 0 1 3.6 0V11V5.2a1.8 1.8 0 0 1 3.6 0V11V6.6a1.8 1.8 0 0 1 3.6 0V13c0 4-1.6 8-4.4 8H6Z" />

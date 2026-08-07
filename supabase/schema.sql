@@ -33,16 +33,41 @@ create table if not exists public.players (
   created_at timestamptz not null default now()
 );
 
+-- A patota tem dia fixo. Guardar isso em um lugar só permite ao sistema criar
+-- as próximas rodadas sozinho, em vez de o administrador repetir o cadastro
+-- toda semana.
+create table if not exists public.patota_settings (
+  id text primary key default 'default' check (id = 'default'),
+  weekday integer not null default 5 check (weekday between 0 and 6),
+  start_time text not null default '20:00',
+  location text not null default '',
+  -- 0 significa rodada sem limite de vagas.
+  max_players integer not null default 0 check (max_players >= 0),
+  weeks_ahead integer not null default 4 check (weeks_ahead between 0 and 12)
+);
+
+insert into public.patota_settings (id) values ('default') on conflict (id) do nothing;
+
 create table if not exists public.rounds (
   id uuid primary key default gen_random_uuid(),
   date date not null default current_date,
   title text not null default 'Rodada',
+  start_time text not null default '20:00',
+  location text not null default '',
   team_count integer not null default 2 check (team_count between 1 and 8),
+  max_players integer not null default 0 check (max_players >= 0),
   status text not null default 'rascunho'
     check (status in ('rascunho', 'em_andamento', 'encerrada')),
   created_at timestamptz not null default now(),
-  closed_at timestamptz
+  closed_at timestamptz,
+  -- Uma rodada por data: é o que permite recriar a agenda sem duplicar nada.
+  unique (date)
 );
+
+-- Colunas acrescentadas depois da primeira versão do schema.
+alter table public.rounds add column if not exists start_time text not null default '20:00';
+alter table public.rounds add column if not exists location text not null default '';
+alter table public.rounds add column if not exists max_players integer not null default 0;
 
 create table if not exists public.teams (
   id uuid primary key default gen_random_uuid(),
@@ -58,8 +83,18 @@ create table if not exists public.round_players (
   round_id uuid not null references public.rounds (id) on delete cascade,
   player_id uuid not null references public.players (id) on delete cascade,
   team_id uuid references public.teams (id) on delete set null,
+  -- Resposta do jogador ao convite. A ordem de `responded_at` é o que define
+  -- quem sobe primeiro da lista de espera.
+  attendance text not null default 'confirmado'
+    check (attendance in ('confirmado', 'espera', 'fora')),
+  responded_at timestamptz not null default now(),
   unique (round_id, player_id)
 );
+
+alter table public.round_players
+  add column if not exists attendance text not null default 'confirmado';
+alter table public.round_players
+  add column if not exists responded_at timestamptz not null default now();
 
 create table if not exists public.matches (
   id uuid primary key default gen_random_uuid(),
@@ -175,6 +210,113 @@ create trigger on_auth_user_created
 after insert on auth.users
 for each row execute function public.handle_new_user();
 
+/*
+ * Confirmação de presença.
+ *
+ * Precisa rodar no servidor por dois motivos: quando alguém desiste, a
+ * promoção mexe na linha de OUTRO jogador, o que o RLS impediria; e a trava
+ * por rodada evita que duas pessoas confirmando ao mesmo tempo ocupem a
+ * mesma última vaga.
+ */
+create or replace function public.respond_attendance(p_round_id uuid, p_wants text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  me uuid;
+  round_row public.rounds%rowtype;
+  current_row public.round_players%rowtype;
+  confirmed_count integer;
+  promoted uuid;
+  next_state text;
+begin
+  if p_wants not in ('confirmado', 'fora') then
+    raise exception 'Resposta inválida: %', p_wants;
+  end if;
+
+  select id into me from public.players where user_id = auth.uid();
+  if me is null then
+    raise exception 'Sua conta ainda não está vinculada a um jogador da patota.';
+  end if;
+
+  select * into round_row from public.rounds where id = p_round_id;
+  if round_row.id is null then
+    raise exception 'Rodada não encontrada.';
+  end if;
+  if round_row.status = 'encerrada' then
+    raise exception 'Esta rodada já foi encerrada.';
+  end if;
+
+  -- Serializa as respostas desta rodada até o fim da transação.
+  perform pg_advisory_xact_lock(hashtext(p_round_id::text));
+
+  select * into current_row
+    from public.round_players
+   where round_id = p_round_id and player_id = me;
+
+  if p_wants = 'fora' then
+    if current_row.id is not null and current_row.attendance = 'fora' then
+      return;
+    end if;
+
+    if current_row.id is null then
+      insert into public.round_players (round_id, player_id, attendance, responded_at)
+      values (p_round_id, me, 'fora', now());
+      return;
+    end if;
+
+    update public.round_players
+       set attendance = 'fora', responded_at = now()
+     where id = current_row.id;
+
+    -- A vaga só abre se quem saiu realmente ocupava uma.
+    if current_row.attendance = 'confirmado' then
+      select player_id into promoted
+        from public.round_players
+       where round_id = p_round_id and attendance = 'espera'
+       order by responded_at
+       limit 1;
+
+      if promoted is not null then
+        update public.round_players
+           set attendance = 'confirmado'
+         where round_id = p_round_id and player_id = promoted;
+      end if;
+    end if;
+    return;
+  end if;
+
+  -- Já confirmado ou já na espera: nada muda.
+  if current_row.id is not null and current_row.attendance in ('confirmado', 'espera') then
+    return;
+  end if;
+
+  select count(*) into confirmed_count
+    from public.round_players
+   where round_id = p_round_id and attendance = 'confirmado';
+
+  next_state := case
+    when round_row.max_players <= 0 or confirmed_count < round_row.max_players then 'confirmado'
+    else 'espera'
+  end;
+
+  if current_row.id is null then
+    insert into public.round_players (round_id, player_id, attendance, responded_at)
+    values (p_round_id, me, next_state, now());
+  else
+    -- Quem desistiu e voltou entra no fim da fila, não no lugar antigo.
+    update public.round_players
+       set attendance = next_state, responded_at = now()
+     where id = current_row.id;
+  end if;
+end;
+$$;
+
+revoke all on function public.respond_attendance(uuid, text) from public;
+grant execute on function public.respond_attendance(uuid, text) to authenticated;
+
 -- O jogador comum pode ajustar apenas a própria foto e o próprio nome.
 create or replace function public.players_guard_self_update()
 returns trigger
@@ -218,6 +360,7 @@ alter table public.round_players enable row level security;
 alter table public.matches enable row level security;
 alter table public.match_events enable row level security;
 alter table public.round_awards enable row level security;
+alter table public.patota_settings enable row level security;
 
 -- Leitura liberada para qualquer jogador autenticado; escrita só para admins.
 do $$
@@ -225,7 +368,8 @@ declare
   target text;
 begin
   foreach target in array array[
-    'players', 'rounds', 'teams', 'round_players', 'matches', 'match_events', 'round_awards'
+    'players', 'rounds', 'teams', 'round_players', 'matches', 'match_events',
+    'round_awards', 'patota_settings'
   ]
   loop
     execute format('drop policy if exists %I on public.%I', target || '_read', target);

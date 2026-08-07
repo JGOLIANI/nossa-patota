@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { computeRoundAwards } from './awards'
-import { baseScenario, makeEvent } from './testing'
+import { baseScenario, makeEvent, makeRoundPlayer } from './testing'
 
 describe('computeRoundAwards', () => {
   it('elege o jogador com mais participações em gols', () => {
@@ -60,12 +60,7 @@ describe('computeRoundAwards', () => {
   it('ignora quem foi inscrito mas não entrou em campo', () => {
     const snapshot = baseScenario()
     snapshot.players.push({ ...snapshot.players[0], id: 'p9', username: 'p9' })
-    snapshot.roundPlayers.push({
-      id: 'r1-p9',
-      round_id: 'r1',
-      player_id: 'p9',
-      team_id: null,
-    })
+    snapshot.roundPlayers.push(makeRoundPlayer('r1', 'p9', null))
 
     expect(computeRoundAwards(snapshot, 'r1').pior_jogador).not.toContain('p9')
   })

@@ -5,6 +5,7 @@ import type {
   Award,
   Match,
   MatchEvent,
+  PatotaSettings,
   Player,
   Round,
   RoundPlayer,
@@ -12,7 +13,9 @@ import type {
   Snapshot,
   Team,
 } from '../types'
+import { DEFAULT_SETTINGS } from '../types'
 import type {
+  AttendanceInput,
   AwardInput,
   Backend,
   EventInput,
@@ -88,7 +91,8 @@ export const supabaseBackend: Backend = {
 
   async fetchAll(): Promise<Snapshot> {
     const db = client()
-    const [players, rounds, teams, roundPlayers, matches, events, awards] = await Promise.all([
+    const [players, rounds, teams, roundPlayers, matches, events, awards, settings] =
+      await Promise.all([
       db.from('players').select('*').order('full_name'),
       db.from('rounds').select('*').order('date', { ascending: false }),
       db.from('teams').select('*').order('position'),
@@ -96,7 +100,8 @@ export const supabaseBackend: Backend = {
       db.from('matches').select('*').order('sequence'),
       db.from('match_events').select('*').order('created_at'),
       db.from('round_awards').select('*'),
-    ])
+        db.from('patota_settings').select('*').eq('id', 'default').maybeSingle(),
+      ])
 
     return {
       players: unwrap<Player[]>(players),
@@ -106,6 +111,7 @@ export const supabaseBackend: Backend = {
       matches: unwrap<Match[]>(matches),
       events: unwrap<MatchEvent[]>(events),
       awards: unwrap<Award[]>(awards),
+      settings: (settings.data as PatotaSettings | null) ?? DEFAULT_SETTINGS,
     }
   },
 
@@ -137,28 +143,30 @@ export const supabaseBackend: Backend = {
   },
 
   async createRound(input: RoundInput) {
-    const db = client()
     const rounds = unwrap<Round[]>(
-      await db
+      await client()
         .from('rounds')
         .insert({
           date: input.date,
           title: input.title,
+          start_time: input.start_time,
+          location: input.location,
           team_count: input.team_count,
+          max_players: input.max_players,
           status: 'rascunho',
         })
         .select(),
     )
-    const round = rounds[0]
-    if (input.playerIds.length > 0) {
-      unwrap(
-        await db
-          .from('round_players')
-          .insert(input.playerIds.map((playerId) => ({ round_id: round.id, player_id: playerId })))
-          .select(),
-      )
-    }
-    return round
+    return rounds[0]
+  },
+
+  async updateSettings(patch: Partial<PatotaSettings>) {
+    unwrap(
+      await client()
+        .from('patota_settings')
+        .upsert({ ...patch, id: 'default' })
+        .select(),
+    )
   },
 
   async updateRound(id: string, patch: Partial<Round>) {
@@ -170,28 +178,52 @@ export const supabaseBackend: Backend = {
     if (error) throw new Error(translate(error.message))
   },
 
-  async setRoundRoster(roundId: string, playerIds: string[]) {
+  async respondAttendance(roundId: string, wants: 'confirmado' | 'fora') {
+    const { error } = await client().rpc('respond_attendance', {
+      p_round_id: roundId,
+      p_wants: wants,
+    })
+    if (error) throw new Error(translate(error.message))
+  },
+
+  async setAttendance(roundId: string, changes: AttendanceInput[]) {
+    if (changes.length === 0) return
     const db = client()
-    const current = unwrap<RoundPlayer[]>(
+    const existing = unwrap<RoundPlayer[]>(
       await db.from('round_players').select('*').eq('round_id', roundId),
     )
-    const keep = new Set(playerIds)
-    const removed = current.filter((rp) => !keep.has(rp.player_id)).map((rp) => rp.id)
-    const existing = new Set(current.map((rp) => rp.player_id))
-    const added = playerIds.filter((id) => !existing.has(id))
+    const byPlayer = new Map(existing.map((row) => [row.player_id, row]))
 
-    if (removed.length > 0) {
-      const { error } = await db.from('round_players').delete().in('id', removed)
+    const inserts = changes
+      .filter((change) => !byPlayer.has(change.player_id))
+      .map((change) => ({
+        round_id: roundId,
+        player_id: change.player_id,
+        attendance: change.attendance,
+        responded_at: change.responded_at ?? new Date().toISOString(),
+      }))
+
+    if (inserts.length > 0) {
+      unwrap(await db.from('round_players').insert(inserts).select())
+    }
+
+    for (const change of changes) {
+      const row = byPlayer.get(change.player_id)
+      if (!row) continue
+      const patch: Partial<RoundPlayer> = { attendance: change.attendance }
+      if (change.responded_at) patch.responded_at = change.responded_at
+      const { error } = await db.from('round_players').update(patch).eq('id', row.id)
       if (error) throw new Error(translate(error.message))
     }
-    if (added.length > 0) {
-      unwrap(
-        await db
-          .from('round_players')
-          .insert(added.map((playerId) => ({ round_id: roundId, player_id: playerId })))
-          .select(),
-      )
-    }
+  },
+
+  async removeFromRound(roundId: string, playerId: string) {
+    const { error } = await client()
+      .from('round_players')
+      .delete()
+      .eq('round_id', roundId)
+      .eq('player_id', playerId)
+    if (error) throw new Error(translate(error.message))
   },
 
   async setRoundTeams(roundId: string, teams: TeamInput[]) {

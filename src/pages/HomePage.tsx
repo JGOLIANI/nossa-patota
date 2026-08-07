@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
+import { AttendanceControl } from '../components/AttendanceControl'
 import { AwardsCard } from '../components/AwardsCard'
 import { Page } from '../components/Page'
 import { IconPlus } from '../components/icons'
@@ -12,15 +13,19 @@ import {
   StatRow,
   Tag,
 } from '../components/ui'
-import { highlightRound, roundMatches, roundRoster } from '../domain/selectors'
-import { firstName, formatDate, formatWeekday, percent } from '../lib/format'
+import { attendanceSummary } from '../domain/attendance'
+import { upcomingRound } from '../domain/schedule'
+import { highlightRound, roundMatches } from '../domain/selectors'
+import { firstName, formatDate, formatWeekday, percent, todayISO } from '../lib/format'
 import { useApp } from '../store/useApp'
 
 export function HomePage() {
   const { snapshot, currentPlayer, isAdmin, stats } = useApp()
   const navigate = useNavigate()
 
-  const round = highlightRound(snapshot)
+  // A próxima rodada em aberto é o que interessa; só quando não há nenhuma
+  // é que a tela cai para a última encerrada.
+  const round = upcomingRound(snapshot.rounds, todayISO()) ?? highlightRound(snapshot)
   const myStats = currentPlayer ? stats.get(currentPlayer.id) : undefined
   const isKeeper = currentPlayer?.position === 'goleiro'
 
@@ -55,15 +60,32 @@ export function HomePage() {
                 </Tag>
               </div>
 
+              {round.location && (
+                <p className="mt-2 text-sm text-muted">
+                  {round.start_time} · {round.location}
+                </p>
+              )}
+
               <p className="mt-3 text-sm text-muted">
-                {roundRoster(snapshot, round.id).length} jogadores ·{' '}
-                {roundMatches(snapshot, round.id).length} partidas
+                {round.status === 'encerrada'
+                  ? `${roundMatches(snapshot, round.id).length} partidas disputadas`
+                  : attendanceSummary(
+                      snapshot.roundPlayers.filter((rp) => rp.round_id === round.id),
+                      round.max_players,
+                    )}
               </p>
+
+              {round.status !== 'encerrada' && (
+                <div className="mt-4">
+                  <AttendanceControl round={round} />
+                </div>
+              )}
 
               <Button
                 size="lg"
+                variant={round.status === 'encerrada' ? 'primary' : 'secondary'}
                 block
-                className="mt-4"
+                className="mt-2"
                 onClick={() => navigate(`/rodadas/${round.id}`)}
               >
                 {round.status === 'encerrada' ? 'Ver resultados' : 'Abrir rodada'}

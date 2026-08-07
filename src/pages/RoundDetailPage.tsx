@@ -1,47 +1,55 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { AttendanceControl } from '../components/AttendanceControl'
 import { AwardsCard } from '../components/AwardsCard'
 import { ConfirmDialog, Modal } from '../components/Modal'
 import { Page } from '../components/Page'
 import { PlayerRow } from '../components/PlayerRow'
-import { IconPlus, IconShuffle } from '../components/icons'
+import { ShareRound } from '../components/ShareRound'
+import { IconClose, IconPlus, IconShuffle } from '../components/icons'
 import {
   ActionBar,
   Button,
+  Card,
   EmptyState,
   Field,
+  IconButton,
   ListGroup,
   ListRow,
   Note,
+  SectionHeader,
   Select,
   Tabs,
   Tag,
 } from '../components/ui'
-import { findRound, roundMatches, roundRoster, roundTeams, teamPlayers } from '../domain/selectors'
+import { attendanceLists } from '../domain/attendance'
+import { findRound, playerMap, roundMatches, roundTeams, teamPlayers } from '../domain/selectors'
 import { computeStats } from '../domain/stats'
 import { formatDate, formatWeekday } from '../lib/format'
+import { playerCaption } from '../lib/player'
 import { useApp } from '../store/useApp'
+import type { Player } from '../types'
 
-type Tab = 'times' | 'partidas' | 'premios'
+type Tab = 'presenca' | 'times' | 'partidas' | 'premios'
 
 export function RoundDetailPage() {
   const { roundId = '' } = useParams()
   const navigate = useNavigate()
   const { snapshot, isAdmin, actions } = useApp()
 
-  const [tab, setTab] = useState<Tab>('times')
+  const round = findRound(snapshot, roundId)
+  const teams = roundTeams(snapshot, roundId)
+  const matches = roundMatches(snapshot, roundId)
+  const roundStats = useMemo(() => computeStats(snapshot, { roundId }), [snapshot, roundId])
+
+  const [tab, setTab] = useState<Tab>(teams.length > 0 ? 'times' : 'presenca')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [confirm, setConfirm] = useState<'regenerar' | 'encerrar' | 'excluir' | null>(null)
   const [newMatch, setNewMatch] = useState(false)
+  const [addPlayer, setAddPlayer] = useState(false)
   const [teamA, setTeamA] = useState('')
   const [teamB, setTeamB] = useState('')
-
-  const round = findRound(snapshot, roundId)
-  const teams = roundTeams(snapshot, roundId)
-  const matches = roundMatches(snapshot, roundId)
-  const roster = roundRoster(snapshot, roundId)
-  const roundStats = useMemo(() => computeStats(snapshot, { roundId }), [snapshot, roundId])
 
   if (!round) {
     return (
@@ -52,6 +60,13 @@ export function RoundDetailPage() {
   }
 
   const closed = round.status === 'encerrada'
+  const byId = playerMap(snapshot)
+  const rows = snapshot.roundPlayers.filter((rp) => rp.round_id === roundId)
+  const lists = attendanceLists(rows)
+  const responded = new Set(rows.map((row) => row.player_id))
+  const available = snapshot.players.filter(
+    (player) => player.status === 'ativo' && !responded.has(player.id),
+  )
 
   async function guard(operation: () => Promise<unknown>) {
     setError('')
@@ -79,42 +94,109 @@ export function RoundDetailPage() {
     })
   }
 
+  function attendanceGroup(title: string, entries: typeof lists.confirmed, numbered = false) {
+    if (entries.length === 0) return null
+    return (
+      <section>
+        <SectionHeader title={`${title} · ${entries.length}`} />
+        <ListGroup>
+          {entries.map((entry, index) => {
+            const player = byId.get(entry.player_id)
+            if (!player) return null
+            return (
+              <PlayerRow
+                key={entry.player_id}
+                player={player}
+                rank={numbered ? index + 1 : undefined}
+                subtitle={playerCaption(player)}
+                trailing={
+                  isAdmin && !closed ? (
+                    <IconButton
+                      label={`Tirar ${player.full_name} da rodada`}
+                      onClick={() => guard(() => actions.removeFromRound(roundId, player.id))}
+                    >
+                      <IconClose className="size-4" />
+                    </IconButton>
+                  ) : undefined
+                }
+              />
+            )
+          })}
+        </ListGroup>
+      </section>
+    )
+  }
+
   return (
     <Page
       title={round.title}
       subtitle={
         <>
-          {formatWeekday(round.date)}, {formatDate(round.date)} · {roster.length} jogadores ·{' '}
-          {matches.length} partidas
+          {formatWeekday(round.date)}, {formatDate(round.date)} às {round.start_time}
+          {round.location && ` · ${round.location}`}
         </>
       }
       back
       action={
-        round.status !== 'rascunho' ? (
-          <Tag tone={closed ? 'done' : 'live'}>{closed ? 'Encerrada' : 'Ao vivo'}</Tag>
-        ) : (
-          <Tag>Rascunho</Tag>
-        )
+        <Tag tone={closed ? 'done' : round.status === 'em_andamento' ? 'live' : 'neutral'}>
+          {closed ? 'Encerrada' : round.status === 'em_andamento' ? 'Ao vivo' : 'Aberta'}
+        </Tag>
       }
     >
       <Tabs
         value={tab}
         onChange={setTab}
         options={[
+          { value: 'presenca', label: 'Presença' },
           { value: 'times', label: 'Times' },
           { value: 'partidas', label: 'Partidas' },
           { value: 'premios', label: 'Prêmios' },
         ]}
       />
 
-      <div className="mt-5 space-y-5 pb-20">
+      <div className="mt-5 space-y-6 pb-24">
         {error && <Note tone="error">{error}</Note>}
+
+        {tab === 'presenca' && (
+          <>
+            <Card className="p-4">
+              <p className="mb-3 text-center text-sm text-muted">
+                {round.max_players > 0
+                  ? `${lists.confirmed.length} de ${round.max_players} vagas preenchidas`
+                  : `${lists.confirmed.length} confirmados`}
+                {lists.waiting.length > 0 && ` · ${lists.waiting.length} na espera`}
+              </p>
+              <AttendanceControl round={round} />
+            </Card>
+
+            {attendanceGroup('Confirmados', lists.confirmed)}
+            {attendanceGroup('Lista de espera', lists.waiting, true)}
+            {attendanceGroup('Não vão', lists.out)}
+
+            {lists.confirmed.length === 0 && lists.waiting.length === 0 && (
+              <EmptyState
+                title="Ninguém confirmou ainda"
+                description="Assim que o pessoal responder, os nomes aparecem aqui."
+              />
+            )}
+
+            {isAdmin && !closed && available.length > 0 && (
+              <Button variant="secondary" block onClick={() => setAddPlayer(true)}>
+                <IconPlus className="size-5" /> Confirmar alguém na mão
+              </Button>
+            )}
+          </>
+        )}
 
         {tab === 'times' &&
           (teams.length === 0 ? (
             <EmptyState
               title="Times ainda não gerados"
-              description="Gere as equipes para começar a rodada."
+              description={
+                isAdmin
+                  ? 'Gere as equipes a partir de quem confirmou presença.'
+                  : 'O administrador ainda não montou as equipes.'
+              }
               action={
                 isAdmin ? (
                   <Button onClick={() => setConfirm('regenerar')}>
@@ -159,6 +241,8 @@ export function RoundDetailPage() {
                 )
               })}
 
+              <ShareRound round={round} kind="escalacao" />
+
               {isAdmin && !closed && (
                 <Button variant="secondary" block onClick={() => setConfirm('regenerar')} disabled={busy}>
                   <IconShuffle className="size-5" /> Gerar times novamente
@@ -185,7 +269,11 @@ export function RoundDetailPage() {
               <EmptyState
                 title="Nenhuma partida ainda"
                 description={
-                  isAdmin ? 'Crie a primeira partida da rodada.' : 'A rodada ainda não começou.'
+                  teams.length === 0
+                    ? 'Gere os times antes de começar as partidas.'
+                    : isAdmin
+                      ? 'Crie a primeira partida da rodada.'
+                      : 'A rodada ainda não começou.'
                 }
               />
             ) : (
@@ -216,8 +304,21 @@ export function RoundDetailPage() {
           </>
         )}
 
-        {tab === 'premios' && <AwardsCard snapshot={snapshot} roundId={roundId} />}
+        {tab === 'premios' && (
+          <>
+            <AwardsCard snapshot={snapshot} roundId={roundId} />
+            {matches.length > 0 && <ShareRound round={round} kind="resultado" />}
+          </>
+        )}
       </div>
+
+      {isAdmin && !closed && teams.length === 0 && lists.confirmed.length > 0 && (
+        <ActionBar>
+          <Button size="lg" block onClick={() => setConfirm('regenerar')} disabled={busy}>
+            <IconShuffle className="size-5" /> Gerar times com {lists.confirmed.length} confirmados
+          </Button>
+        </ActionBar>
+      )}
 
       {isAdmin && round.status === 'rascunho' && teams.length > 0 && (
         <ActionBar>
@@ -234,6 +335,32 @@ export function RoundDetailPage() {
           </Button>
         </ActionBar>
       )}
+
+      <Modal open={addPlayer} title="Confirmar jogador" onClose={() => setAddPlayer(false)}>
+        <p className="mb-3 text-sm text-muted">
+          Para quem avisou por fora que vai jogar. Ele entra como confirmado, ou na lista de
+          espera se as vagas já acabaram.
+        </p>
+        <ListGroup>
+          {available.map((player: Player) => (
+            <PlayerRow
+              key={player.id}
+              player={player}
+              subtitle={playerCaption(player)}
+              onClick={() =>
+                guard(async () => {
+                  const attendance =
+                    round.max_players > 0 && lists.confirmed.length >= round.max_players
+                      ? 'espera'
+                      : 'confirmado'
+                  await actions.setAttendance(roundId, player.id, attendance)
+                  setAddPlayer(false)
+                })
+              }
+            />
+          ))}
+        </ListGroup>
+      </Modal>
 
       <Modal
         open={newMatch}
@@ -270,13 +397,20 @@ export function RoundDetailPage() {
 
       <ConfirmDialog
         open={confirm === 'regenerar'}
-        title="Gerar times novamente"
-        message="As equipes serão remontadas com as estatísticas atuais. As partidas já registradas nesta rodada serão apagadas."
+        title={teams.length === 0 ? 'Gerar times' : 'Gerar times novamente'}
+        message={
+          teams.length === 0
+            ? `As equipes serão montadas com os ${lists.confirmed.length} jogadores que confirmaram presença, equilibrando pelo histórico de cada um.`
+            : 'As equipes serão remontadas com quem está confirmado agora. As partidas já registradas nesta rodada serão apagadas.'
+        }
         confirmLabel="Gerar"
         destructive={matches.length > 0}
         onConfirm={() => {
           setConfirm(null)
-          guard(() => actions.generateTeamsForRound(roundId, round.team_count))
+          guard(async () => {
+            await actions.generateTeamsForRound(roundId, round.team_count)
+            setTab('times')
+          })
         }}
         onCancel={() => setConfirm(null)}
       />
@@ -300,7 +434,7 @@ export function RoundDetailPage() {
       <ConfirmDialog
         open={confirm === 'excluir'}
         title="Excluir rodada"
-        message="Toda a rodada será apagada: times, partidas, gols e prêmios. As estatísticas dos jogadores serão recalculadas sem ela."
+        message="Toda a rodada será apagada: presenças, times, partidas, gols e prêmios."
         confirmLabel="Excluir"
         onConfirm={() => {
           setConfirm(null)

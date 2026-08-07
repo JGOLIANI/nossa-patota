@@ -12,6 +12,7 @@ import { RankingsPage } from './pages/RankingsPage'
 import { RoundDetailPage } from './pages/RoundDetailPage'
 import { RoundNewPage } from './pages/RoundNewPage'
 import { RoundsPage } from './pages/RoundsPage'
+import { SettingsPage } from './pages/SettingsPage'
 import { AppProvider } from './store/AppProvider'
 
 export function App() {
@@ -48,6 +49,14 @@ export function App() {
               element={
                 <RequireAdmin>
                   <AdminPage />
+                </RequireAdmin>
+              }
+            />
+            <Route
+              path="admin/agenda"
+              element={
+                <RequireAdmin>
+                  <SettingsPage />
                 </RequireAdmin>
               }
             />

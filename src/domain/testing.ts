@@ -34,7 +34,10 @@ export function makeRound(id: string, overrides: Partial<Round> = {}): Round {
     id,
     date: '2026-01-10',
     title: 'Rodada',
+    start_time: '20:00',
+    location: 'Quadra da vila',
     team_count: 2,
+    max_players: 0,
     status: 'encerrada',
     created_at: '2026-01-10T00:00:00.000Z',
     closed_at: null,
@@ -47,7 +50,14 @@ export function makeTeam(id: string, roundId: string, position: number): Team {
 }
 
 export function makeRoundPlayer(roundId: string, playerId: string, teamId: string | null): RoundPlayer {
-  return { id: `${roundId}-${playerId}`, round_id: roundId, player_id: playerId, team_id: teamId }
+  return {
+    id: `${roundId}-${playerId}`,
+    round_id: roundId,
+    player_id: playerId,
+    team_id: teamId,
+    attendance: 'confirmado',
+    responded_at: '2026-01-09T12:00:00.000Z',
+  }
 }
 
 export function makeMatch(id: string, overrides: Partial<Match> & Pick<Match, 'round_id' | 'team_a_id' | 'team_b_id'>): Match {

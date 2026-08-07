@@ -176,3 +176,69 @@ begin
   raise notice 'OK 11 — anônimo não lê dados da patota';
 end $$;
 commit;
+
+-- 12. Confirmação de presença: a função do servidor respeita as vagas.
+update public.rounds set max_players = 2, status = 'rascunho'
+ where title = 'Rodada teste';
+
+do $$
+declare v_round uuid;
+begin
+  select id into v_round from public.rounds where title = 'Rodada teste';
+
+  perform set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', true);
+  perform public.respond_attendance(v_round, 'confirmado');
+  perform set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', true);
+  perform public.respond_attendance(v_round, 'confirmado');
+  perform set_config('request.jwt.claim.sub', '33333333-3333-3333-3333-333333333333', true);
+  perform public.respond_attendance(v_round, 'confirmado');
+
+  if (select count(*) from public.round_players
+       where round_id = v_round and attendance = 'confirmado') <> 2 then
+    raise exception 'FALHOU: mais gente confirmada do que vagas';
+  end if;
+  if (select attendance from public.round_players rp
+       join public.players p on p.id = rp.player_id
+      where rp.round_id = v_round and p.username = 'chico') <> 'espera' then
+    raise exception 'FALHOU: o terceiro não foi para a lista de espera';
+  end if;
+  raise notice 'OK 12 — ao lotar, a confirmação vai para a lista de espera';
+end $$;
+
+-- 13. Quem desiste libera a vaga para o primeiro da espera.
+do $$
+declare v_round uuid;
+begin
+  select id into v_round from public.rounds where title = 'Rodada teste';
+
+  perform set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', true);
+  perform public.respond_attendance(v_round, 'fora');
+
+  if (select attendance from public.round_players rp
+       join public.players p on p.id = rp.player_id
+      where rp.round_id = v_round and p.username = 'chico') <> 'confirmado' then
+    raise exception 'FALHOU: a espera não foi promovida quando abriu vaga';
+  end if;
+  if (select count(*) from public.round_players
+       where round_id = v_round and attendance = 'confirmado') <> 2 then
+    raise exception 'FALHOU: a rodada não voltou a ter 2 confirmados';
+  end if;
+  raise notice 'OK 13 — desistência promove o primeiro da lista de espera';
+end $$;
+
+-- 14. Jogador comum não altera a presença de outro jogador na marra.
+do $$
+declare blocked boolean := false;
+begin
+  begin
+    set local role authenticated;
+    perform set_config('request.jwt.claim.sub', '33333333-3333-3333-3333-333333333333', true);
+    update public.round_players set attendance = 'fora'
+     where player_id = (select id from public.players where username = 'zeca');
+    if not found then blocked := true; end if;
+  exception when others then blocked := true;
+  end;
+  reset role;
+  if not blocked then raise exception 'FALHOU: jogador alterou a presença de outro'; end if;
+  raise notice 'OK 14 — jogador não mexe na presença alheia';
+end $$;

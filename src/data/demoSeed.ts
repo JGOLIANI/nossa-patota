@@ -1,9 +1,10 @@
 import { computeRoundAwards } from '../domain/awards'
+import { nextOccurrences, roundTitle } from '../domain/schedule'
 import { generateTeams } from '../domain/balance'
 import { computeMatchLogs, computeStats } from '../domain/stats'
 import { scoreFromEvents } from '../domain/score'
 import type { Match, MatchEvent, Player, Snapshot } from '../types'
-import { TEAM_PRESETS } from '../types'
+import { DEFAULT_SETTINGS, TEAM_PRESETS } from '../types'
 
 /** PRNG determinístico para que a demonstração seja sempre a mesma. */
 function prng(seed: number): () => number {
@@ -76,6 +77,7 @@ export function createDemoSnapshot(): Snapshot {
     matches: [],
     events: [],
     awards: [],
+    settings: { ...DEFAULT_SETTINGS, weekday: 5, location: 'Quadra do Zé', max_players: 14 },
   }
 
   let eventSeq = 0
@@ -98,8 +100,11 @@ export function createDemoSnapshot(): Snapshot {
     snapshot.rounds.push({
       id: roundId,
       date,
-      title: `Rodada ${roundIndex + 1}`,
+      title: `Rodada de ${date.slice(8, 10)}/${date.slice(5, 7)}`,
+      start_time: '20:00',
+      location: 'Quadra do Zé',
       team_count: 2,
+      max_players: 14,
       status: 'encerrada',
       created_at: `${date}T18:00:00.000Z`,
       closed_at: `${date}T22:00:00.000Z`,
@@ -121,6 +126,8 @@ export function createDemoSnapshot(): Snapshot {
           round_id: roundId,
           player_id: playerId,
           team_id: teamId,
+          attendance: 'confirmado',
+          responded_at: `${date}T12:00:00.000Z`,
         })
       }
     })
@@ -195,6 +202,40 @@ export function createDemoSnapshot(): Snapshot {
       }
     }
   })
+
+  // Uma rodada futura em aberto, para que a demonstração já mostre a
+  // confirmação de presença funcionando.
+  const today = new Date()
+  const todayISO = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+  const nextDate = nextOccurrences(5, todayISO, 1)[0]
+
+  snapshot.rounds.push({
+    id: 'demo-round-next',
+    date: nextDate,
+    title: roundTitle(nextDate),
+    start_time: '20:00',
+    location: 'Quadra do Zé',
+    team_count: 2,
+    max_players: 14,
+    status: 'rascunho',
+    created_at: `${nextDate}T08:00:00.000Z`,
+    closed_at: null,
+  })
+
+  // Nove já confirmaram; o administrador ainda não respondeu, de propósito.
+  players
+    .filter((player) => player.username !== 'admin' && player.player_type === 'mensalista')
+    .slice(0, 9)
+    .forEach((player, index) => {
+      snapshot.roundPlayers.push({
+        id: `demo-next-${player.id}`,
+        round_id: 'demo-round-next',
+        player_id: player.id,
+        team_id: null,
+        attendance: 'confirmado',
+        responded_at: `${nextDate}T09:${String(index).padStart(2, '0')}:00.000Z`,
+      })
+    })
 
   return snapshot
 }

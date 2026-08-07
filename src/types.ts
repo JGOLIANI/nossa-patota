@@ -28,11 +28,51 @@ export interface Round {
   id: string
   date: string
   title: string
+  /** Horário de início, `HH:MM`. Herdado da configuração da patota. */
+  start_time: string
+  location: string
   team_count: number
+  /** Vagas da rodada. 0 significa sem limite. */
+  max_players: number
   status: RoundStatus
   created_at: string
   closed_at: string | null
 }
+
+/**
+ * Configuração fixa da patota: o dia em que ela acontece, o horário, o local
+ * e quantas vagas existem. É a partir daqui que as próximas rodadas nascem
+ * sozinhas, sem o administrador precisar criar uma por uma toda semana.
+ */
+export interface PatotaSettings {
+  id: string
+  /** 0 = domingo … 6 = sábado. */
+  weekday: number
+  start_time: string
+  location: string
+  max_players: number
+  /** Quantas rodadas futuras manter sempre criadas. */
+  weeks_ahead: number
+}
+
+export const DEFAULT_SETTINGS: PatotaSettings = {
+  id: 'default',
+  weekday: 5,
+  start_time: '20:00',
+  location: '',
+  max_players: 0,
+  weeks_ahead: 4,
+}
+
+export const WEEKDAYS = [
+  'Domingo',
+  'Segunda-feira',
+  'Terça-feira',
+  'Quarta-feira',
+  'Quinta-feira',
+  'Sexta-feira',
+  'Sábado',
+]
 
 export interface Team {
   id: string
@@ -43,11 +83,17 @@ export interface Team {
   color: string
 }
 
+/** Resposta do jogador ao convite da rodada. */
+export type Attendance = 'confirmado' | 'espera' | 'fora'
+
 export interface RoundPlayer {
   id: string
   round_id: string
   player_id: string
   team_id: string | null
+  attendance: Attendance
+  /** Momento da confirmação — define a ordem da lista de espera. */
+  responded_at: string
 }
 
 export interface Match {
@@ -91,6 +137,7 @@ export interface Snapshot {
   matches: Match[]
   events: MatchEvent[]
   awards: Award[]
+  settings: PatotaSettings
 }
 
 export const EMPTY_SNAPSHOT: Snapshot = {
@@ -101,6 +148,7 @@ export const EMPTY_SNAPSHOT: Snapshot = {
   matches: [],
   events: [],
   awards: [],
+  settings: DEFAULT_SETTINGS,
 }
 
 export interface SessionUser {
