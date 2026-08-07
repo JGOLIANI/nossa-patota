@@ -1,13 +1,78 @@
 @import 'tailwindcss';
 
+/*
+ * Sistema visual do Nossa Patota.
+ *
+ * Uma única fonte de verdade para cor, raio e sombra. As telas nunca usam
+ * cores cruas do Tailwind (slate-800, emerald-500...): usam sempre os papéis
+ * definidos aqui, o que mantém a interface consistente e permite trocar o
+ * tema inteiro em um lugar só.
+ */
 @theme {
   --font-sans:
-    'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
-    sans-serif;
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+
+  /* Superfícies, do fundo para a frente. */
+  --color-canvas: #f4f6f8;
+  --color-card: #ffffff;
+  --color-fill: #eef1f5;
+  --color-line: #e0e5ec;
+
+  /* Texto, do mais forte ao mais discreto. */
+  --color-ink: #101720;
+  --color-muted: #5b6675;
+  --color-faint: #8b95a3;
+
+  /* Ação. Uma cor de marca só, reservada ao que é clicável ou está ativo. */
+  --color-brand: #0f9d55;
+  --color-brand-ink: #ffffff;
+  --color-brand-soft: #e6f6ee;
+
+  /* Significado. Usadas apenas para comunicar resultado ou risco. */
+  --color-win: #16874a;
+  --color-draw: #6b7684;
+  --color-loss: #c53434;
+  --color-warn: #a35b06;
+  --color-warn-soft: #fdf3e3;
+
+  --radius-card: 16px;
+  --radius-control: 12px;
+
+  --shadow-card: 0 1px 2px rgb(16 23 32 / 0.06);
+  --shadow-raised: 0 8px 24px -12px rgb(16 23 32 / 0.24);
+}
+
+/* O tema escuro troca só os valores: nenhuma tela precisa saber que ele existe. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-canvas: #0c1017;
+    --color-card: #151b25;
+    --color-fill: #1c2432;
+    --color-line: #263042;
+
+    --color-ink: #eef2f7;
+    --color-muted: #9aa5b4;
+    --color-faint: #6c7686;
+
+    --color-brand: #2ecc7d;
+    --color-brand-ink: #05271a;
+    --color-brand-soft: #14301f;
+
+    --color-win: #4ade80;
+    --color-draw: #94a3b8;
+    --color-loss: #f87171;
+    --color-warn: #fbbf24;
+    --color-warn-soft: #2c2410;
+
+    --shadow-card: none;
+    --shadow-raised: 0 12px 32px -16px rgb(0 0 0 / 0.7);
+  }
 }
 
 :root {
-  color-scheme: dark;
+  color-scheme: light dark;
+  /* Altura da barra de navegação; a barra de ação se apoia nela. */
+  --nav-height: 60px;
 }
 
 html,
@@ -17,7 +82,9 @@ body,
 }
 
 body {
-  @apply bg-slate-950 text-slate-100 antialiased;
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
   /* Evita o "puxão" de recarregar a página dentro do PWA. */
   overscroll-behavior-y: none;
   -webkit-tap-highlight-color: transparent;
@@ -32,7 +99,6 @@ body {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* Some com a barra de rolagem nas listas horizontais. */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -44,6 +110,13 @@ body {
 input,
 select,
 textarea {
-  /* iOS dá zoom em campos com fonte menor que 16px. */
+  /* Abaixo de 16px o iOS dá zoom ao focar o campo. */
   font-size: 16px;
+}
+
+/* Um único estilo de foco visível em toda a aplicação. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+  border-radius: 8px;
 }

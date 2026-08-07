@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { ConfirmDialog } from '../components/Modal'
-import { PageHeader } from '../components/PageHeader'
+import { Page } from '../components/Page'
 import { PlayerRow } from '../components/PlayerRow'
-import { Badge, Button, Card, ErrorText, SectionTitle, Select, StatTile } from '../components/ui'
+import { Button, Card, ListGroup, Note, SectionHeader, Select, Tag } from '../components/ui'
 import { resetDemoData } from '../data/localBackend'
 import { useApp } from '../store/useApp'
 import type { Player, Role } from '../types'
@@ -14,7 +14,7 @@ export function AdminPage() {
   const [confirmReset, setConfirmReset] = useState(false)
 
   const withAccess = snapshot.players.filter((player) => player.user_id)
-  const withoutAccess = snapshot.players.filter(
+  const waiting = snapshot.players.filter(
     (player) => !player.user_id && player.player_type === 'mensalista',
   )
 
@@ -31,81 +31,82 @@ export function AdminPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader title="Administração" subtitle="Usuários e permissões" back />
+    <Page title="Administração" subtitle="Usuários e permissões" back>
+      <div className="space-y-7">
+        {error && <Note tone="error">{error}</Note>}
 
-      <div className="grid grid-cols-3 gap-2">
-        <StatTile label="Jogadores" value={snapshot.players.length} />
-        <StatTile label="Rodadas" value={snapshot.rounds.length} />
-        <StatTile label="Partidas" value={snapshot.matches.length} />
-      </div>
-
-      <ErrorText>{error}</ErrorText>
-
-      <section>
-        <SectionTitle>Com acesso ao aplicativo</SectionTitle>
-        <div className="space-y-2">
-          {withAccess.map((player) => (
-            <PlayerRow
-              key={player.id}
-              player={player}
-              subtitle={`@${player.username}`}
-              right={
-                player.id === currentPlayer?.id ? (
-                  <Badge tone="emerald">você</Badge>
-                ) : (
-                  <Select
-                    value={player.role}
-                    disabled={busy}
-                    onChange={(event) => changeRole(player, event.target.value as Role)}
-                    className="w-36 py-2 text-sm"
-                  >
-                    <option value="jogador">Jogador</option>
-                    <option value="admin">Administrador</option>
-                  </Select>
-                )
-              }
-            />
-          ))}
-        </div>
-      </section>
-
-      <section>
-        <SectionTitle>Aguardando primeiro acesso</SectionTitle>
-        {withoutAccess.length === 0 ? (
-          <Card>
-            <p className="text-sm text-slate-400">
-              Todos os mensalistas já criaram a própria senha.
-            </p>
-          </Card>
-        ) : (
-          <>
-            <p className="mb-2 text-xs text-slate-500">
-              Peça para cada um abrir o aplicativo, tocar em “Primeiro acesso” e usar exatamente o
-              nome de usuário abaixo.
-            </p>
-            <div className="space-y-2">
-              {withoutAccess.map((player) => (
-                <PlayerRow key={player.id} player={player} subtitle={`@${player.username}`} />
+        <section>
+          <SectionHeader title="Contas ativas" />
+          <Note>
+            Só um administrador pode promover outra pessoa. Ninguém consegue criar uma conta de
+            administrador por conta própria.
+          </Note>
+          <div className="mt-3">
+            <ListGroup>
+              {withAccess.map((player) => (
+                <PlayerRow
+                  key={player.id}
+                  player={player}
+                  subtitle={`@${player.username}`}
+                  trailing={
+                    player.id === currentPlayer?.id ? (
+                      <Tag tone="live">você</Tag>
+                    ) : (
+                      <Select
+                        value={player.role}
+                        disabled={busy}
+                        aria-label={`Permissão de ${player.full_name}`}
+                        onChange={(event) => changeRole(player, event.target.value as Role)}
+                        className="w-36 py-2 text-sm"
+                      >
+                        <option value="jogador">Jogador</option>
+                        <option value="admin">Administrador</option>
+                      </Select>
+                    )
+                  }
+                />
               ))}
-            </div>
-          </>
-        )}
-      </section>
+            </ListGroup>
+          </div>
+        </section>
 
-      <section>
-        <SectionTitle>Manutenção</SectionTitle>
-        <div className="space-y-2">
-          <Button block variant="secondary" onClick={() => refresh()} disabled={busy}>
-            Recarregar dados
-          </Button>
-          {demoMode && (
-            <Button block variant="danger" onClick={() => setConfirmReset(true)}>
-              Restaurar dados da demonstração
-            </Button>
+        <section>
+          <SectionHeader title="Aguardando primeiro acesso" />
+          {waiting.length === 0 ? (
+            <Card className="p-4">
+              <p className="text-sm text-muted">
+                Todos os mensalistas já criaram a própria senha.
+              </p>
+            </Card>
+          ) : (
+            <>
+              <p className="mb-3 text-sm text-muted">
+                Peça para cada um abrir o aplicativo, tocar em “Primeiro acesso” e usar exatamente
+                o nome de usuário abaixo.
+              </p>
+              <ListGroup>
+                {waiting.map((player) => (
+                  <PlayerRow key={player.id} player={player} subtitle={`@${player.username}`} />
+                ))}
+              </ListGroup>
+            </>
           )}
-        </div>
-      </section>
+        </section>
+
+        <section>
+          <SectionHeader title="Manutenção" />
+          <div className="space-y-2">
+            <Button variant="secondary" block onClick={() => refresh()} disabled={busy}>
+              Recarregar dados
+            </Button>
+            {demoMode && (
+              <Button variant="quiet" block destructive onClick={() => setConfirmReset(true)}>
+                Restaurar dados da demonstração
+              </Button>
+            )}
+          </div>
+        </section>
+      </div>
 
       <ConfirmDialog
         open={confirmReset}
@@ -119,6 +120,6 @@ export function AdminPage() {
         }}
         onCancel={() => setConfirmReset(false)}
       />
-    </div>
+    </Page>
   )
 }

@@ -1,8 +1,11 @@
 import { useEffect, type ReactNode } from 'react'
 import { IconClose } from './icons'
-import { IconButton } from './ui'
+import { Button, IconButton } from './ui'
 
-/** Folha deslizante a partir da base — alcançável com uma mão só. */
+/**
+ * Folha que sobe pela base: o conteúdo e o botão de fechar ficam na metade
+ * inferior da tela, alcançáveis com o polegar.
+ */
 export function Modal({
   open,
   title,
@@ -37,24 +40,24 @@ export function Modal({
         type="button"
         aria-label="Fechar"
         onClick={onClose}
-        className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+        className="absolute inset-0 bg-ink/45"
       />
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="relative flex max-h-[92vh] w-full flex-col rounded-t-3xl border border-slate-800 bg-slate-900 sm:max-w-md sm:rounded-3xl"
+        className="relative flex max-h-[92vh] w-full flex-col rounded-t-3xl bg-card shadow-raised sm:max-w-md sm:rounded-3xl"
       >
-        <header className="flex items-center justify-between gap-2 border-b border-slate-800 px-4 py-3">
-          <h2 className="text-base font-bold text-slate-100">{title}</h2>
-          <IconButton label="Fechar" onClick={onClose}>
+        <header className="flex items-center justify-between gap-2 border-b border-line px-4 py-3">
+          <h2 className="text-base font-semibold text-ink">{title}</h2>
+          <IconButton label="Fechar" onClick={onClose} className="-mr-2">
             <IconClose className="size-5" />
           </IconButton>
         </header>
+
         <div className="flex-1 overflow-y-auto p-4">{children}</div>
-        {footer && (
-          <footer className="pb-safe border-t border-slate-800 p-4">{footer}</footer>
-        )}
+
+        {footer && <footer className="pb-safe border-t border-line p-4">{footer}</footer>}
       </div>
     </div>
   )
@@ -65,6 +68,7 @@ export function ConfirmDialog({
   title,
   message,
   confirmLabel = 'Confirmar',
+  destructive = true,
   onConfirm,
   onCancel,
 }: {
@@ -72,28 +76,27 @@ export function ConfirmDialog({
   title: string
   message: string
   confirmLabel?: string
+  destructive?: boolean
   onConfirm: () => void
   onCancel: () => void
 }) {
   return (
-    <Modal open={open} title={title} onClose={onCancel}>
-      <p className="text-sm text-slate-300">{message}</p>
-      <div className="mt-5 flex gap-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="h-11 flex-1 rounded-xl bg-slate-800 font-semibold text-slate-200"
-        >
-          Cancelar
-        </button>
-        <button
-          type="button"
-          onClick={onConfirm}
-          className="h-11 flex-1 rounded-xl bg-red-500 font-semibold text-white"
-        >
-          {confirmLabel}
-        </button>
-      </div>
+    <Modal
+      open={open}
+      title={title}
+      onClose={onCancel}
+      footer={
+        <div className="flex gap-2">
+          <Button variant="secondary" size="lg" block onClick={onCancel}>
+            Cancelar
+          </Button>
+          <Button size="lg" block destructive={destructive} onClick={onConfirm}>
+            {confirmLabel}
+          </Button>
+        </div>
+      }
+    >
+      <p className="text-sm text-muted">{message}</p>
     </Modal>
   )
 }

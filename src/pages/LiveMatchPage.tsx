@@ -2,15 +2,26 @@ import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Avatar } from '../components/Avatar'
 import { ConfirmDialog, Modal } from '../components/Modal'
-import { PageHeader } from '../components/PageHeader'
-import { IconBall, IconTrash, IconWhistle } from '../components/icons'
-import { Badge, Button, Card, EmptyState, ErrorText } from '../components/ui'
+import { Page } from '../components/Page'
+import { IconBall, IconTrash } from '../components/icons'
+import {
+  ActionBar,
+  Button,
+  Card,
+  EmptyState,
+  IconButton,
+  Note,
+  Switch,
+  Tag,
+} from '../components/ui'
 import { findMatch, findRound, findTeam, matchEvents, teamPlayers } from '../domain/selectors'
 import { cn } from '../lib/cn'
+import { readableInk } from '../lib/color'
 import { firstName } from '../lib/format'
 import { useApp } from '../store/useApp'
 import type { Player } from '../types'
 
+/** Grade de jogadores com alvo grande — a tela é usada em pé, com uma mão. */
 function PlayerPicker({
   players,
   value,
@@ -22,6 +33,7 @@ function PlayerPicker({
   onChange: (playerId: string | null) => void
   allowNone?: boolean
 }) {
+  const cell = 'flex h-22 flex-col items-center justify-center gap-1.5 rounded-card border px-1 text-center transition'
   return (
     <div className="grid grid-cols-3 gap-2">
       {allowNone && (
@@ -29,14 +41,12 @@ function PlayerPicker({
           type="button"
           onClick={() => onChange(null)}
           className={cn(
-            'flex h-24 flex-col items-center justify-center gap-1 rounded-2xl border text-xs font-semibold',
-            value === null
-              ? 'border-emerald-500 bg-emerald-500/10 text-emerald-300'
-              : 'border-slate-800 bg-slate-900 text-slate-400',
+            cell,
+            value === null ? 'border-brand bg-brand-soft' : 'border-line bg-card',
           )}
         >
-          <span className="text-2xl">—</span>
-          Sem assistência
+          <span className="text-xl text-muted">—</span>
+          <span className="text-[12px] font-medium text-muted">Ninguém</span>
         </button>
       )}
       {players.map((player) => (
@@ -45,14 +55,12 @@ function PlayerPicker({
           type="button"
           onClick={() => onChange(player.id)}
           className={cn(
-            'flex h-24 flex-col items-center justify-center gap-1 rounded-2xl border px-1 text-center',
-            value === player.id
-              ? 'border-emerald-500 bg-emerald-500/10'
-              : 'border-slate-800 bg-slate-900',
+            cell,
+            value === player.id ? 'border-brand bg-brand-soft' : 'border-line bg-card',
           )}
         >
           <Avatar player={player} size="sm" />
-          <span className="line-clamp-2 text-xs font-semibold text-slate-200">
+          <span className="line-clamp-2 text-[12px] font-medium text-ink">
             {firstName(player.full_name)}
           </span>
         </button>
@@ -79,10 +87,9 @@ export function LiveMatchPage() {
 
   if (!match) {
     return (
-      <>
-        <PageHeader title="Partida" back />
+      <Page title="Partida" back>
         <EmptyState title="Partida não encontrada" />
-      </>
+      </Page>
     )
   }
 
@@ -93,7 +100,7 @@ export function LiveMatchPage() {
   const squadB = teamPlayers(snapshot, match.team_b_id)
   const live = match.status === 'em_andamento'
 
-  // No gol contra, o autor pertence ao time adversário do que pontuou.
+  // No gol contra o autor pertence ao time adversário do que pontuou.
   const scoringSquad = goalFor === match.team_a_id ? squadA : squadB
   const opposingSquad = goalFor === match.team_a_id ? squadB : squadA
   const scorerOptions = ownGoal ? opposingSquad : scoringSquad
@@ -144,150 +151,142 @@ export function LiveMatchPage() {
   }
 
   return (
-    <div className="pb-24">
-      <PageHeader
-        title={`Partida ${match.sequence}`}
-        subtitle={round?.title}
-        back
-        action={live ? <Badge tone="emerald">Ao vivo</Badge> : <Badge tone="amber">Fim</Badge>}
-      />
-
-      <Card className="mb-4">
-        <div className="flex items-center justify-between gap-2 text-center">
-          <div className="min-w-0 flex-1">
-            <span
-              className="mx-auto mb-1 block size-2.5 rounded-full"
-              style={{ backgroundColor: home?.color }}
-            />
-            <p className="truncate text-sm font-semibold text-slate-200">{home?.name}</p>
+    <Page
+      title={`Partida ${match.sequence}`}
+      subtitle={round?.title}
+      back
+      action={live ? <Tag tone="live">Ao vivo</Tag> : <Tag tone="done">Encerrada</Tag>}
+    >
+      <div className="space-y-6 pb-20">
+        {/* O placar usa a cor real de cada time, e é a mesma cor dos botões
+            de gol logo abaixo — não há como marcar para o time errado. */}
+        <Card className="overflow-hidden">
+          <div className="flex items-stretch">
+            <div className="flex-1 p-4 text-center">
+              <span
+                aria-hidden="true"
+                className="mx-auto mb-2 block h-1.5 w-10 rounded-full"
+                style={{ backgroundColor: home?.color }}
+              />
+              <p className="truncate text-sm font-medium text-muted">{home?.name}</p>
+              <p className="mt-1 text-4xl font-semibold tabular-nums text-ink">{match.score_a}</p>
+            </div>
+            <div className="w-px bg-line" />
+            <div className="flex-1 p-4 text-center">
+              <span
+                aria-hidden="true"
+                className="mx-auto mb-2 block h-1.5 w-10 rounded-full"
+                style={{ backgroundColor: away?.color }}
+              />
+              <p className="truncate text-sm font-medium text-muted">{away?.name}</p>
+              <p className="mt-1 text-4xl font-semibold tabular-nums text-ink">{match.score_b}</p>
+            </div>
           </div>
-          <p className="shrink-0 text-4xl font-bold tabular-nums">
-            {match.score_a}
-            <span className="mx-2 text-slate-600">-</span>
-            {match.score_b}
-          </p>
-          <div className="min-w-0 flex-1">
-            <span
-              className="mx-auto mb-1 block size-2.5 rounded-full"
-              style={{ backgroundColor: away?.color }}
-            />
-            <p className="truncate text-sm font-semibold text-slate-200">{away?.name}</p>
-          </div>
-        </div>
-      </Card>
+        </Card>
 
-      <ErrorText>{error}</ErrorText>
+        {error && <Note tone="error">{error}</Note>}
 
-      {isAdmin && live && (
-        <div className="mb-5 grid grid-cols-2 gap-3">
-          <Button size="lg" onClick={() => openGoal(match.team_a_id)} disabled={busy}>
-            <IconBall className="size-5" /> Gol {home?.name?.replace('Time ', '')}
-          </Button>
-          <Button size="lg" onClick={() => openGoal(match.team_b_id)} disabled={busy}>
-            <IconBall className="size-5" /> Gol {away?.name?.replace('Time ', '')}
-          </Button>
-        </div>
-      )}
-
-      <section>
-        <h2 className="mb-2 text-xs font-bold tracking-widest text-slate-400 uppercase">
-          Gols da partida
-        </h2>
-        {events.length === 0 ? (
-          <EmptyState title="Nenhum gol registrado" />
-        ) : (
-          <div className="space-y-2">
-            {events.map((event) => {
-              const team = findTeam(snapshot, event.team_id)
-              const scorerPlayer = snapshot.players.find((p) => p.id === event.scorer_id)
-              const assistPlayer = snapshot.players.find((p) => p.id === event.assist_id)
-              return (
-                <Card key={event.id} className="flex items-center gap-3 py-2.5">
-                  <span
-                    className="size-2.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: team?.color }}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-slate-100">
-                      {scorerPlayer ? (
-                        <Link to={`/jogadores/${scorerPlayer.id}`}>{scorerPlayer.full_name}</Link>
-                      ) : (
-                        'Jogador removido'
-                      )}
-                      {event.own_goal && (
-                        <Badge tone="red" className="ml-2">
-                          contra
-                        </Badge>
-                      )}
-                    </p>
-                    <p className="truncate text-xs text-slate-400">
-                      {assistPlayer ? `Assistência de ${assistPlayer.full_name}` : team?.name}
-                    </p>
-                  </div>
-                  {isAdmin && (
-                    <button
-                      type="button"
-                      onClick={() => setRemoving(event.id)}
-                      className="shrink-0 rounded-lg p-2 text-slate-500"
-                      aria-label="Remover gol"
-                    >
-                      <IconTrash className="size-5" />
-                    </button>
-                  )}
-                </Card>
-              )
-            })}
+        {isAdmin && live && (
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { team: home, id: match.team_a_id },
+              { team: away, id: match.team_b_id },
+            ].map(({ team, id }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => openGoal(id)}
+                disabled={busy}
+                className="flex h-14 items-center justify-center gap-2 rounded-control text-[15px] font-semibold transition active:opacity-80 disabled:opacity-45"
+                style={{
+                  backgroundColor: team?.color ?? '#333',
+                  color: readableInk(team?.color ?? '#333333'),
+                }}
+              >
+                <IconBall className="size-5" />
+                Gol
+              </button>
+            ))}
           </div>
         )}
-      </section>
+
+        <section>
+          <h2 className="mb-2.5 text-[15px] font-semibold text-ink">
+            Gols {events.length > 0 && <span className="text-muted">· {events.length}</span>}
+          </h2>
+
+          {events.length === 0 ? (
+            <EmptyState title="Nenhum gol registrado" />
+          ) : (
+            <div className="divide-y divide-line overflow-hidden rounded-card border border-line bg-card">
+              {events.map((event) => {
+                const team = findTeam(snapshot, event.team_id)
+                const scorerPlayer = snapshot.players.find((p) => p.id === event.scorer_id)
+                const assistPlayer = snapshot.players.find((p) => p.id === event.assist_id)
+                return (
+                  <div key={event.id} className="relative flex items-center gap-3 py-3 pr-2 pl-5">
+                    <span
+                      aria-hidden="true"
+                      className="absolute inset-y-2 left-0 w-1 rounded-r-full"
+                      style={{ backgroundColor: team?.color }}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium text-ink">
+                        {scorerPlayer ? (
+                          <Link to={`/jogadores/${scorerPlayer.id}`}>{scorerPlayer.full_name}</Link>
+                        ) : (
+                          'Jogador removido'
+                        )}
+                        {event.own_goal && (
+                          <span className="ml-2 text-[13px] font-normal text-loss">
+                            (contra)
+                          </span>
+                        )}
+                      </p>
+                      <p className="mt-0.5 truncate text-[13px] text-muted">
+                        {assistPlayer ? `Assistência de ${assistPlayer.full_name}` : team?.name}
+                      </p>
+                    </div>
+                    {isAdmin && (
+                      <IconButton label="Remover gol" onClick={() => setRemoving(event.id)}>
+                        <IconTrash className="size-5" />
+                      </IconButton>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </section>
+      </div>
 
       {isAdmin && (
-        <div className="pb-safe fixed inset-x-0 bottom-16 z-20 mx-auto max-w-lg px-4">
+        <ActionBar>
           {live ? (
             <Button size="lg" block variant="secondary" onClick={() => setConfirmFinish(true)}>
-              <IconWhistle className="size-5" /> Encerrar partida
+              Encerrar partida
             </Button>
           ) : (
-            <Button
-              size="lg"
-              block
-              variant="ghost"
-              onClick={() => actions.reopenMatch(match.id)}
-              className="bg-slate-900"
-            >
+            <Button size="lg" block variant="secondary" onClick={() => actions.reopenMatch(match.id)}>
               Reabrir partida
             </Button>
           )}
-        </div>
+        </ActionBar>
       )}
 
       <Modal
         open={Boolean(goalFor)}
-        title={`Gol · ${goalFor === match.team_a_id ? home?.name : away?.name}`}
+        title={`Gol do ${goalFor === match.team_a_id ? home?.name : away?.name}`}
         onClose={() => setGoalFor(null)}
         footer={
-          <Button block size="lg" onClick={saveGoal} disabled={busy || !scorer}>
+          <Button size="lg" block onClick={saveGoal} disabled={busy || !scorer}>
             {busy ? 'Registrando…' : 'Registrar gol'}
           </Button>
         }
       >
         <div className="space-y-5">
-          <label className="flex items-center justify-between rounded-xl bg-slate-800/60 px-3 py-3">
-            <span className="text-sm font-semibold text-slate-200">Gol contra</span>
-            <input
-              type="checkbox"
-              checked={ownGoal}
-              onChange={(event) => {
-                setOwnGoal(event.target.checked)
-                setScorer(null)
-                setAssist(null)
-              }}
-              className="size-6 accent-emerald-500"
-            />
-          </label>
-
           <div>
-            <p className="mb-2 text-sm font-semibold text-slate-300">
+            <p className="mb-2 text-sm font-medium text-muted">
               {ownGoal ? 'Quem marcou contra?' : 'Quem marcou?'}
             </p>
             <PlayerPicker players={scorerOptions} value={scorer} onChange={setScorer} />
@@ -295,17 +294,22 @@ export function LiveMatchPage() {
 
           {!ownGoal && (
             <div>
-              <p className="mb-2 text-sm font-semibold text-slate-300">Assistência</p>
-              <PlayerPicker
-                players={assistOptions}
-                value={assist}
-                onChange={setAssist}
-                allowNone
-              />
+              <p className="mb-2 text-sm font-medium text-muted">Assistência</p>
+              <PlayerPicker players={assistOptions} value={assist} onChange={setAssist} allowNone />
             </div>
           )}
 
-          <ErrorText>{error}</ErrorText>
+          <Switch
+            label="Foi gol contra"
+            checked={ownGoal}
+            onChange={(checked) => {
+              setOwnGoal(checked)
+              setScorer(null)
+              setAssist(null)
+            }}
+          />
+
+          {error && <Note tone="error">{error}</Note>}
         </div>
       </Modal>
 
@@ -314,6 +318,7 @@ export function LiveMatchPage() {
         title="Encerrar partida"
         message="O placar será congelado e as estatísticas dos jogadores passam a contar esta partida."
         confirmLabel="Encerrar"
+        destructive={false}
         onConfirm={() => {
           setConfirmFinish(false)
           actions.finishMatch(match.id)
@@ -329,6 +334,6 @@ export function LiveMatchPage() {
         onConfirm={() => removing && removeEvent(removing)}
         onCancel={() => setRemoving(null)}
       />
-    </div>
+    </Page>
   )
 }

@@ -3,27 +3,19 @@ import { initials } from '../lib/format'
 import type { Player } from '../types'
 
 const SIZES = {
-  sm: 'size-9 text-xs',
-  md: 'size-12 text-sm',
-  lg: 'size-20 text-xl',
-  xl: 'size-28 text-3xl',
+  sm: 'size-8 text-[11px]',
+  md: 'size-10 text-xs',
+  lg: 'size-16 text-lg',
+  xl: 'size-24 text-2xl',
 }
 
-/** Cor estável por jogador, para quem ainda não enviou foto. */
-function toneOf(seed: string): string {
-  const tones = [
-    'bg-emerald-500/20 text-emerald-300',
-    'bg-sky-500/20 text-sky-300',
-    'bg-violet-500/20 text-violet-300',
-    'bg-amber-500/20 text-amber-300',
-    'bg-rose-500/20 text-rose-300',
-    'bg-teal-500/20 text-teal-300',
-  ]
-  let hash = 0
-  for (let i = 0; i < seed.length; i += 1) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0
-  return tones[hash % tones.length]
-}
-
+/**
+ * Foto do jogador, ou as iniciais em um tom neutro.
+ *
+ * As iniciais são deliberadamente monocromáticas: uma cor por jogador deixava
+ * as listas parecendo um arco-íris e competia com a cor dos times, que é a
+ * única cor que realmente carrega informação nesta aplicação.
+ */
 export function Avatar({
   player,
   size = 'md',
@@ -37,19 +29,20 @@ export function Avatar({
     return (
       <img
         src={player.photo_url}
-        alt={player.full_name}
+        alt=""
         loading="lazy"
-        className={cn('shrink-0 rounded-full object-cover', SIZES[size], className)}
+        className={cn('shrink-0 rounded-full bg-fill object-cover', SIZES[size], className)}
       />
     )
   }
+
   return (
     <span
       aria-hidden="true"
       className={cn(
-        'inline-flex shrink-0 items-center justify-center rounded-full font-bold',
+        'inline-flex shrink-0 items-center justify-center rounded-full',
+        'bg-fill font-semibold text-muted',
         SIZES[size],
-        toneOf(player.id || player.full_name),
         className,
       )}
     >

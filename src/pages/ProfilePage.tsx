@@ -1,9 +1,19 @@
 import { useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { Avatar } from '../components/Avatar'
-import { PageHeader } from '../components/PageHeader'
-import { IconCamera, IconChevronRight, IconLogout, IconSettings } from '../components/icons'
-import { Badge, Button, Card, ErrorText, Field, Input, StatTile } from '../components/ui'
+import { Modal } from '../components/Modal'
+import { Page } from '../components/Page'
+import { IconCamera, IconChevronRight } from '../components/icons'
+import {
+  Button,
+  Card,
+  Field,
+  Input,
+  ListGroup,
+  ListRow,
+  Note,
+  Stat,
+  StatRow,
+} from '../components/ui'
 import { percent } from '../lib/format'
 import { useApp } from '../store/useApp'
 
@@ -13,14 +23,14 @@ export function ProfilePage() {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [password, setPassword] = useState('')
+  const [passwordOpen, setPasswordOpen] = useState(false)
   const [busy, setBusy] = useState(false)
 
   if (!currentPlayer) {
     return (
-      <div>
-        <PageHeader title="Perfil" />
-        <Card>
-          <p className="text-sm text-slate-300">
+      <Page title="Perfil" back>
+        <Card className="p-4">
+          <p className="text-sm text-muted">
             Sua conta ainda não está vinculada a um jogador da patota. Peça ao administrador para
             cadastrar seu nome de usuário.
           </p>
@@ -28,7 +38,7 @@ export function ProfilePage() {
             Sair
           </Button>
         </Card>
-      </div>
+      </Page>
     )
   }
 
@@ -61,6 +71,7 @@ export function ProfilePage() {
     try {
       await changePassword(password)
       setPassword('')
+      setPasswordOpen(false)
       setMessage('Senha alterada.')
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Não foi possível alterar a senha.')
@@ -70,105 +81,114 @@ export function ProfilePage() {
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader title="Meu perfil" />
-
-      <div className="flex flex-col items-center">
-        <div className="relative">
-          <Avatar player={currentPlayer} size="xl" />
-          <button
-            type="button"
-            onClick={() => fileInput.current?.click()}
-            disabled={busy}
-            className="absolute right-0 bottom-0 inline-flex size-10 items-center justify-center rounded-full bg-emerald-500 text-slate-950"
-            aria-label="Alterar foto"
-          >
-            <IconCamera className="size-5" />
-          </button>
-          <input
-            ref={fileInput}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(event) => upload(event.target.files?.[0])}
-          />
-        </div>
-        <h2 className="mt-3 text-xl font-bold">{currentPlayer.full_name}</h2>
-        <p className="text-sm text-slate-400">@{currentPlayer.username}</p>
-        {isAdmin && (
-          <Badge tone="emerald" className="mt-2">
-            Administrador
-          </Badge>
-        )}
-      </div>
-
-      {message && (
-        <p className="rounded-xl bg-emerald-500/10 px-3 py-2 text-center text-sm text-emerald-300">
-          {message}
-        </p>
-      )}
-      <ErrorText>{error}</ErrorText>
-
-      <div className="grid grid-cols-4 gap-2">
-        <StatTile label="Jogos" value={entry.played} />
-        <StatTile label="Vitórias" value={entry.wins} />
-        {isKeeper ? (
-          <>
-            <StatTile label="Sofridos" value={entry.goalsAgainst} />
-            <StatTile label="S/ sofrer" value={entry.cleanSheets} />
-          </>
-        ) : (
-          <>
-            <StatTile label="Gols" value={entry.goals} />
-            <StatTile label="Assist." value={entry.assists} />
-          </>
-        )}
-      </div>
-      <p className="-mt-3 text-center text-xs text-slate-500">
-        Aproveitamento de {percent(entry.pointsPct)}
-      </p>
-
-      <Link to={`/jogadores/${currentPlayer.id}`}>
-        <Card className="flex items-center gap-3">
-          <span className="flex-1 text-sm font-semibold text-slate-200">
-            Ver estatísticas completas
-          </span>
-          <IconChevronRight className="size-5 text-slate-500" />
-        </Card>
-      </Link>
-
-      {isAdmin && (
-        <Link to="/admin">
-          <Card className="flex items-center gap-3">
-            <IconSettings className="size-5 text-slate-400" />
-            <span className="flex-1 text-sm font-semibold text-slate-200">
-              Administração da patota
-            </span>
-            <IconChevronRight className="size-5 text-slate-500" />
-          </Card>
-        </Link>
-      )}
-
-      {!demoMode && (
-        <Card>
-          <Field label="Nova senha" hint="Mínimo de 6 caracteres.">
-            <Input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              autoComplete="new-password"
-              placeholder="••••••"
+    <Page title="Meu perfil" back>
+      <div className="space-y-7">
+        <div className="flex flex-col items-center">
+          <div className="relative">
+            <Avatar player={currentPlayer} size="xl" />
+            <button
+              type="button"
+              onClick={() => fileInput.current?.click()}
+              disabled={busy}
+              aria-label="Alterar foto"
+              className="absolute right-0 bottom-0 inline-flex size-9 items-center justify-center rounded-full bg-brand text-brand-ink ring-4 ring-canvas"
+            >
+              <IconCamera className="size-4" />
+            </button>
+            <input
+              ref={fileInput}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(event) => upload(event.target.files?.[0])}
             />
-          </Field>
-          <Button className="mt-3" block variant="secondary" onClick={updatePassword} disabled={busy}>
-            Alterar senha
-          </Button>
-        </Card>
-      )}
+          </div>
+          <h2 className="mt-3 text-xl font-semibold text-ink">{currentPlayer.full_name}</h2>
+          <p className="mt-0.5 text-sm text-muted">
+            @{currentPlayer.username}
+            {isAdmin && ' · administrador'}
+          </p>
+        </div>
 
-      <Button block variant="ghost" onClick={signOut} className="bg-slate-900">
-        <IconLogout className="size-5" /> Sair da conta
-      </Button>
-    </div>
+        {message && <Note>{message}</Note>}
+        {error && <Note tone="error">{error}</Note>}
+
+        <Card className="p-4">
+          <StatRow>
+            <Stat label="Jogos" value={entry.played} />
+            <Stat label="Vitórias" value={entry.wins} tone="win" />
+            {isKeeper ? (
+              <>
+                <Stat label="Sofridos" value={entry.goalsAgainst} />
+                <Stat label="Sem sofrer" value={entry.cleanSheets} />
+              </>
+            ) : (
+              <>
+                <Stat label="Gols" value={entry.goals} />
+                <Stat label="Assistências" value={entry.assists} />
+              </>
+            )}
+          </StatRow>
+          <p className="mt-3.5 border-t border-line pt-3 text-center text-[13px] text-muted">
+            Aproveitamento de {percent(entry.pointsPct)}
+          </p>
+        </Card>
+
+        <ListGroup>
+          <ListRow
+            to={`/jogadores/${currentPlayer.id}`}
+            title="Estatísticas completas"
+            subtitle="Histórico e premiações"
+            chevron
+          />
+          {isAdmin && (
+            <ListRow
+              to="/admin"
+              title="Administração"
+              subtitle="Usuários e permissões"
+              chevron
+            />
+          )}
+          {!demoMode && (
+            <ListRow
+              onClick={() => setPasswordOpen(true)}
+              title="Alterar senha"
+              trailing={<IconChevronRight className="size-4 text-faint" />}
+            />
+          )}
+        </ListGroup>
+
+        <Button variant="quiet" block destructive onClick={signOut}>
+          Sair da conta
+        </Button>
+      </div>
+
+      <Modal
+        open={passwordOpen}
+        title="Alterar senha"
+        onClose={() => setPasswordOpen(false)}
+        footer={
+          <Button size="lg" block onClick={updatePassword} disabled={busy}>
+            Salvar nova senha
+          </Button>
+        }
+      >
+        <Field label="Nova senha" hint="Mínimo de 6 caracteres.">
+          <Input
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="new-password"
+            placeholder="••••••"
+            autoFocus
+          />
+        </Field>
+        {error && (
+          <div className="mt-3">
+            <Note tone="error">{error}</Note>
+          </div>
+        )}
+      </Modal>
+    </Page>
   )
 }

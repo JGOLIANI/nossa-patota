@@ -1,10 +1,22 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PageHeader } from '../components/PageHeader'
+import { Page } from '../components/Page'
 import { PlayerRow } from '../components/PlayerRow'
 import { IconCheck, IconPlus } from '../components/icons'
-import { Button, Card, ErrorText, Field, Input, Select } from '../components/ui'
-import { todayISO } from '../lib/format'
+import {
+  ActionBar,
+  Button,
+  Card,
+  Field,
+  Input,
+  ListGroup,
+  ListRow,
+  Note,
+  SectionHeader,
+  Select,
+} from '../components/ui'
+import { formatDate, todayISO } from '../lib/format'
+import { playerCaption } from '../lib/player'
 import { useApp } from '../store/useApp'
 
 function usernameFrom(fullName: string): string {
@@ -20,14 +32,29 @@ function usernameFrom(fullName: string): string {
   return base || `visitante.${Date.now().toString().slice(-4)}`
 }
 
+/** Círculo de seleção à direita da linha, no lugar de um checkbox do sistema. */
+function Check({ on }: { on: boolean }) {
+  return (
+    <span
+      className={
+        on
+          ? 'inline-flex size-6 items-center justify-center rounded-full bg-brand text-brand-ink'
+          : 'inline-flex size-6 items-center justify-center rounded-full border-2 border-line'
+      }
+    >
+      {on && <IconCheck className="size-4" />}
+    </span>
+  )
+}
+
 export function RoundNewPage() {
   const { snapshot, actions } = useApp()
   const navigate = useNavigate()
 
-  const [title, setTitle] = useState(`Rodada de ${new Date().toLocaleDateString('pt-BR')}`)
   const [date, setDate] = useState(todayISO())
   const [teamCount, setTeamCount] = useState(2)
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [visitorOpen, setVisitorOpen] = useState(false)
   const [visitorName, setVisitorName] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -57,11 +84,7 @@ export function RoundNewPage() {
   }
 
   function selectAllMonthly() {
-    setSelected(
-      new Set(
-        players.filter((player) => player.player_type === 'mensalista').map((p) => p.id),
-      ),
-    )
+    setSelected(new Set(players.filter((p) => p.player_type === 'mensalista').map((p) => p.id)))
   }
 
   async function addVisitor() {
@@ -83,6 +106,7 @@ export function RoundNewPage() {
       })
       setSelected((current) => new Set(current).add(created.id))
       setVisitorName('')
+      setVisitorOpen(false)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Não foi possível cadastrar o visitante.')
     } finally {
@@ -98,9 +122,10 @@ export function RoundNewPage() {
     }
     setBusy(true)
     try {
+      // O nome sai da data: um campo a menos para preencher toda semana.
       const round = await actions.createRound({
         date,
-        title: title.trim() || 'Rodada',
+        title: `Rodada de ${formatDate(date).slice(0, 5)}`,
         team_count: teamCount,
         playerIds: [...selected],
       })
@@ -114,19 +139,13 @@ export function RoundNewPage() {
   }
 
   return (
-    <div className="pb-24">
-      <PageHeader title="Nova rodada" back />
-
-      <div className="space-y-4">
-        <Field label="Nome da rodada">
-          <Input value={title} onChange={(event) => setTitle(event.target.value)} />
-        </Field>
-
-        <div className="grid grid-cols-2 gap-3">
+    <Page title="Nova rodada" back>
+      <div className="space-y-6 pb-20">
+        <Card className="grid grid-cols-2 gap-3 p-4">
           <Field label="Data">
             <Input type="date" value={date} onChange={(event) => setDate(event.target.value)} />
           </Field>
-          <Field label="Quantidade de times">
+          <Field label="Times">
             <Select
               value={String(teamCount)}
               onChange={(event) => setTeamCount(Number(event.target.value))}
@@ -138,73 +157,79 @@ export function RoundNewPage() {
               ))}
             </Select>
           </Field>
-        </div>
-
-        <Card>
-          <p className="text-sm font-semibold text-slate-200">Visitante rápido</p>
-          <p className="mt-0.5 mb-2 text-xs text-slate-400">
-            Cadastro simplificado: só o nome. Ele já entra selecionado nesta rodada.
-          </p>
-          <div className="flex gap-2">
-            <Input
-              value={visitorName}
-              onChange={(event) => setVisitorName(event.target.value)}
-              placeholder="Nome do visitante"
-            />
-            <Button variant="secondary" onClick={addVisitor} disabled={busy || !visitorName.trim()}>
-              <IconPlus className="size-5" />
-            </Button>
-          </div>
         </Card>
 
-        <div>
-          <div className="mb-2 flex items-center justify-between">
-            <p className="text-xs font-bold tracking-widest text-slate-400 uppercase">
-              Participantes ({selected.size})
-            </p>
-            <button
-              type="button"
-              onClick={selectAllMonthly}
-              className="text-xs text-emerald-400"
-            >
-              marcar mensalistas
-            </button>
-          </div>
+        <section>
+          <SectionHeader
+            title={`Quem vai jogar${selected.size > 0 ? ` · ${selected.size}` : ''}`}
+            action={
+              <button type="button" onClick={selectAllMonthly} className="text-sm font-medium text-brand">
+                marcar mensalistas
+              </button>
+            }
+          />
 
-          {keepersSelected < teamCount && (
-            <p className="mb-2 rounded-xl bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-              {keepersSelected === 0
-                ? 'Nenhum goleiro selecionado — os times ficarão só com jogadores de linha.'
-                : `Há ${keepersSelected} goleiro(s) para ${teamCount} times; alguns times ficarão sem goleiro fixo.`}
-            </p>
+          {selected.size > 0 && keepersSelected < teamCount && (
+            <div className="mb-3">
+              <Note tone="warn">
+                {keepersSelected === 0
+                  ? 'Nenhum goleiro selecionado — os times ficarão só com jogadores de linha.'
+                  : `${keepersSelected} goleiro(s) para ${teamCount} times: algum time ficará sem goleiro fixo.`}
+              </Note>
+            </div>
           )}
 
-          <div className="space-y-2">
+          <ListGroup>
             {players.map((player) => (
               <PlayerRow
                 key={player.id}
                 player={player}
                 selected={selected.has(player.id)}
                 onClick={() => toggle(player.id)}
-                subtitle={`Nível ${player.level}`}
-                right={
-                  selected.has(player.id) ? (
-                    <IconCheck className="size-5 text-emerald-400" />
-                  ) : null
-                }
+                subtitle={playerCaption(player, `nível ${player.level}`)}
+                trailing={<Check on={selected.has(player.id)} />}
               />
             ))}
-          </div>
-        </div>
 
-        <ErrorText>{error}</ErrorText>
+            {visitorOpen ? (
+              <div className="flex items-center gap-2 p-3.5">
+                <Input
+                  autoFocus
+                  value={visitorName}
+                  onChange={(event) => setVisitorName(event.target.value)}
+                  placeholder="Nome do visitante"
+                />
+                <Button onClick={addVisitor} disabled={busy || !visitorName.trim()}>
+                  Incluir
+                </Button>
+              </div>
+            ) : (
+              <ListRow
+                onClick={() => setVisitorOpen(true)}
+                leading={
+                  <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-fill text-muted">
+                    <IconPlus className="size-5" />
+                  </span>
+                }
+                title="Adicionar visitante"
+                subtitle="Cadastro rápido, só o nome"
+              />
+            )}
+          </ListGroup>
+        </section>
+
+        {error && <Note tone="error">{error}</Note>}
       </div>
 
-      <div className="pb-safe fixed inset-x-0 bottom-16 z-20 mx-auto max-w-lg px-4">
-        <Button size="lg" block onClick={create} disabled={busy}>
-          {busy ? 'Gerando times…' : 'Criar rodada e gerar times'}
+      <ActionBar>
+        <Button size="lg" block onClick={create} disabled={busy || selected.size === 0}>
+          {busy
+            ? 'Montando os times…'
+            : selected.size === 0
+              ? 'Selecione os jogadores'
+              : `Montar ${teamCount} times com ${selected.size}`}
         </Button>
-      </div>
-    </div>
+      </ActionBar>
+    </Page>
   )
 }

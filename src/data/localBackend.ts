@@ -101,28 +101,56 @@ export const localBackend: Backend = {
     notify(session)
   },
 
+  /**
+   * Mesma regra do Supabase: a primeira conta do sistema vira administradora;
+   * as seguintes precisam ter sido cadastradas por um admin e entram sempre
+   * como jogador comum.
+   */
   async signUp(username: string) {
     const snapshot = load()
     const wanted = normalizeUsername(username)
-    if (!snapshot.players.some((p) => p.username === wanted)) {
-      const player: Player = {
-        id: uid(),
-        user_id: null,
-        username: wanted,
-        full_name: username,
-        photo_url: null,
-        player_type: 'mensalista',
-        dominant_foot: 'direita',
-        position: 'linha',
-        status: 'ativo',
-        role: 'jogador',
-        level: 3,
-        created_at: new Date().toISOString(),
+    const isFirst = !snapshot.players.some((player) => player.user_id)
+    const existing = snapshot.players.find((player) => player.username === wanted)
+
+    if (isFirst) {
+      if (existing) {
+        existing.user_id = existing.id
+        existing.role = 'admin'
+      } else {
+        const player: Player = {
+          id: uid(),
+          user_id: null,
+          username: wanted,
+          full_name: username,
+          photo_url: null,
+          player_type: 'mensalista',
+          dominant_foot: 'direita',
+          position: 'linha',
+          status: 'ativo',
+          role: 'admin',
+          level: 3,
+          created_at: new Date().toISOString(),
+        }
+        player.user_id = player.id
+        snapshot.players.push(player)
       }
-      player.user_id = player.id
-      snapshot.players.push(player)
       save(snapshot)
+      await localBackend.signIn(wanted, '')
+      return
     }
+
+    if (!existing) {
+      throw new Error(
+        `O usuário "${wanted}" não está cadastrado na patota. Peça ao administrador para cadastrá-lo.`,
+      )
+    }
+    if (existing.user_id) {
+      throw new Error(`O usuário "${wanted}" já possui acesso criado.`)
+    }
+
+    existing.user_id = existing.id
+    existing.role = 'jogador'
+    save(snapshot)
     await localBackend.signIn(wanted, '')
   },
 

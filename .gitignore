@@ -12,3 +12,7 @@ dist-ssr/
 npm-debug.log*
 .vite/
 coverage/
+
+# Scripts locais de verificação visual (não fazem parte do projeto)
+.smoke.mjs
+.dbg.mjs

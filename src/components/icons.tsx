@@ -149,6 +149,20 @@ export const IconMedal = (props: IconProps) => (
   </Base>
 )
 
+export const IconSearch = (props: IconProps) => (
+  <Base {...props}>
+    <circle cx="11" cy="11" r="6.5" />
+    <path d="m16 16 4.5 4.5" />
+  </Base>
+)
+
+export const IconThumbDown = (props: IconProps) => (
+  <Base {...props}>
+    <path d="M7 4h9.4a2 2 0 0 1 2 1.7l.9 6A2 2 0 0 1 17.3 14H14l.8 3.6a2.2 2.2 0 0 1-3.9 1.8L7 13.5V4Z" />
+    <path d="M4 4h3v9.5H4z" />
+  </Base>
+)
+
 export const IconGlove = (props: IconProps) => (
   <Base {...props}>
     <path d="M6 21V9.5a1.8 1.8 0 0 1 3.6 0V11V5.2a1.8 1.8 0 0 1 3.6 0V11V6.6a1.8 1.8 0 0 1 3.6 0V13c0 4-1.6 8-4.4 8H6Z" />

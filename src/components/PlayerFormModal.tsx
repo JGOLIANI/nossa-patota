@@ -3,7 +3,7 @@ import type { PlayerInput } from '../data/types'
 import { useApp } from '../store/useApp'
 import type { Player } from '../types'
 import { ConfirmDialog, Modal } from './Modal'
-import { Button, ErrorText, Field, Input, Select } from './ui'
+import { Button, Field, Input, Note, Select } from './ui'
 
 const EMPTY: PlayerInput = {
   username: '',
@@ -13,6 +13,8 @@ const EMPTY: PlayerInput = {
   dominant_foot: 'direita',
   position: 'linha',
   status: 'ativo',
+  // Um cadastro novo nunca nasce administrador: a promoção é um ato
+  // deliberado de quem já é admin, feito na tela de Administração.
   role: 'jogador',
   level: 3,
 }
@@ -30,8 +32,8 @@ function suggestUsername(fullName: string): string {
 }
 
 /**
- * Renderize este componente apenas quando o formulário deve aparecer — o
- * estado inicial vem do jogador recebido, sem efeito de sincronização.
+ * Renderize apenas quando o formulário deve aparecer — o estado inicial vem
+ * do jogador recebido, sem efeito de sincronização.
  */
 export function PlayerFormModal({
   player,
@@ -108,16 +110,9 @@ export function PlayerFormModal({
         title={player ? 'Editar jogador' : 'Novo jogador'}
         onClose={onClose}
         footer={
-          <div className="flex gap-2">
-            {player && (
-              <Button variant="danger" onClick={() => setConfirmDelete(true)} disabled={busy}>
-                Remover
-              </Button>
-            )}
-            <Button block onClick={save} disabled={busy}>
-              {busy ? 'Salvando…' : 'Salvar'}
-            </Button>
-          </div>
+          <Button size="lg" block onClick={save} disabled={busy}>
+            {busy ? 'Salvando…' : 'Salvar'}
+          </Button>
         }
       >
         <div className="space-y-4">
@@ -131,13 +126,11 @@ export function PlayerFormModal({
               }}
               placeholder="Igor Santos"
               autoCapitalize="words"
+              autoFocus={!player}
             />
           </Field>
 
-          <Field
-            label="Nome de usuário"
-            hint="Usado no login. Precisa ser único na patota."
-          >
+          <Field label="Nome de usuário" hint="É com ele que o jogador entra no aplicativo.">
             <Input
               value={form.username}
               onChange={(event) => {
@@ -170,7 +163,7 @@ export function PlayerFormModal({
                   update('position', event.target.value as PlayerInput['position'])
                 }
               >
-                <option value="linha">Jogador de linha</option>
+                <option value="linha">Linha</option>
                 <option value="goleiro">Goleiro</option>
               </Select>
             </Field>
@@ -188,19 +181,7 @@ export function PlayerFormModal({
               </Select>
             </Field>
 
-            <Field label="Situação">
-              <Select
-                value={form.status}
-                onChange={(event) =>
-                  update('status', event.target.value as PlayerInput['status'])
-                }
-              >
-                <option value="ativo">Ativo</option>
-                <option value="inativo">Inativo</option>
-              </Select>
-            </Field>
-
-            <Field label="Nível" hint="1 a 5, usado no balanceamento.">
+            <Field label="Nível" hint="1 a 5, usado no sorteio.">
               <Select
                 value={String(form.level)}
                 onChange={(event) => update('level', Number(event.target.value))}
@@ -212,27 +193,35 @@ export function PlayerFormModal({
                 ))}
               </Select>
             </Field>
-
-            <Field label="Permissão">
-              <Select
-                value={form.role}
-                onChange={(event) => update('role', event.target.value as PlayerInput['role'])}
-              >
-                <option value="jogador">Jogador</option>
-                <option value="admin">Administrador</option>
-              </Select>
-            </Field>
           </div>
 
-          <ErrorText>{error}</ErrorText>
+          {player && (
+            <Field label="Situação">
+              <Select
+                value={form.status}
+                onChange={(event) => update('status', event.target.value as PlayerInput['status'])}
+              >
+                <option value="ativo">Ativo</option>
+                <option value="inativo">Inativo</option>
+              </Select>
+            </Field>
+          )}
+
+          {error && <Note tone="error">{error}</Note>}
+
+          {player && (
+            <Button variant="quiet" block destructive onClick={() => setConfirmDelete(true)} disabled={busy}>
+              Remover jogador
+            </Button>
+          )}
         </div>
       </Modal>
 
       <ConfirmDialog
         open={confirmDelete}
         title="Remover jogador"
-        message="O jogador sai da lista e das próximas rodadas. Os gols já registrados continuam no placar das partidas antigas. Prefere apenas marcar como inativo?"
-        confirmLabel="Remover mesmo assim"
+        message="Ele sai da lista e das próximas rodadas. Os gols já registrados continuam valendo no placar das partidas antigas. Se for uma ausência temporária, prefira marcar como inativo."
+        confirmLabel="Remover"
         onConfirm={remove}
         onCancel={() => setConfirmDelete(false)}
       />

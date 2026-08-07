@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
-import { PageHeader } from '../components/PageHeader'
+import { Page } from '../components/Page'
 import { PlayerRow } from '../components/PlayerRow'
-import { EmptyState, Segmented } from '../components/ui'
+import { ChipBar, EmptyState, ListGroup } from '../components/ui'
 import { buildRankings } from '../domain/rankings'
 import { playerMap } from '../domain/selectors'
 import { useApp } from '../store/useApp'
@@ -15,10 +15,8 @@ export function RankingsPage() {
   const list = rankings.find((item) => item.key === active) ?? rankings[0]
 
   return (
-    <div>
-      <PageHeader title="Rankings" subtitle="Atualizados a cada rodada encerrada" />
-
-      <Segmented
+    <Page title="Rankings" profile>
+      <ChipBar
         value={active}
         onChange={setActive}
         options={rankings.map((item) => ({ value: item.key, label: item.title }))}
@@ -26,7 +24,7 @@ export function RankingsPage() {
 
       {list && (
         <>
-          <p className="mt-3 mb-3 text-xs text-slate-500">{list.description}</p>
+          <p className="mt-3 mb-4 text-sm text-muted">{list.description}</p>
 
           {list.entries.length === 0 ? (
             <EmptyState
@@ -34,7 +32,7 @@ export function RankingsPage() {
               description="Encerre uma rodada para alimentar os rankings."
             />
           ) : (
-            <div className="space-y-2">
+            <ListGroup>
               {list.entries.map((entry, index) => {
                 const player = byId.get(entry.playerId)
                 if (!player) return null
@@ -44,18 +42,19 @@ export function RankingsPage() {
                     player={player}
                     rank={index + 1}
                     to={`/jogadores/${player.id}`}
-                    right={
-                      <span className="text-lg font-bold text-emerald-400 tabular-nums">
+                    subtitle={player.position === 'goleiro' ? 'Goleiro' : 'Linha'}
+                    trailing={
+                      <span className="text-lg font-semibold tabular-nums text-ink">
                         {entry.display}
                       </span>
                     }
                   />
                 )
               })}
-            </div>
+            </ListGroup>
           )}
         </>
       )}
-    </div>
+    </Page>
   )
 }

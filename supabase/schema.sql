@@ -121,8 +121,13 @@ as $$
   );
 $$;
 
--- Ao criar a conta, o jogador é vinculado pelo nome de usuário. Quem não foi
--- cadastrado pelo administrador não consegue se registrar.
+-- Vincula a conta recém-criada ao jogador de mesmo nome de usuário.
+--
+-- A primeira conta do sistema é a única que nasce administradora — e ela pode
+-- se cadastrar livremente, já que ainda não existe ninguém para autorizá-la.
+-- Da segunda em diante, só quem foi cadastrado por um administrador consegue
+-- criar acesso, e sempre como jogador comum: virar administrador depende de
+-- uma promoção explícita feita por outro administrador.
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -132,8 +137,22 @@ as $$
 declare
   wanted text := lower(split_part(new.email, '@', 1));
   target public.players%rowtype;
+  is_first boolean;
 begin
+  select not exists (select 1 from public.players where user_id is not null)
+    into is_first;
+
   select * into target from public.players where username = wanted;
+
+  if is_first then
+    if target.id is null then
+      insert into public.players (user_id, username, full_name, role)
+      values (new.id, wanted, initcap(replace(wanted, '.', ' ')), 'admin');
+    else
+      update public.players set user_id = new.id, role = 'admin' where id = target.id;
+    end if;
+    return new;
+  end if;
 
   if target.id is null then
     raise exception
@@ -145,7 +164,8 @@ begin
     raise exception 'O usuário "%" já possui acesso criado.', wanted;
   end if;
 
-  update public.players set user_id = new.id where id = target.id;
+  -- Nunca administrador no cadastro: a promoção é sempre um ato de um admin.
+  update public.players set user_id = new.id, role = 'jogador' where id = target.id;
   return new;
 end;
 $$;
@@ -260,8 +280,7 @@ for delete to authenticated using (bucket_id = 'avatars');
 
 -- ------------------------------------------------------- primeiro usuário --
 
--- Sem esta linha ninguém conseguiria criar a primeira conta, já que o
--- cadastro exige um jogador previamente registrado.
-insert into public.players (username, full_name, role, player_type, position, level)
-values ('admin', 'Administrador da Patota', 'admin', 'mensalista', 'linha', 3)
-on conflict (username) do nothing;
+-- Não há nada a semear: a primeira pessoa que criar acesso no aplicativo vira
+-- a administradora da patota, com o nome de usuário que ela escolher. Todas as
+-- contas seguintes precisam ter sido cadastradas por ela e entram como
+-- jogador comum.
