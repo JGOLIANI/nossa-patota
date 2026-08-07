@@ -1,0 +1,200 @@
+import { computeRoundAwards } from '../domain/awards'
+import { generateTeams } from '../domain/balance'
+import { computeMatchLogs, computeStats } from '../domain/stats'
+import { scoreFromEvents } from '../domain/score'
+import type { Match, MatchEvent, Player, Snapshot } from '../types'
+import { TEAM_PRESETS } from '../types'
+
+/** PRNG determinístico para que a demonstração seja sempre a mesma. */
+function prng(seed: number): () => number {
+  let state = seed >>> 0
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0
+    let t = state
+    t = Math.imul(t ^ (t >>> 15), t | 1)
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+interface SeedPlayer {
+  name: string
+  username: string
+  position?: 'goleiro' | 'linha'
+  level: number
+  type?: 'mensalista' | 'visitante'
+  foot?: 'direita' | 'esquerda' | 'ambidestro'
+  role?: 'admin' | 'jogador'
+}
+
+const SEED_PLAYERS: SeedPlayer[] = [
+  { name: 'Administrador da Patota', username: 'admin', level: 3, role: 'admin' },
+  { name: 'Bruno Paredão', username: 'bruno', position: 'goleiro', level: 4 },
+  { name: 'Carlão Luvas', username: 'carlao', position: 'goleiro', level: 3 },
+  { name: 'Diego Canhota', username: 'diego', level: 5, foot: 'esquerda' },
+  { name: 'Eduardo Pivô', username: 'eduardo', level: 4 },
+  { name: 'Fábio Ala', username: 'fabio', level: 4, foot: 'esquerda' },
+  { name: 'Gustavo Fixo', username: 'gustavo', level: 3 },
+  { name: 'Henrique Veloz', username: 'henrique', level: 4, foot: 'ambidestro' },
+  { name: 'Igor Artilheiro', username: 'igor', level: 5 },
+  { name: 'João Garçom', username: 'joao', level: 3 },
+  { name: 'Kleber Muralha', username: 'kleber', level: 2 },
+  { name: 'Lucas Driblador', username: 'lucas', level: 4 },
+  { name: 'Marcelo Raçudo', username: 'marcelo', level: 2 },
+  { name: 'Nando Visitante', username: 'nando', level: 3, type: 'visitante' },
+]
+
+const ROUND_DATES = ['2026-07-10', '2026-07-17', '2026-07-24']
+
+/**
+ * Gera uma patota fictícia completa (jogadores, rodadas, partidas, gols e
+ * premiações) para que o modo demonstração já abra com conteúdo real.
+ */
+export function createDemoSnapshot(): Snapshot {
+  const random = prng(20260807)
+
+  const players: Player[] = SEED_PLAYERS.map((seed, index) => ({
+    id: `demo-player-${index + 1}`,
+    user_id: `demo-player-${index + 1}`,
+    username: seed.username,
+    full_name: seed.name,
+    photo_url: null,
+    player_type: seed.type ?? 'mensalista',
+    dominant_foot: seed.foot ?? 'direita',
+    position: seed.position ?? 'linha',
+    status: 'ativo',
+    role: seed.role ?? 'jogador',
+    level: seed.level,
+    created_at: '2026-06-01T12:00:00.000Z',
+  }))
+
+  const snapshot: Snapshot = {
+    players,
+    rounds: [],
+    teams: [],
+    roundPlayers: [],
+    matches: [],
+    events: [],
+    awards: [],
+  }
+
+  let eventSeq = 0
+
+  ROUND_DATES.forEach((date, roundIndex) => {
+    const roundId = `demo-round-${roundIndex + 1}`
+    // O visitante só aparece na última rodada.
+    const participants = players.filter(
+      (player) => player.player_type === 'mensalista' || roundIndex === ROUND_DATES.length - 1,
+    )
+
+    const balance = generateTeams({
+      players: participants,
+      stats: computeStats(snapshot),
+      logs: computeMatchLogs(snapshot),
+      teamCount: 2,
+      seed: roundIndex + 1,
+    })
+
+    snapshot.rounds.push({
+      id: roundId,
+      date,
+      title: `Rodada ${roundIndex + 1}`,
+      team_count: 2,
+      status: 'encerrada',
+      created_at: `${date}T18:00:00.000Z`,
+      closed_at: `${date}T22:00:00.000Z`,
+    })
+
+    balance.teams.forEach((team, teamIndex) => {
+      const preset = TEAM_PRESETS[teamIndex % TEAM_PRESETS.length]
+      const teamId = `${roundId}-team-${teamIndex}`
+      snapshot.teams.push({
+        id: teamId,
+        round_id: roundId,
+        position: teamIndex,
+        name: preset.name,
+        color: preset.color,
+      })
+      for (const playerId of team.playerIds) {
+        snapshot.roundPlayers.push({
+          id: `${roundId}-${playerId}`,
+          round_id: roundId,
+          player_id: playerId,
+          team_id: teamId,
+        })
+      }
+    })
+
+    const teamIds = snapshot.teams
+      .filter((team) => team.round_id === roundId)
+      .map((team) => team.id)
+
+    const lineByTeam = new Map(
+      teamIds.map((teamId) => [
+        teamId,
+        snapshot.roundPlayers
+          .filter((rp) => rp.team_id === teamId)
+          .map((rp) => players.find((p) => p.id === rp.player_id)!)
+          .filter((player) => player.position === 'linha'),
+      ]),
+    )
+
+    for (let matchIndex = 0; matchIndex < 2; matchIndex += 1) {
+      const match: Match = {
+        id: `${roundId}-match-${matchIndex + 1}`,
+        round_id: roundId,
+        sequence: matchIndex + 1,
+        team_a_id: teamIds[0],
+        team_b_id: teamIds[1],
+        score_a: 0,
+        score_b: 0,
+        status: 'encerrada',
+        created_at: `${date}T19:0${matchIndex}:00.000Z`,
+        ended_at: `${date}T19:3${matchIndex}:00.000Z`,
+      }
+
+      const events: MatchEvent[] = []
+      for (const teamId of teamIds) {
+        const squad = lineByTeam.get(teamId) ?? []
+        const goals = Math.floor(random() * 5)
+        for (let goal = 0; goal < goals; goal += 1) {
+          const scorer = squad[Math.floor(random() * squad.length)]
+          const assistCandidates = squad.filter((player) => player.id !== scorer.id)
+          const withAssist = random() > 0.4 && assistCandidates.length > 0
+          eventSeq += 1
+          events.push({
+            id: `demo-event-${eventSeq}`,
+            match_id: match.id,
+            team_id: teamId,
+            scorer_id: scorer.id,
+            assist_id: withAssist
+              ? assistCandidates[Math.floor(random() * assistCandidates.length)].id
+              : null,
+            own_goal: false,
+            created_at: `${date}T19:1${matchIndex}:0${goal}.000Z`,
+          })
+        }
+      }
+
+      snapshot.events.push(...events)
+      const score = scoreFromEvents(match, events)
+      match.score_a = score.score_a
+      match.score_b = score.score_b
+      snapshot.matches.push(match)
+    }
+
+    const awards = computeRoundAwards(snapshot, roundId)
+    for (const [type, playerIds] of Object.entries(awards)) {
+      for (const playerId of playerIds) {
+        snapshot.awards.push({
+          id: `${roundId}-award-${type}-${playerId}`,
+          round_id: roundId,
+          type: type as never,
+          player_id: playerId,
+        })
+      }
+    }
+  })
+
+  return snapshot
+}
