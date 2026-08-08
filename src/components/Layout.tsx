@@ -54,8 +54,8 @@ export function Layout() {
         <Outlet />
       </main>
 
-      {/* A barra de abas é de vidro: o conteúdo continua visível por baixo,
-          desfocado, em vez de sumir atrás de um bloco opaco. */}
+      {/* A barra de abas é opaca. Translúcida, o conteúdo que rolava por baixo
+          aparecia em fantasma atrás dos ícones e atrapalhava a leitura. */}
       <nav className="material hairline-top pb-safe fixed inset-x-0 bottom-0 z-30">
         <ul className="mx-auto flex w-full max-w-lg" style={{ height: 'var(--nav-height)' }}>
           {NAV.map(({ to, label, Icon, Active, end }) => (

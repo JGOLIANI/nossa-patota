@@ -19,6 +19,7 @@ import {
   SectionHeader,
   Tabs,
   Tag,
+  TeamDot,
 } from '../components/ui'
 import { attendanceLists } from '../domain/attendance'
 import {
@@ -243,11 +244,7 @@ export function RoundDetailPage() {
                 return (
                   <section key={team.id}>
                     <div className="mb-2 flex items-center gap-2 px-1">
-                      <span
-                        aria-hidden="true"
-                        className="size-2.5 rounded-full"
-                        style={{ backgroundColor: team.color }}
-                      />
+                      <TeamDot color={team.color} />
                       <h2 className="text-headline text-ink">{team.name}</h2>
                       <span className="text-subhead text-muted">{squad.length} jogadores</span>
                     </div>

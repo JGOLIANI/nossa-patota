@@ -83,9 +83,10 @@
   --color-line: #d6d6da; /* separator */
   /* Superfície que sobe acima do preenchimento: o botão do segmentado. */
   --color-elevated: #ffffff;
-  /* Barras translúcidas (navegação, abas, ações). */
-  --color-bar: rgb(249 249 251 / 0.78);
-  --color-scrim: rgb(0 0 0 / 0.28);
+  /* Barras (navegação, abas, ações). Opacas: o conteúdo que passa por baixo
+     não deve disputar a leitura com o que está fixo na frente. */
+  --color-bar: #f9f9fb;
+  --color-scrim: rgb(0 0 0 / 0.45);
 
   /* Texto, do mais forte ao mais discreto. */
   --color-ink: #000000; /* label */
@@ -97,10 +98,14 @@
   --color-brand-ink: #ffffff;
   --color-brand-soft: #e6f7ec;
 
-  /* Significado. Usadas apenas para comunicar resultado ou risco. */
+  /* Significado. Usadas apenas para comunicar resultado ou risco.
+     As versões `-soft` são o fundo das etiquetas: cores cheias, e não a cor
+     forte diluída, para que a etiqueta não deixe passar o que está atrás. */
   --color-win: #248a3d;
+  --color-win-soft: #e4f2e8;
   --color-draw: #8e8e93; /* systemGray */
   --color-loss: #ff3b30; /* systemRed */
+  --color-loss-soft: #ffe9e7;
   --color-warn: #b25000; /* systemOrange, legível sobre claro */
   --color-warn-soft: #fff2e5;
   --color-gold: #d19d00; /* systemYellow, legível sobre claro */
@@ -180,8 +185,8 @@
     --color-fill-strong: #3a3a3c;
     --color-line: #38383a;
     --color-elevated: #636366;
-    --color-bar: rgb(28 28 30 / 0.74);
-    --color-scrim: rgb(0 0 0 / 0.5);
+    --color-bar: #1c1c1e;
+    --color-scrim: rgb(0 0 0 / 0.62);
 
     --color-ink: #ffffff;
     --color-muted: #98989f;
@@ -192,8 +197,10 @@
     --color-brand-soft: #16341f;
 
     --color-win: #30d158;
+    --color-win-soft: #16341f;
     --color-draw: #98989f;
     --color-loss: #ff453a;
+    --color-loss-soft: #3a1a18;
     --color-warn: #ff9f0a;
     --color-warn-soft: #2e2312;
     --color-gold: #ffd60a;
@@ -258,21 +265,15 @@ body {
  */
 @layer components {
   /*
-   * Material translúcido das barras. O desfoque com saturação é o que dá a
-   * sensação de vidro do iOS: o conteúdo por baixo continua visível, só que
-   * suavizado e com a cor puxada para cima.
+   * Superfície das barras fixas.
+   *
+   * Era um vidro translúcido com desfoque, à moda do iOS. Numa lista densa
+   * como a de rodadas o efeito trabalha contra a leitura: o texto que rola
+   * por baixo continua aparecendo em fantasma atrás do título e dos ícones
+   * de navegação. Opaco, o que está fixo na frente fica na frente.
    */
   .material {
     background-color: var(--color-bar);
-    backdrop-filter: saturate(180%) blur(20px);
-    -webkit-backdrop-filter: saturate(180%) blur(20px);
-  }
-
-  /* Sem suporte a desfoque, o vidro vira uma superfície opaca honesta. */
-  @supports not (backdrop-filter: blur(1px)) {
-    .material {
-      background-color: var(--color-card);
-    }
   }
 
   /*

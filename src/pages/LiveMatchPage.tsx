@@ -14,10 +14,11 @@ import {
   Note,
   Switch,
   Tag,
+  TeamDot,
 } from '../components/ui'
 import { findMatch, findRound, findTeam, matchEvents, teamPlayers } from '../domain/selectors'
 import { cn } from '../lib/cn'
-import { readableInk } from '../lib/color'
+import { readableInk, teamSurface } from '../lib/color'
 import { firstName } from '../lib/format'
 import { useApp } from '../store/useApp'
 import type { Player } from '../types'
@@ -169,11 +170,7 @@ export function LiveMatchPage() {
               <div key={team?.id ?? index} className="contents">
                 {index > 0 && <span aria-hidden="true" className="w-px bg-line" />}
                 <div className="min-w-0 flex-1 p-4 text-center">
-                  <span
-                    aria-hidden="true"
-                    className="mx-auto mb-2 block size-2.5 rounded-full"
-                    style={{ backgroundColor: team?.color }}
-                  />
+                  <TeamDot color={team?.color} className="mx-auto mb-2 block" />
                   <p className="truncate text-subhead text-muted">{team?.name}</p>
                   <p className="mt-1 font-rounded text-[44px] leading-none font-semibold tabular-nums text-ink">
                     {score}
@@ -199,7 +196,7 @@ export function LiveMatchPage() {
                 disabled={busy}
                 className="flex h-14 items-center justify-center gap-2 rounded-[14px] text-headline transition duration-200 ease-ios active:scale-[0.97] active:opacity-80 disabled:opacity-35"
                 style={{
-                  backgroundColor: team?.color ?? '#333',
+                  ...teamSurface(team?.color ?? '#333333'),
                   color: readableInk(team?.color ?? '#333333'),
                 }}
               >
@@ -228,7 +225,7 @@ export function LiveMatchPage() {
                     <span
                       aria-hidden="true"
                       className="absolute inset-y-2 left-0 w-1 rounded-r-full"
-                      style={{ backgroundColor: team?.color }}
+                      style={teamSurface(team?.color)}
                     />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-body text-ink">

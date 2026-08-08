@@ -27,9 +27,9 @@ import { AWARD_LABELS, AWARD_SHORT_LABELS, DEFAULT_PASSWORD, type AwardType } fr
 const FOOT = { direita: 'Destro', esquerda: 'Canhoto', ambidestro: 'Ambidestro' }
 
 const RESULT = {
-  V: { label: 'V', className: 'bg-win/15 text-win' },
+  V: { label: 'V', className: 'bg-win-soft text-win' },
   E: { label: 'E', className: 'bg-fill text-muted' },
-  D: { label: 'D', className: 'bg-loss/15 text-loss' },
+  D: { label: 'D', className: 'bg-loss-soft text-loss' },
 }
 
 export function PlayerDetailPage() {

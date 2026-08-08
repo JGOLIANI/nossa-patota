@@ -8,6 +8,7 @@ import type {
 } from 'react'
 import { Link } from 'react-router-dom'
 import { cn } from '../lib/cn'
+import { teamSurface } from '../lib/color'
 import { IconChevronDown, IconChevronRight, IconClose, IconSearch } from './icons'
 
 /* -------------------------------------------------------------- Button ---- */
@@ -27,7 +28,7 @@ const VARIANTS: Record<Variant, string> = {
 
 const DESTRUCTIVE: Record<Variant, string> = {
   primary: 'bg-loss text-white',
-  secondary: 'bg-loss/12 text-loss',
+  secondary: 'bg-loss-soft text-loss',
   quiet: 'text-loss',
 }
 
@@ -148,6 +149,26 @@ export function SectionLink({ to, children }: { to: string; children: ReactNode 
   )
 }
 
+/* ------------------------------------------------------------- TeamDot ---- */
+
+/**
+ * Bolinha com a cor do colete.
+ *
+ * O contorno não é enfeite. Os dois times da patota são preto e branco, e
+ * cada um desaparece sobre uma das superfícies do aplicativo: o branco sobre
+ * o cartão claro, o preto sobre o fundo do tema escuro. A borda garante que a
+ * bolinha exista nos dois temas, seja qual for a cor escolhida.
+ */
+export function TeamDot({ color, className }: { color?: string; className?: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn('inline-block size-2.5 shrink-0 rounded-full', className)}
+      style={teamSurface(color)}
+    />
+  )
+}
+
 /* ------------------------------------------------------------- ListRow ---- */
 
 /**
@@ -213,7 +234,7 @@ export function ListRow({
     <span
       aria-hidden="true"
       className="absolute inset-y-2 left-0 w-1 rounded-r-full"
-      style={{ backgroundColor: accent }}
+      style={teamSurface(accent)}
     />
   ) : null
 
@@ -406,7 +427,7 @@ export function SearchField({
           type="button"
           aria-label="Limpar busca"
           onClick={() => onChange('')}
-          className="absolute top-1/2 right-2 inline-flex size-6 -translate-y-1/2 items-center justify-center rounded-full bg-faint/60 text-card"
+          className="absolute top-1/2 right-2 inline-flex size-6 -translate-y-1/2 items-center justify-center rounded-full bg-faint text-card"
         >
           <IconClose className="size-3 stroke-[3.4]" />
         </button>
@@ -516,7 +537,7 @@ export function Note({
   const tones = {
     info: 'bg-fill text-muted',
     warn: 'bg-warn-soft text-warn',
-    error: 'bg-loss/10 text-loss',
+    error: 'bg-loss-soft text-loss',
   }
   return (
     <p

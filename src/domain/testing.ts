@@ -47,7 +47,7 @@ export function makeRound(id: string, overrides: Partial<Round> = {}): Round {
 }
 
 export function makeTeam(id: string, roundId: string, position: number): Team {
-  return { id, round_id: roundId, position, name: `Time ${position + 1}`, color: '#22c55e' }
+  return { id, round_id: roundId, position, name: `Time ${position + 1}`, color: '#000000' }
 }
 
 export function makeRoundPlayer(
