@@ -149,15 +149,25 @@ Todo push na branch `main` roda lint, testes, build e publica o site. No plano
 gratuito o GitHub Pages exige repositório público; o endereço fica
 `https://<usuário>.github.io/<repositório>/`.
 
-> **Sem os secrets o deploy passa mesmo assim.** O build não falha, o site
-> publica — e todo visitante cai no modo demonstração, com a patota fictícia
-> guardada só no aparelho dele. O sinal é a faixa *"Modo demonstração · dados
-> só neste aparelho"* no topo da tela: se ela aparecer no site publicado, as
-> credenciais não chegaram ao build.
+Antes do build, o passo **Conferir credenciais** roda
+[`scripts/check-credentials.mjs`](scripts/check-credentials.mjs) e derruba o
+deploy quando as credenciais faltam, quando a URL vem com caminho ou quando a
+chave é a `service_role`. Sem essa guarda a falha é invisível: o build termina
+bem, o site publica e só quem abre o endereço descobre que caiu no modo
+demonstração.
+
+> Os secrets só entram em builds **novos**. Depois de cadastrá-los, republique
+> em **Actions → Deploy → Run workflow** — enquanto nenhum build novo rodar, o
+> que está no ar continua sendo o antigo, sem as credenciais.
 >
-> Os secrets também só entram em builds **novos**. Depois de cadastrá-los,
-> republique em **Actions → Deploy → Run workflow** — o site que já está no ar
-> continua sendo o build antigo.
+> Se ainda assim o site abrir com a faixa *"Modo demonstração · dados só neste
+> aparelho"*, o culpado provável é o cache: o PWA guarda a versão anterior no
+> service worker. Recarregue com a página aberta em uma aba anônima, ou
+> desinstale e instale de novo o aplicativo no celular.
+
+> Para publicar de propósito sem banco — uma vitrine, um fork sem Supabase —
+> crie a variável (não secret) `ALLOW_DEMO_BUILD` com valor `1` em
+> **Settings → Secrets and variables → Actions → Variables**.
 
 > Prefere Vercel ou Netlify? Importe o repositório, informe as duas variáveis de
 > ambiente e pronto — nesse caso não defina `VITE_BASE`, que só é necessário no
