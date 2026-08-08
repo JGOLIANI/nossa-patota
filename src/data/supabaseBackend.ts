@@ -22,6 +22,7 @@ import type {
   EventInput,
   PlayerInput,
   RoundInput,
+  SignUpInput,
   TeamInput,
 } from './types'
 
@@ -45,8 +46,16 @@ function translate(message: string): string {
   if (/row-level security/i.test(message)) {
     return 'Você não tem permissão para executar esta ação.'
   }
+  // O Supabase Auth engole a mensagem das exceções levantadas pelo gatilho de
+  // cadastro e devolve sempre a mesma frase genérica. Por isso o código da
+  // patota é conferido antes do `signUp`: aqui já não dá para dizer o motivo.
+  if (/database error saving new user/i.test(message)) {
+    return 'Não foi possível concluir o cadastro. Confira os dados e tente de novo.'
+  }
   return message
 }
+
+const INVALID_JOIN_CODE = 'Código da patota inválido. Peça o código a um administrador.'
 
 export const supabaseBackend: Backend = {
   mode: 'supabase',
@@ -73,10 +82,30 @@ export const supabaseBackend: Backend = {
     if (error) throw new Error(translate(error.message))
   },
 
-  async signUp(username: string, password: string) {
+  /**
+   * O perfil viaja como metadados da conta: é o gatilho `handle_new_user`, no
+   * banco, que cria a linha em `players`. O navegador não poderia fazê-lo — a
+   * escrita na tabela é reservada aos administradores pelo RLS, e quem está se
+   * cadastrando ainda não tem sessão.
+   */
+  async signUp(input: SignUpInput) {
+    // Conferido antes para a mensagem sair certa; quem decide de verdade é o
+    // gatilho, dentro da transação que cria a conta.
+    const check = await client().rpc('join_code_matches', { p_code: input.join_code ?? '' })
+    if (!check.error && check.data === false) throw new Error(INVALID_JOIN_CODE)
+
     const { error } = await client().auth.signUp({
-      email: usernameToEmail(username),
-      password,
+      email: usernameToEmail(input.username),
+      password: input.password,
+      options: {
+        data: {
+          full_name: input.full_name.trim(),
+          player_type: input.player_type,
+          position: input.position,
+          dominant_foot: input.dominant_foot,
+          join_code: input.join_code?.trim() ?? '',
+        },
+      },
     })
     if (error) throw new Error(translate(error.message))
   },
@@ -87,6 +116,22 @@ export const supabaseBackend: Backend = {
 
   async changePassword(password: string) {
     const { error } = await client().auth.updateUser({ password })
+    if (error) throw new Error(translate(error.message))
+  },
+
+  async joinCodeRequired() {
+    const { data, error } = await client().rpc('join_code_required')
+    // Sem resposta, o formulário mostra o campo: melhor pedir um código à toa
+    // do que esconder o único caminho de cadastro.
+    if (error) return true
+    return Boolean(data)
+  },
+
+  async setPlayerPassword(playerId: string, password: string) {
+    const { error } = await client().rpc('admin_set_password', {
+      p_player_id: playerId,
+      p_password: password,
+    })
     if (error) throw new Error(translate(error.message))
   },
 

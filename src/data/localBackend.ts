@@ -21,13 +21,14 @@ import type {
   EventInput,
   PlayerInput,
   RoundInput,
+  SignUpInput,
   TeamInput,
 } from './types'
 
 // A versão faz parte da chave: quando o formato do snapshot muda, os dados
 // antigos são descartados em vez de carregarem sem os campos novos.
-const STORAGE_KEY = 'nossa-patota:demo:v2'
-const LEGACY_KEYS = ['nossa-patota:demo:v1']
+const STORAGE_KEY = 'nossa-patota:demo:v3'
+const LEGACY_KEYS = ['nossa-patota:demo:v1', 'nossa-patota:demo:v2']
 const SESSION_KEY = 'nossa-patota:demo:session'
 
 const listeners = new Set<(user: SessionUser | null) => void>()
@@ -142,56 +143,65 @@ export const localBackend: Backend = {
   },
 
   /**
-   * Mesma regra do Supabase: a primeira conta do sistema vira administradora;
-   * as seguintes precisam ter sido cadastradas por um admin e entram sempre
-   * como jogador comum.
+   * Mesmas regras do Supabase: o jogador se cadastra sozinho, a primeira conta
+   * do sistema vira administradora e as seguintes entram como jogador comum,
+   * conferindo o código da patota quando houver um.
    */
-  async signUp(username: string) {
+  async signUp(input: SignUpInput) {
     const snapshot = load()
-    const wanted = normalizeUsername(username)
+    const wanted = normalizeUsername(input.username)
     const isFirst = !snapshot.players.some((player) => player.user_id)
     const existing = snapshot.players.find((player) => player.username === wanted)
+    const code = snapshot.settings.join_code.trim()
 
-    if (isFirst) {
-      if (existing) {
-        existing.user_id = existing.id
-        existing.role = 'admin'
-      } else {
-        const player: Player = {
-          id: uid(),
-          user_id: null,
-          username: wanted,
-          full_name: username,
-          photo_url: null,
-          player_type: 'mensalista',
-          dominant_foot: 'direita',
-          position: 'linha',
-          status: 'ativo',
-          role: 'admin',
-          level: 3,
-          created_at: new Date().toISOString(),
-        }
-        player.user_id = player.id
-        snapshot.players.push(player)
-      }
-      save(snapshot)
-      await localBackend.signIn(wanted, '')
-      return
+    if (!isFirst && code && code !== (input.join_code ?? '').trim()) {
+      throw new Error('Código da patota inválido. Peça o código a um administrador.')
     }
-
-    if (!existing) {
-      throw new Error(
-        `O usuário "${wanted}" não está cadastrado na patota. Peça ao administrador para cadastrá-lo.`,
-      )
-    }
-    if (existing.user_id) {
+    if (existing?.user_id) {
       throw new Error(`O usuário "${wanted}" já possui acesso criado.`)
     }
 
-    existing.user_id = existing.id
-    existing.role = 'jogador'
+    const role = isFirst ? 'admin' : 'jogador'
+    const profile = {
+      full_name: input.full_name.trim() || input.username,
+      player_type: input.player_type,
+      position: input.position,
+      dominant_foot: input.dominant_foot,
+    }
+
+    if (existing) {
+      // Ficha aberta pelo administrador: o tipo e o nível continuam dele.
+      existing.user_id = existing.id
+      existing.role = role
+      existing.full_name = profile.full_name
+      existing.position = profile.position
+      existing.dominant_foot = profile.dominant_foot
+    } else {
+      const player: Player = {
+        id: uid(),
+        user_id: null,
+        username: wanted,
+        photo_url: null,
+        status: 'ativo',
+        role,
+        level: 3,
+        created_at: new Date().toISOString(),
+        ...profile,
+      }
+      player.user_id = player.id
+      snapshot.players.push(player)
+    }
+
     save(snapshot)
     await localBackend.signIn(wanted, '')
+  },
+
+  async joinCodeRequired() {
+    return load().settings.join_code.trim() !== ''
+  },
+
+  async setPlayerPassword() {
+    throw new Error('O modo demonstração não usa senha: qualquer uma entra.')
   },
 
   async signOut() {

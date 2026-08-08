@@ -1,6 +1,23 @@
 import type { Player } from '../types'
 
 /**
+ * Nome de usuário sugerido a partir do nome completo: `Igor Santos` vira
+ * `igor.santos`. Acentos são removidos e só sobram letras, números e ponto,
+ * porque o usuário vira o endereço de login.
+ */
+export function suggestUsername(fullName: string): string {
+  return fullName
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .join('.')
+    .replace(/[^a-z0-9.]/g, '')
+}
+
+/**
  * Texto de apoio padrão de um jogador nas listas.
  *
  * Antes essas informações eram etiquetas coloridas ao lado do nome; em uma

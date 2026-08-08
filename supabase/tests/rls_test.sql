@@ -19,16 +19,33 @@ begin
   raise notice 'OK 1 — a primeira conta do sistema vira administradora';
 end $$;
 
--- 2. A partir da segunda, quem não foi cadastrado não consegue criar acesso.
+-- 2. Sem código definido, qualquer um se cadastra sozinho — e o jogador nasce
+--    da ficha que ele mesmo preencheu, como jogador comum.
+insert into auth.users (id, email, raw_user_meta_data)
+values (
+  '44444444-4444-4444-4444-444444444444',
+  'ana.paula@patota.local',
+  '{"full_name":"Ana Paula","player_type":"visitante","position":"goleiro","dominant_foot":"esquerda"}'::jsonb
+);
+
 do $$
-declare blocked boolean := false;
+declare target public.players%rowtype;
 begin
-  begin
-    insert into auth.users (id, email) values (gen_random_uuid(), 'estranho@patota.local');
-  exception when others then blocked := true;
-  end;
-  if not blocked then raise exception 'FALHOU: desconhecido conseguiu se cadastrar'; end if;
-  raise notice 'OK 2 — cadastro de usuário desconhecido bloqueado';
+  select * into target from public.players where username = 'ana.paula';
+  if target.id is null then
+    raise exception 'FALHOU: o cadastro próprio não criou o jogador';
+  end if;
+  if target.role <> 'jogador' then
+    raise exception 'FALHOU: quem se cadastra sozinho não deveria ser admin (role=%)', target.role;
+  end if;
+  if target.full_name <> 'Ana Paula' or target.position <> 'goleiro'
+     or target.dominant_foot <> 'esquerda' or target.player_type <> 'visitante' then
+    raise exception 'FALHOU: o formulário de cadastro não chegou à ficha';
+  end if;
+  if target.level <> 3 then
+    raise exception 'FALHOU: quem se cadastra não define o próprio nível (level=%)', target.level;
+  end if;
+  raise notice 'OK 2 — o jogador se cadastra sozinho, como jogador comum';
 end $$;
 
 -- 3. Admin autenticado cadastra jogadores e cria rodada.
@@ -64,6 +81,11 @@ begin
   end if;
   if (select role from public.players where username = 'chico') <> 'jogador' then
     raise exception 'FALHOU: cadastro marcado como admin virou admin ao criar a conta';
+  end if;
+  -- A conta veio sem formulário: a ficha que o administrador preencheu fica
+  -- como estava, em vez de ser sobrescrita por padrões.
+  if (select full_name from public.players where username = 'zeca') <> 'Zeca da Bola' then
+    raise exception 'FALHOU: o vínculo da conta apagou o cadastro feito pelo administrador';
   end if;
   raise notice 'OK 4 — contas seguintes entram sempre como jogador comum';
 end $$;
@@ -241,4 +263,77 @@ begin
   reset role;
   if not blocked then raise exception 'FALHOU: jogador alterou a presença de outro'; end if;
   raise notice 'OK 14 — jogador não mexe na presença alheia';
+end $$;
+
+-- 15. Com código definido, o cadastro sem o código é recusado.
+update public.patota_settings set join_code = 'PATOTA24' where id = 'default';
+
+do $$
+declare blocked boolean := false;
+begin
+  begin
+    insert into auth.users (id, email, raw_user_meta_data)
+    values (gen_random_uuid(), 'penetra@patota.local', '{"full_name":"Penetra"}'::jsonb);
+  exception when others then blocked := true;
+  end;
+  if not blocked then raise exception 'FALHOU: cadastro passou sem o código da patota'; end if;
+  if exists (select 1 from public.players where username = 'penetra') then
+    raise exception 'FALHOU: a ficha do cadastro recusado sobrou no banco';
+  end if;
+  raise notice 'OK 15 — sem o código da patota o cadastro é recusado';
+end $$;
+
+-- 16. Com o código certo, entra.
+insert into auth.users (id, email, raw_user_meta_data)
+values (
+  '55555555-5555-5555-5555-555555555555',
+  'bia@patota.local',
+  '{"full_name":"Bia Nunes","join_code":"PATOTA24"}'::jsonb
+);
+
+do $$
+begin
+  if not exists (select 1 from public.players where username = 'bia' and role = 'jogador') then
+    raise exception 'FALHOU: o código certo não deixou o jogador entrar';
+  end if;
+  raise notice 'OK 16 — com o código certo o cadastro é aceito';
+end $$;
+
+-- 17. Senha provisória: o administrador redefine a de outro jogador, o
+--     jogador comum não redefine a de ninguém.
+do $$
+declare
+  v_player uuid;
+  v_user uuid;
+  blocked boolean := false;
+begin
+  select id, user_id into v_player, v_user from public.players where username = 'bia';
+
+  -- O chico é o jogador comum que sobrou: o zeca foi promovido no teste 9.
+  perform set_config('request.jwt.claim.sub', '33333333-3333-3333-3333-333333333333', true);
+  begin
+    perform public.admin_set_password(v_player, 'senhanova');
+  exception when others then blocked := true;
+  end;
+  if not blocked then raise exception 'FALHOU: jogador comum redefiniu a senha de outro'; end if;
+
+  perform set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', true);
+  perform public.admin_set_password(v_player, 'senhanova');
+
+  if (select encrypted_password from auth.users where id = v_user) is null then
+    raise exception 'FALHOU: o administrador não gravou a senha provisória';
+  end if;
+  if (select encrypted_password from auth.users where id = v_user)
+     <> crypt('senhanova', (select encrypted_password from auth.users where id = v_user)) then
+    raise exception 'FALHOU: a senha gravada não confere';
+  end if;
+
+  blocked := false;
+  begin
+    perform public.admin_set_password(v_player, 'curta');
+  exception when others then blocked := true;
+  end;
+  if not blocked then raise exception 'FALHOU: aceitou senha com menos de 6 caracteres'; end if;
+
+  raise notice 'OK 17 — só o administrador redefine a senha, e com no mínimo 6 caracteres';
 end $$;

@@ -67,17 +67,47 @@ da patota é por nome de usuário: o aplicativo converte `fulano` em
 
 ### 5. Primeiro acesso
 
-Abra o aplicativo, toque em **Primeiro acesso** e escolha seu nome de usuário e
-senha. **A primeira conta criada vira a administradora da patota** — é a única
-que pode se cadastrar sem convite, já que ainda não existe ninguém para
-autorizá-la.
+Abra o aplicativo, toque em **Primeiro acesso** e preencha seu cadastro.
+**A primeira conta criada vira a administradora da patota** — faça a sua antes
+de divulgar o endereço, porque enquanto ninguém tiver entrado a porta está
+aberta e quem chegar primeiro vira dono.
 
-A partir daí, cadastre os jogadores; cada um cria a própria senha pelo mesmo
-caminho. Quem não estiver cadastrado não consegue criar conta, e todas as
-contas seguintes entram como jogador comum. Promover alguém a administrador é
-sempre um ato explícito de outro administrador, em **Perfil → Administração**.
+Daí em diante cada jogador se cadastra sozinho pelo mesmo caminho, informando
+nome completo, nome de usuário (sugerido a partir do nome: `Igor Santos` vira
+`igor.santos`), senha, tipo, posição e perna dominante. Todas as contas entram
+como jogador comum; promover alguém a administrador é sempre um ato explícito
+de outro administrador, em **Perfil → Administração**.
 
-### 5.1. Defina a agenda
+O nível não é perguntado no cadastro — ninguém se autoavalia. Todo mundo começa
+em 3 e o administrador ajusta depois, ao editar o jogador.
+
+> O administrador ainda pode abrir a ficha de alguém antes, em **Jogadores →
+> Novo jogador** — útil para o visitante que não usa o aplicativo. Quando essa
+> pessoa se cadastrar com o mesmo nome de usuário, ela assume a ficha e o
+> histórico dela.
+
+### 5.1. Feche a porta: o código da patota
+
+Em **Perfil → Administração → Código da patota**, defina uma palavra que o
+jogador precisa digitar para se cadastrar. Sem código, qualquer pessoa com o
+endereço do aplicativo entra na patota — o que costuma bastar enquanto o link
+circula só no grupo, mas não depois que ele vaza.
+
+Trocar o código não afeta quem já entrou: vale para os cadastros seguintes.
+
+### 5.2. Quem esqueceu a senha
+
+O login é por nome de usuário, e o endereço `@patota.local` não recebe
+mensagem nenhuma — então não há link de recuperação para enviar. Quem destrava
+é o administrador, em **Perfil → Administração → Redefinir a senha de alguém**:
+o aplicativo gera uma senha provisória para ele repassar, e o jogador troca por
+outra em **Perfil → Alterar senha**.
+
+A troca roda em uma função dentro do banco, protegida por `is_admin()`, porque
+alterar a senha de outra conta é privilégio da chave `service_role` — que nunca
+pode ir para o navegador.
+
+### 5.3. Defina a agenda
 
 Em **Perfil → Administração → Agenda da patota**, informe o dia da semana, o
 horário, o local e quantas vagas a rodada tem. O sistema passa a criar as
@@ -105,6 +135,21 @@ não precisa de loja de aplicativos.
 ---
 
 ## Como o sistema decide as coisas
+
+### Cadastro e acesso
+
+Quem se cadastra não tem sessão, e a escrita em `players` é reservada aos
+administradores pelo RLS — então não é o navegador que cria o jogador. O
+formulário viaja como metadados da conta e quem grava a linha é o gatilho
+`handle_new_user`, dentro da mesma transação que cria a conta: se ele recusa,
+não sobra usuário órfão nem ficha pela metade.
+
+É lá que ficam as três garantias que não podem depender do cliente se
+comportar bem: o código da patota é conferido no servidor, ninguém nasce
+administrador (exceto a primeira conta, que é livre porque ainda não existe
+alguém para autorizá-la) e uma ficha que já tem dono não é tomada por outra
+conta. Valores fora das listas de tipo, posição e perna viram o padrão em vez
+de derrubar o cadastro.
 
 ### Times equilibrados
 
@@ -282,7 +327,7 @@ Com um PostgreSQL local:
 ```bash
 psql -d patota -f supabase/tests/local_prelude.sql   # simula auth/storage do Supabase
 psql -d patota -f supabase/schema.sql
-psql -d patota -f supabase/tests/rls_test.sql        # 14 verificações
+psql -d patota -f supabase/tests/rls_test.sql        # 17 verificações
 ```
 
 ---

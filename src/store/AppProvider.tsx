@@ -32,6 +32,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     snapshotRef.current = snapshot
   }, [snapshot])
 
+  // Identidade estável: a tela de cadastro consulta isto dentro de um efeito,
+  // e um callback novo a cada render refaria a chamada sem motivo.
+  const joinCodeRequired = useCallback(() => backend.joinCodeRequired(), [])
+
   const refresh = useCallback(async () => {
     const data = await backend.fetchAll()
     snapshotRef.current = data
@@ -122,6 +126,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const url = await backend.uploadAvatar(playerId, file)
           await backend.updatePlayer(playerId, { photo_url: url })
         }),
+      setPlayerPassword: (playerId, password) =>
+        backend.setPlayerPassword(playerId, password),
 
       updateSettings: (patch: Partial<PatotaSettings>) =>
         run(async () => {
@@ -321,7 +327,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     stats,
     refresh,
     signIn: (username, password) => backend.signIn(username, password),
-    signUp: (username, password) => backend.signUp(username, password),
+    signUp: (input) => backend.signUp(input),
+    joinCodeRequired,
     signOut: async () => {
       await backend.signOut()
       setSession(null)

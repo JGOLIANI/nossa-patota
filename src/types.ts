@@ -53,6 +53,11 @@ export interface PatotaSettings {
   max_players: number
   /** Quantas rodadas futuras manter sempre criadas. */
   weeks_ahead: number
+  /**
+   * Código que o jogador digita para se cadastrar. Vazio deixa o cadastro
+   * aberto a quem tiver o endereço do aplicativo.
+   */
+  join_code: string
 }
 
 export const DEFAULT_SETTINGS: PatotaSettings = {
@@ -62,6 +67,7 @@ export const DEFAULT_SETTINGS: PatotaSettings = {
   location: '',
   max_players: 0,
   weeks_ahead: 4,
+  join_code: '',
 }
 
 export const WEEKDAYS = [

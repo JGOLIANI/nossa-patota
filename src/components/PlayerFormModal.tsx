@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { PlayerInput } from '../data/types'
+import { suggestUsername } from '../lib/player'
 import { useApp } from '../store/useApp'
 import type { Player } from '../types'
 import { ConfirmDialog, Modal } from './Modal'
@@ -16,19 +17,10 @@ const EMPTY: PlayerInput = {
   // Um cadastro novo nunca nasce administrador: a promoção é um ato
   // deliberado de quem já é admin, feito na tela de Administração.
   role: 'jogador',
+  // Todo mundo come\u00e7a no meio da escala. O n\u00edvel n\u00e3o \u00e9 perguntado no cadastro
+  // \u2014 nem aqui, nem quando o jogador se cadastra sozinho \u2014 porque \u00e9 avalia\u00e7\u00e3o,
+  // e avalia\u00e7\u00e3o se faz depois de ver jogar.
   level: 3,
-}
-
-function suggestUsername(fullName: string): string {
-  return fullName
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .join('.')
-    .replace(/[^a-z0-9.]/g, '')
 }
 
 /**
@@ -181,18 +173,22 @@ export function PlayerFormModal({
               </Select>
             </Field>
 
-            <Field label="Nível" hint="1 a 5, usado no sorteio.">
-              <Select
-                value={String(form.level)}
-                onChange={(event) => update('level', Number(event.target.value))}
-              >
-                {[1, 2, 3, 4, 5].map((level) => (
-                  <option key={level} value={level}>
-                    {level}
-                  </option>
-                ))}
-              </Select>
-            </Field>
+            {/* O nível só aparece na edição: no cadastro ainda não há como
+                avaliar quem acabou de chegar. */}
+            {player && (
+              <Field label="Nível" hint="1 a 5, usado no sorteio.">
+                <Select
+                  value={String(form.level)}
+                  onChange={(event) => update('level', Number(event.target.value))}
+                >
+                  {[1, 2, 3, 4, 5].map((level) => (
+                    <option key={level} value={level}>
+                      {level}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            )}
           </div>
 
           {player && (

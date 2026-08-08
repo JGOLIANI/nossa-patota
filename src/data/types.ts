@@ -15,6 +15,22 @@ import type {
 export type PlayerInput = Omit<Player, 'id' | 'created_at' | 'user_id'> &
   Partial<Pick<Player, 'user_id'>>
 
+/**
+ * O que o jogador preenche ao criar a própria conta. O nível não está aqui de
+ * propósito: quem se cadastra não se autoavalia — todo mundo começa no meio da
+ * escala e o administrador ajusta depois, se quiser.
+ */
+export interface SignUpInput {
+  username: string
+  password: string
+  full_name: string
+  player_type: Player['player_type']
+  position: Player['position']
+  dominant_foot: Player['dominant_foot']
+  /** Só é exigido quando a patota definiu um código de entrada. */
+  join_code?: string
+}
+
 export interface RoundInput {
   date: string
   title: string
@@ -61,9 +77,17 @@ export interface Backend {
   getSession(): Promise<SessionUser | null>
   onAuthChange(callback: (user: SessionUser | null) => void): () => void
   signIn(username: string, password: string): Promise<void>
-  signUp(username: string, password: string): Promise<void>
+  signUp(input: SignUpInput): Promise<void>
   signOut(): Promise<void>
   changePassword(password: string): Promise<void>
+  /** Consultado na tela de cadastro, antes de existir sessão. */
+  joinCodeRequired(): Promise<boolean>
+  /**
+   * Senha provisória gerada por um administrador para quem esqueceu a sua.
+   * Roda no servidor: trocar a senha alheia é privilégio que não cabe no
+   * navegador.
+   */
+  setPlayerPassword(playerId: string, password: string): Promise<void>
 
   fetchAll(): Promise<Snapshot>
 
