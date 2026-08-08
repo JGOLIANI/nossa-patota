@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Avatar } from '../components/Avatar'
 import { ConfirmDialog, Modal } from '../components/Modal'
 import { Page } from '../components/Page'
@@ -72,6 +72,7 @@ function PlayerPicker({
 
 export function LiveMatchPage() {
   const { matchId = '' } = useParams()
+  const navigate = useNavigate()
   const { snapshot, isAdmin, actions } = useApp()
 
   const [goalFor, setGoalFor] = useState<string | null>(null)
@@ -146,6 +147,31 @@ export function LiveMatchPage() {
       setRemoving(null)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Não foi possível remover o gol.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  /**
+   * Encerra a partida inteira, daqui mesmo.
+   *
+   * Antes este botão só congelava o placar: a rodada continuava aberta e os
+   * prêmios só saíam quando alguém voltava e encerrava de novo, num segundo
+   * botão de mesmo nome. Como cada rodada tem uma única partida, os dois
+   * passos eram sempre o mesmo ato — e o primeiro parecia não ter feito nada.
+   * `closeRound` já fecha as partidas em aberto antes de calcular os prêmios.
+   */
+  async function finish() {
+    if (!match) return
+    setConfirmFinish(false)
+    setBusy(true)
+    setError('')
+    try {
+      await actions.closeRound(match.round_id)
+      // Levar direto aos prêmios é o que mostra que encerrou de verdade.
+      navigate(`/rodadas/${match.round_id}`, { state: { tab: 'premios' }, replace: true })
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Não foi possível encerrar a partida.')
     } finally {
       setBusy(false)
     }
@@ -258,8 +284,14 @@ export function LiveMatchPage() {
       {isAdmin && (
         <ActionBar>
           {live ? (
-            <Button size="lg" block variant="secondary" onClick={() => setConfirmFinish(true)}>
-              Encerrar partida
+            <Button
+              size="lg"
+              block
+              variant="secondary"
+              disabled={busy}
+              onClick={() => setConfirmFinish(true)}
+            >
+              {busy ? 'Encerrando…' : 'Encerrar partida'}
             </Button>
           ) : (
             <Button size="lg" block variant="secondary" onClick={() => actions.reopenMatch(match.id)}>
@@ -311,13 +343,10 @@ export function LiveMatchPage() {
       <ConfirmDialog
         open={confirmFinish}
         title="Encerrar partida"
-        message="O placar será congelado e as estatísticas dos jogadores passam a contar esta partida."
+        message="O placar será fechado, os prêmios calculados e as estatísticas atualizadas."
         confirmLabel="Encerrar"
         destructive={false}
-        onConfirm={() => {
-          setConfirmFinish(false)
-          actions.finishMatch(match.id)
-        }}
+        onConfirm={finish}
         onCancel={() => setConfirmFinish(false)}
       />
 

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { AttendanceControl } from '../components/AttendanceControl'
 import { AwardsCard } from '../components/AwardsCard'
 import { ConfirmDialog, Modal } from '../components/Modal'
@@ -49,7 +49,10 @@ export function RoundDetailPage() {
   const matches = roundMatches(snapshot, roundId)
   const roundStats = useMemo(() => computeStats(snapshot, { roundId }), [snapshot, roundId])
 
-  const [tab, setTab] = useState<Tab>(teams.length > 0 ? 'times' : 'presenca')
+  // Quem chega da tela da partida ao encerrá-la já pede a aba de prêmios: é o
+  // resultado do que acabou de fazer, e não a escalação que já viu.
+  const requested = (useLocation().state as { tab?: Tab } | null)?.tab
+  const [tab, setTab] = useState<Tab>(requested ?? (teams.length > 0 ? 'times' : 'presenca'))
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [confirm, setConfirm] = useState<'sortear' | 'encerrar' | 'excluir' | null>(null)
