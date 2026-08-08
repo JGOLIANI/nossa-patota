@@ -17,9 +17,10 @@ const EMPTY: PlayerInput = {
   // Um cadastro novo nunca nasce administrador: a promoção é um ato
   // deliberado de quem já é admin, feito na tela de Administração.
   role: 'jogador',
-  // Todo mundo come\u00e7a no meio da escala. O n\u00edvel n\u00e3o \u00e9 perguntado no cadastro
-  // \u2014 nem aqui, nem quando o jogador se cadastra sozinho \u2014 porque \u00e9 avalia\u00e7\u00e3o,
-  // e avalia\u00e7\u00e3o se faz depois de ver jogar.
+  must_change_password: false,
+  // Todo mundo começa no meio da escala. O nível não é perguntado no
+  // cadastro — nem aqui, nem quando o jogador se cadastra sozinho —
+  // porque é avaliação, e avaliação se faz depois de ver jogar.
   level: 3,
 }
 
@@ -47,6 +48,7 @@ export function PlayerFormModal({
           status: player.status,
           role: player.role,
           level: player.level,
+          must_change_password: player.must_change_password,
         }
       : EMPTY,
   )
@@ -216,7 +218,7 @@ export function PlayerFormModal({
       <ConfirmDialog
         open={confirmDelete}
         title="Remover jogador"
-        message="Ele sai da lista e das próximas rodadas. Os gols já registrados continuam valendo no placar das partidas antigas. Se for uma ausência temporária, prefira marcar como inativo."
+        message="Ele sai da lista e das próximas partidas. Os gols já registrados continuam valendo no placar das partidas antigas. Se for uma ausência temporária, prefira marcar como inativo."
         confirmLabel="Remover"
         onConfirm={remove}
         onCancel={() => setConfirmDelete(false)}

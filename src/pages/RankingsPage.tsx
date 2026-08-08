@@ -29,7 +29,7 @@ export function RankingsPage() {
           {list.entries.length === 0 ? (
             <EmptyState
               title="Sem dados ainda"
-              description="Encerre uma rodada para alimentar os rankings."
+              description="Encerre uma partida para alimentar os rankings."
             />
           ) : (
             <ListGroup>

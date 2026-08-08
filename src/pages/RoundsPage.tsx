@@ -25,9 +25,9 @@ function DateBlock({ date }: { date: string }) {
 }
 
 /**
- * Quantas rodadas aparecem de uma vez.
+ * Quantas partidas aparecem de uma vez.
  *
- * Uma patota com anos de acervo chega a centenas de rodadas, e renderizar
+ * Uma patota com anos de acervo chega a centenas de partidas, e renderizar
  * todas de uma vez custa mais de um segundo num celular mediano — sem que
  * ninguém role até o fim. Meio ano por vez cobre o uso real.
  */
@@ -42,14 +42,14 @@ export function RoundsPage() {
 
   return (
     <Page
-      title="Rodadas"
+      title="Partidas"
       subtitle={all.length > 0 ? `${all.length} no histórico` : undefined}
       profile
       action={
         isAdmin ? (
           <Link
             to="/rodadas/nova"
-            aria-label="Nova rodada"
+            aria-label="Nova partida"
             className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-brand transition duration-200 ease-ios active:scale-90 active:opacity-50"
           >
             <IconPlus className="size-6 stroke-[2.2]" />
@@ -59,11 +59,11 @@ export function RoundsPage() {
     >
       {all.length === 0 ? (
         <EmptyState
-          title="Nenhuma rodada ainda"
+          title="Nenhuma partida ainda"
           description={
             isAdmin
-              ? 'Toque em + para criar a primeira rodada.'
-              : 'O administrador ainda não criou rodadas.'
+              ? 'Toque em + para criar a primeira partida.'
+              : 'O administrador ainda não criou partidas.'
           }
         />
       ) : (

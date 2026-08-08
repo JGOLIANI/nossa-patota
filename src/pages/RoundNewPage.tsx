@@ -7,9 +7,9 @@ import { todayISO } from '../lib/format'
 import { useApp } from '../store/useApp'
 
 /**
- * Rodada avulsa.
+ * Partida avulsa.
  *
- * O caminho normal é a patota ter dia fixo e o sistema criar as rodadas
+ * O caminho normal é a patota ter dia fixo e o sistema criar as partidas
  * sozinho. Esta tela existe para o jogo extra — o amistoso de quarta, a
  * confraternização de fim de ano — e por isso pede o mínimo possível.
  */
@@ -39,14 +39,14 @@ export function RoundNewPage() {
       })
       navigate(`/rodadas/${round.id}`, { replace: true })
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Não foi possível criar a rodada.')
+      setError(cause instanceof Error ? cause.message : 'Não foi possível criar a partida.')
     } finally {
       setBusy(false)
     }
   }
 
   return (
-    <Page title="Rodada avulsa" subtitle="Para um jogo fora do dia fixo" back>
+    <Page title="Partida avulsa" subtitle="Para um jogo fora do dia fixo" back>
       <div className="space-y-4">
         <Card className="space-y-4 p-4">
           <div className="grid grid-cols-2 gap-3">
@@ -92,7 +92,7 @@ export function RoundNewPage() {
 
       <ActionBar>
         <Button size="lg" block onClick={create} disabled={busy}>
-          {busy ? 'Criando…' : 'Criar rodada'}
+          {busy ? 'Criando…' : 'Criar partida'}
         </Button>
       </ActionBar>
     </Page>

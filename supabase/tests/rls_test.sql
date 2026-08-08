@@ -327,6 +327,9 @@ begin
      <> crypt('senhanova', (select encrypted_password from auth.users where id = v_user)) then
     raise exception 'FALHOU: a senha gravada não confere';
   end if;
+  if not (select must_change_password from public.players where id = v_player) then
+    raise exception 'FALHOU: a senha redefinida não exigiu troca na próxima entrada';
+  end if;
 
   blocked := false;
   begin
@@ -336,4 +339,32 @@ begin
   if not blocked then raise exception 'FALHOU: aceitou senha com menos de 6 caracteres'; end if;
 
   raise notice 'OK 17 — só o administrador redefine a senha, e com no mínimo 6 caracteres';
+end $$;
+
+-- 18. A marca de troca obrigatória é do próprio jogador desligar, ao escolher
+--     uma senha nova. O resto da ficha continua fechado para ele.
+do $$
+declare
+  v_player uuid;
+  blocked boolean := false;
+begin
+  select id into v_player from public.players where username = 'bia';
+
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub',
+                     (select user_id::text from public.players where id = v_player), true);
+
+  update public.players set must_change_password = false where id = v_player;
+  if (select must_change_password from public.players where id = v_player) then
+    raise exception 'FALHOU: o jogador não conseguiu desligar a marca ao trocar a senha';
+  end if;
+
+  begin
+    update public.players set level = 5 where id = v_player;
+  exception when others then blocked := true;
+  end;
+  reset role;
+  if not blocked then raise exception 'FALHOU: o jogador alterou o próprio nível'; end if;
+
+  raise notice 'OK 18 — o jogador desliga a marca de troca, mas nada além dela';
 end $$;

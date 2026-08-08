@@ -19,17 +19,6 @@ import { useApp } from '../store/useApp'
 import type { Player, Role } from '../types'
 import { WEEKDAYS } from '../types'
 
-/**
- * Senha provisória para passar no grupo. Sem `0/O` e `1/l`, que viram
- * discussão quando alguém digita o que leu de um print.
- */
-const SAFE_CHARS = 'abcdefghjkmnpqrstuvwxyz23456789'
-
-function temporaryPassword(): string {
-  const values = crypto.getRandomValues(new Uint32Array(8))
-  return Array.from(values, (value) => SAFE_CHARS[value % SAFE_CHARS.length]).join('')
-}
-
 export function AdminPage() {
   const { snapshot, currentPlayer, demoMode, actions, refresh } = useApp()
   const [error, setError] = useState('')
@@ -38,18 +27,11 @@ export function AdminPage() {
   const [codeOpen, setCodeOpen] = useState(false)
   const [code, setCode] = useState(snapshot.settings.join_code)
   const [codeSaved, setCodeSaved] = useState('')
-  const [resetOpen, setResetOpen] = useState(false)
-  const [resetPlayerId, setResetPlayerId] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [resetDone, setResetDone] = useState('')
 
   const withAccess = snapshot.players.filter((player) => player.user_id)
   const waiting = snapshot.players.filter(
     (player) => !player.user_id && player.player_type === 'mensalista',
   )
-  // A própria senha se troca no perfil, com a sessão aberta — aqui só as dos
-  // outros.
-  const resettable = withAccess.filter((player) => player.id !== currentPlayer?.id)
 
   async function changeRole(player: Player, role: Role) {
     setError('')
@@ -82,39 +64,12 @@ export function AdminPage() {
     }
   }
 
-  function openReset() {
-    setError('')
-    setResetDone('')
-    setResetPlayerId(resettable[0]?.id ?? '')
-    setNewPassword(temporaryPassword())
-    setResetOpen(true)
-  }
-
-  async function applyReset() {
-    const target = resettable.find((player) => player.id === resetPlayerId)
-    if (!target) return
-    setError('')
-    setBusy(true)
-    try {
-      await actions.setPlayerPassword(target.id, newPassword)
-      setResetOpen(false)
-      setResetDone(
-        `Senha de ${target.full_name} trocada para "${newPassword}". Passe para ele e peça que troque em Perfil → Alterar senha.`,
-      )
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Não foi possível redefinir a senha.')
-    } finally {
-      setBusy(false)
-    }
-  }
-
   return (
     <Page title="Administração" subtitle="Usuários e permissões" back>
       <div className="space-y-7">
         {error && <Note tone="error">{error}</Note>}
 
         {codeSaved && <Note>{codeSaved}</Note>}
-        {resetDone && <Note>{resetDone}</Note>}
 
         <section>
           <SectionHeader title="A patota" />
@@ -139,14 +94,6 @@ export function AdminPage() {
               }
               chevron
             />
-            {!demoMode && resettable.length > 0 && (
-              <ListRow
-                onClick={openReset}
-                title="Redefinir a senha de alguém"
-                subtitle="Gera uma senha provisória para quem esqueceu a sua"
-                chevron
-              />
-            )}
           </ListGroup>
         </section>
 
@@ -252,52 +199,6 @@ export function AdminPage() {
             O jogador digita este código ao criar a conta. Trocar o código não afeta quem já entrou
             — só vale para os cadastros seguintes.
           </Note>
-        </div>
-      </Modal>
-
-      <Modal
-        open={resetOpen}
-        title="Redefinir senha"
-        onClose={() => setResetOpen(false)}
-        footer={
-          <Button size="lg" block onClick={applyReset} disabled={busy || !resetPlayerId}>
-            Trocar a senha
-          </Button>
-        }
-      >
-        <div className="space-y-4">
-          <Field label="Jogador">
-            <Select
-              value={resetPlayerId}
-              onChange={(event) => setResetPlayerId(event.target.value)}
-            >
-              {resettable.map((player) => (
-                <option key={player.id} value={player.id}>
-                  {player.full_name} (@{player.username})
-                </option>
-              ))}
-            </Select>
-          </Field>
-
-          <Field label="Senha provisória" hint="Mínimo de 6 caracteres.">
-            <Input
-              value={newPassword}
-              onChange={(event) => setNewPassword(event.target.value)}
-              autoCapitalize="none"
-              autoCorrect="off"
-            />
-          </Field>
-
-          <Button variant="secondary" block onClick={() => setNewPassword(temporaryPassword())}>
-            Gerar outra
-          </Button>
-
-          <Note tone="warn">
-            A senha antiga deixa de funcionar na hora. Passe a nova para a pessoa e peça que ela
-            troque em Perfil → Alterar senha.
-          </Note>
-
-          {error && <Note tone="error">{error}</Note>}
         </div>
       </Modal>
 

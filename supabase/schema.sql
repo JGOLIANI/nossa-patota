@@ -30,8 +30,14 @@ create table if not exists public.players (
   role text not null default 'jogador'
     check (role in ('admin', 'jogador')),
   level integer not null default 3 check (level between 1 and 5),
+  -- Marcada quando um administrador aplica a senha padrão. Enquanto estiver
+  -- ligada, o aplicativo não deixa o jogador fazer mais nada antes de trocar.
+  must_change_password boolean not null default false,
   created_at timestamptz not null default now()
 );
+
+alter table public.players
+  add column if not exists must_change_password boolean not null default false;
 
 -- A patota tem dia fixo. Guardar isso em um lugar só permite ao sistema criar
 -- as próximas rodadas sozinho, em vez de o administrador repetir o cadastro
@@ -435,6 +441,10 @@ begin
   update auth.users
      set encrypted_password = crypt(p_password, gen_salt('bf'))
    where id = target_user;
+
+  -- A senha padrão é conhecida de quem a entregou, então ela serve para entrar
+  -- uma vez e nada mais: na próxima entrada o aplicativo exige a troca.
+  update public.players set must_change_password = true where id = p_player_id;
 end;
 $$;
 
@@ -465,6 +475,10 @@ begin
      or new.user_id is distinct from old.user_id then
     raise exception 'Somente administradores podem alterar estes dados do jogador.';
   end if;
+
+  -- `must_change_password` fica de fora de propósito: é o próprio jogador que
+  -- desliga a marca ao trocar a senha. Desligá-la sem trocar não dá privilégio
+  -- nenhum — só deixa a pessoa com a senha padrão que ela já conhecia.
 
   return new;
 end;
@@ -555,3 +569,13 @@ for delete to authenticated using (bucket_id = 'avatars');
 -- Enquanto ninguém tiver criado a primeira conta, a porta fica aberta — quem
 -- chegar primeiro vira dono da patota. Crie a sua logo depois de rodar este
 -- arquivo e, em Administração, defina o código da patota.
+
+-- --------------------------------------------------- renomeação de rodadas --
+
+-- A patota passou a chamar cada encontro de "partida", e os títulos criados
+-- automaticamente antes disso diziam "Rodada de 10/07". Alinhamos o acervo com
+-- o vocabulário novo; títulos escritos à mão pelo administrador não são
+-- tocados. Reaplicar não faz nada, porque a condição deixa de casar.
+update public.rounds
+   set title = 'Partida de ' || substring(title from 12)
+ where title like 'Rodada de %';

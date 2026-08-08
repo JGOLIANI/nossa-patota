@@ -1,6 +1,6 @@
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
-import { RequireAdmin, RequireAuth } from './components/guards'
+import { RequireAdmin, RequireAuth, RequirePasswordChange } from './components/guards'
 import { AdminPage } from './pages/AdminPage'
 import { HomePage } from './pages/HomePage'
 import { LiveMatchPage } from './pages/LiveMatchPage'
@@ -24,7 +24,9 @@ export function App() {
           <Route
             element={
               <RequireAuth>
-                <Layout />
+                <RequirePasswordChange>
+                  <Layout />
+                </RequirePasswordChange>
               </RequireAuth>
             }
           >

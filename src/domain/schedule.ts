@@ -71,5 +71,5 @@ export function upcomingRound<T extends Pick<Round, 'date' | 'status'>>(
 /** Título padrão de uma rodada, derivado da data. */
 export function roundTitle(dateISO: string): string {
   const [, month, day] = dateISO.slice(0, 10).split('-')
-  return `Rodada de ${day}/${month}`
+  return `Partida de ${day}/${month}`
 }

@@ -22,7 +22,7 @@ export function AwardsCard({ snapshot, roundId }: { snapshot: Snapshot; roundId:
     return (
       <EmptyState
         title="Sem premiações ainda"
-        description="Os destaques são calculados quando a rodada é encerrada."
+        description="Os destaques são calculados quando a partida é encerrada."
       />
     )
   }

@@ -9,7 +9,7 @@ import type { DominantFoot, PlayerPosition, PlayerType } from '../types'
 type Mode = 'login' | 'signup' | 'recuperar'
 
 const TITLES: Record<Mode, string> = {
-  login: 'Entre para ver a rodada',
+  login: 'Entre para ver a partida',
   signup: 'Crie seu acesso de jogador',
   recuperar: 'Recuperar o acesso',
 }
@@ -107,9 +107,9 @@ export function LoginPage() {
         <div className="space-y-4">
           <Note>
             O login da patota não usa e-mail, então não há link de recuperação para enviar. Peça a
-            um administrador para gerar uma senha provisória em{' '}
-            <strong>Perfil → Administração</strong>: ele passa a senha para você e, ao entrar, você
-            troca por outra em <strong>Perfil → Alterar senha</strong>.
+            um administrador para redefinir sua senha: ele abre <strong>Elenco</strong>, toca no
+            seu nome e usa <strong>Redefinir senha</strong>. Você entra com a senha que ele passar
+            e o aplicativo já pede que escolha outra.
           </Note>
           <Button size="lg" block variant="secondary" onClick={() => go('login')}>
             Voltar para o login

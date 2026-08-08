@@ -23,6 +23,7 @@ export function makePlayer(id: string, overrides: Partial<Player> = {}): Player 
     position: 'linha',
     status: 'ativo',
     role: 'jogador',
+    must_change_password: false,
     level: 3,
     created_at: '2026-01-01T00:00:00.000Z',
     ...overrides,

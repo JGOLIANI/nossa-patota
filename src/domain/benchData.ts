@@ -47,6 +47,7 @@ export function makeSnapshot(scale: BenchScale, seed = 7): Snapshot {
     username: `jogador${index}`,
     full_name: `Jogador Número ${index}`,
     photo_url: null,
+    must_change_password: false,
     player_type: 'mensalista',
     dominant_foot: 'direita',
     // Um goleiro a cada seis jogadores, como numa patota de verdade.

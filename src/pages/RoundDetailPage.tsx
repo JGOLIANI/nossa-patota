@@ -36,7 +36,7 @@ import { playerCaption } from '../lib/player'
 import { useApp } from '../store/useApp'
 import type { Player } from '../types'
 
-type Tab = 'presenca' | 'times' | 'partida' | 'premios'
+type Tab = 'presenca' | 'times' | 'premios'
 
 export function RoundDetailPage() {
   const { roundId = '' } = useParams()
@@ -56,8 +56,8 @@ export function RoundDetailPage() {
 
   if (!round) {
     return (
-      <Page title="Rodada" back>
-        <EmptyState title="Rodada não encontrada" />
+      <Page title="Partida" back>
+        <EmptyState title="Partida não encontrada" />
       </Page>
     )
   }
@@ -101,7 +101,7 @@ export function RoundDetailPage() {
                 trailing={
                   isAdmin && !closed ? (
                     <IconButton
-                      label={`Tirar ${player.full_name} da rodada`}
+                      label={`Tirar ${player.full_name} da partida`}
                       onClick={() => guard(() => actions.removeFromRound(roundId, player.id))}
                     >
                       <IconClose className="size-4" />
@@ -138,7 +138,6 @@ export function RoundDetailPage() {
         options={[
           { value: 'presenca', label: 'Presença' },
           { value: 'times', label: 'Times' },
-          { value: 'partida', label: 'Partida' },
           { value: 'premios', label: 'Prêmios' },
         ]}
       />
@@ -183,7 +182,7 @@ export function RoundDetailPage() {
               title="Times ainda não sorteados"
               description={
                 isAdmin
-                  ? 'O sorteio divide quem confirmou em dois times e já abre a partida.'
+                  ? 'O sorteio divide quem confirmou em dois times e já abre o placar.'
                   : 'O administrador ainda não sorteou as equipes.'
               }
               action={
@@ -196,6 +195,39 @@ export function RoundDetailPage() {
             />
           ) : (
             <>
+              {matches.length > 0 && (
+                <section>
+                  <SectionHeader title="Placar" />
+                  <ListGroup>
+                    {matches.map((match) => {
+                      const home = teams.find((team) => team.id === match.team_a_id)
+                      const away = teams.find((team) => team.id === match.team_b_id)
+                      return (
+                        <ListRow
+                          key={match.id}
+                          to={`/partidas/${match.id}`}
+                          chevron
+                          leading={
+                            <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-fill text-muted">
+                              <IconBall className="size-5" />
+                            </span>
+                          }
+                          title={`${home?.name ?? '—'} × ${away?.name ?? '—'}`}
+                          subtitle={
+                            match.status === 'em_andamento' ? 'Registrar gols' : 'Encerrado'
+                          }
+                          trailing={
+                            <span className="font-rounded text-title3 tabular-nums text-ink">
+                              {match.score_a}–{match.score_b}
+                            </span>
+                          }
+                        />
+                      )
+                    })}
+                  </ListGroup>
+                </section>
+              )}
+
               {teams.map((team) => {
                 const squad = teamPlayers(snapshot, team.id)
                 return (
@@ -256,7 +288,7 @@ export function RoundDetailPage() {
 
               {isAdmin && !closed && (
                 <Note>
-                  Toque na luva para trocar quem está no gol nesta rodada. Os gols sofridos
+                  Toque na luva para trocar quem está no gol nesta partida. Os gols sofridos
                   contam só para quem estiver debaixo das traves.
                 </Note>
               )}
@@ -271,46 +303,10 @@ export function RoundDetailPage() {
 
               {isAdmin && (
                 <Button variant="quiet" block destructive onClick={() => setConfirm('excluir')}>
-                  Excluir rodada
+                  Excluir partida
                 </Button>
               )}
             </>
-          ))}
-
-        {tab === 'partida' &&
-          (matches.length === 0 ? (
-            <EmptyState
-              title="A partida ainda não começou"
-              description="Ela é criada junto com o sorteio dos times."
-            />
-          ) : (
-            <ListGroup>
-              {matches.map((match) => {
-                const home = teams.find((team) => team.id === match.team_a_id)
-                const away = teams.find((team) => team.id === match.team_b_id)
-                return (
-                  <ListRow
-                    key={match.id}
-                    to={`/partidas/${match.id}`}
-                    chevron
-                    leading={
-                      <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-fill text-muted">
-                        <IconBall className="size-5" />
-                      </span>
-                    }
-                    title={`${home?.name ?? '—'} × ${away?.name ?? '—'}`}
-                    subtitle={
-                      match.status === 'em_andamento' ? 'Registrar gols' : 'Partida encerrada'
-                    }
-                    trailing={
-                      <span className="font-rounded text-title3 tabular-nums text-ink">
-                        {match.score_a}–{match.score_b}
-                      </span>
-                    }
-                  />
-                )
-              })}
-            </ListGroup>
           ))}
 
         {tab === 'premios' && (
@@ -332,7 +328,7 @@ export function RoundDetailPage() {
       {isAdmin && !closed && teams.length > 0 && (
         <ActionBar>
           <Button size="lg" block variant="secondary" onClick={() => setConfirm('encerrar')} disabled={busy}>
-            Encerrar rodada
+            Encerrar partida
           </Button>
         </ActionBar>
       )}
@@ -368,8 +364,8 @@ export function RoundDetailPage() {
         title={teams.length === 0 ? 'Sortear times' : 'Sortear novamente'}
         message={
           teams.length === 0
-            ? `Os ${lists.confirmed.length} confirmados serão divididos em dois times equilibrados pelo histórico de cada um, e a partida já começa.`
-            : 'Os times serão refeitos com quem está confirmado agora. Os gols já registrados nesta rodada serão apagados.'
+            ? `Os ${lists.confirmed.length} confirmados serão divididos em dois times equilibrados pelo histórico de cada um, e o placar já abre.`
+            : 'Os times serão refeitos com quem está confirmado agora. Os gols já registrados nesta partida serão apagados.'
         }
         confirmLabel="Sortear"
         destructive={matches.length > 0}
@@ -385,8 +381,8 @@ export function RoundDetailPage() {
 
       <ConfirmDialog
         open={confirm === 'encerrar'}
-        title="Encerrar rodada"
-        message="A partida será finalizada, os prêmios calculados e as estatísticas atualizadas."
+        title="Encerrar partida"
+        message="O placar será fechado, os prêmios calculados e as estatísticas atualizadas."
         confirmLabel="Encerrar"
         destructive={false}
         onConfirm={() => {
@@ -401,8 +397,8 @@ export function RoundDetailPage() {
 
       <ConfirmDialog
         open={confirm === 'excluir'}
-        title="Excluir rodada"
-        message="Toda a rodada será apagada: presenças, times, partida, gols e prêmios."
+        title="Excluir partida"
+        message="Tudo será apagado: presenças, times, placar, gols e prêmios."
         confirmLabel="Excluir"
         onConfirm={() => {
           setConfirm(null)

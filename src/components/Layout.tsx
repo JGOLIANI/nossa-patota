@@ -25,7 +25,7 @@ import { Spinner } from './ui'
  */
 const NAV = [
   { to: '/', label: 'Início', Icon: IconHome, Active: IconHomeSolid, end: true },
-  { to: '/rodadas', label: 'Rodadas', Icon: IconCalendar, Active: IconCalendarSolid, end: false },
+  { to: '/rodadas', label: 'Partidas', Icon: IconCalendar, Active: IconCalendarSolid, end: false },
   { to: '/rankings', label: 'Rankings', Icon: IconTrophy, Active: IconTrophySolid, end: false },
   { to: '/jogadores', label: 'Elenco', Icon: IconUsers, Active: IconUsersSolid, end: false },
 ]

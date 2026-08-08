@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { Avatar } from '../components/Avatar'
+import { ConfirmDialog } from '../components/Modal'
 import { Page } from '../components/Page'
 import { PlayerFormModal } from '../components/PlayerFormModal'
 import { IconEdit } from '../components/icons'
@@ -10,6 +11,7 @@ import {
   IconButton,
   ListGroup,
   ListRow,
+  Note,
   SectionHeader,
   Stat,
   StatRow,
@@ -20,7 +22,7 @@ import { playerHistory } from '../domain/stats'
 import { cn } from '../lib/cn'
 import { decimal, formatDate, percent } from '../lib/format'
 import { useApp } from '../store/useApp'
-import { AWARD_LABELS, type AwardType } from '../types'
+import { AWARD_LABELS, AWARD_SHORT_LABELS, DEFAULT_PASSWORD, type AwardType } from '../types'
 
 const FOOT = { direita: 'Destro', esquerda: 'Canhoto', ambidestro: 'Ambidestro' }
 
@@ -32,8 +34,11 @@ const RESULT = {
 
 export function PlayerDetailPage() {
   const { playerId } = useParams()
-  const { snapshot, stats, isAdmin } = useApp()
+  const { snapshot, stats, isAdmin, demoMode, actions } = useApp()
   const [editing, setEditing] = useState(false)
+  const [confirmReset, setConfirmReset] = useState(false)
+  const [resetDone, setResetDone] = useState('')
+  const [resetError, setResetError] = useState('')
 
   const player = snapshot.players.find((item) => item.id === playerId)
   if (!player) {
@@ -50,6 +55,22 @@ export function PlayerDetailPage() {
   // A posição do cadastro é só o padrão: quem já pegou no gol ganha o bloco
   // de goleiro, e todo mundo tem gols e assistências, inclusive o goleiro.
   const playedInGoal = entry.keeperMatches > 0
+
+  async function resetPassword() {
+    if (!player) return
+    setConfirmReset(false)
+    setResetError('')
+    try {
+      await actions.setPlayerPassword(player.id, DEFAULT_PASSWORD)
+      setResetDone(
+        `Senha de ${player.full_name} redefinida para "${DEFAULT_PASSWORD}". Passe para ele — ao entrar, o aplicativo pede uma nova.`,
+      )
+    } catch (cause) {
+      setResetError(
+        cause instanceof Error ? cause.message : 'Não foi possível redefinir a senha.',
+      )
+    }
+  }
 
   const description = [
     player.position === 'goleiro' ? 'Goleiro' : 'Jogador de linha',
@@ -114,7 +135,7 @@ export function PlayerDetailPage() {
           <Card className="p-4">
             <StatRow>
               {(Object.keys(AWARD_LABELS) as AwardType[]).map((type) => (
-                <Stat key={type} label={AWARD_LABELS[type].replace(' da Rodada', '')} value={awards[type]} />
+                <Stat key={type} label={AWARD_SHORT_LABELS[type]} value={awards[type]} />
               ))}
             </StatRow>
           </Card>
@@ -168,17 +189,61 @@ export function PlayerDetailPage() {
         </section>
 
         {isAdmin && (
-          <p className="text-center text-footnote text-faint">
-            Usuário: @{player.username}
-            {' · '}
-            <Link to="/admin" className="text-brand">
-              permissões
-            </Link>
-          </p>
+          <section>
+            <SectionHeader title="Acesso" />
+            <ListGroup>
+              <ListRow
+                title="Nome de usuário"
+                trailing={<span className="text-subhead text-muted">@{player.username}</span>}
+              />
+              {!demoMode &&
+                (player.user_id ? (
+                  <ListRow
+                    onClick={() => {
+                      setResetDone('')
+                      setConfirmReset(true)
+                    }}
+                    title="Redefinir senha"
+                    subtitle={
+                      player.must_change_password
+                        ? 'Está com a senha padrão e vai ter que trocar ao entrar'
+                        : 'Aplica a senha padrão para quem esqueceu a sua'
+                    }
+                    chevron
+                  />
+                ) : (
+                  <ListRow
+                    title="Redefinir senha"
+                    subtitle="Ainda não criou acesso, então não há senha a redefinir"
+                  />
+                ))}
+              <ListRow to="/admin" title="Permissões" subtitle="Quem é administrador" chevron />
+            </ListGroup>
+            {resetDone && (
+              <div className="mt-3">
+                <Note>{resetDone}</Note>
+              </div>
+            )}
+            {resetError && (
+              <div className="mt-3">
+                <Note tone="error">{resetError}</Note>
+              </div>
+            )}
+          </section>
         )}
       </div>
 
       {editing && <PlayerFormModal player={player} onClose={() => setEditing(false)} />}
+
+      <ConfirmDialog
+        open={confirmReset}
+        title="Redefinir senha"
+        message={`A senha de ${player.full_name} passa a ser "${DEFAULT_PASSWORD}". A antiga deixa de funcionar na hora, e ao entrar ele terá que escolher uma nova.`}
+        confirmLabel="Redefinir"
+        destructive={false}
+        onConfirm={resetPassword}
+        onCancel={() => setConfirmReset(false)}
+      />
     </Page>
   )
 }

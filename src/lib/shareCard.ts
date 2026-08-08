@@ -556,7 +556,7 @@ export interface AwardLine {
   names: string[]
 }
 
-/** Resumo da rodada: placares, destaques e artilharia do dia. */
+/** Resumo da partida: placares, destaques e artilharia do dia. */
 export async function drawRoundCard(
   header: CardHeader,
   matches: MatchLine[],
@@ -630,7 +630,7 @@ export async function drawRoundCard(
   }
 
   if (scorers.length > 0 && y < HEIGHT - 260) {
-    section('Artilharia da rodada')
+    section('Artilharia da partida')
     for (const scorer of scorers.slice(0, 5)) {
       if (y > HEIGHT - 150) break
       ctx.textAlign = 'left'

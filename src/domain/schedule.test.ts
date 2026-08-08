@@ -80,6 +80,6 @@ describe('upcomingRound', () => {
 
 describe('roundTitle', () => {
   it('nomeia a rodada pela data', () => {
-    expect(roundTitle('2026-08-07')).toBe('Rodada de 07/08')
+    expect(roundTitle('2026-08-07')).toBe('Partida de 07/08')
   })
 })

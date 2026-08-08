@@ -27,8 +27,8 @@ import type {
 
 // A versão faz parte da chave: quando o formato do snapshot muda, os dados
 // antigos são descartados em vez de carregarem sem os campos novos.
-const STORAGE_KEY = 'nossa-patota:demo:v3'
-const LEGACY_KEYS = ['nossa-patota:demo:v1', 'nossa-patota:demo:v2']
+const STORAGE_KEY = 'nossa-patota:demo:v4'
+const LEGACY_KEYS = ['nossa-patota:demo:v1', 'nossa-patota:demo:v2', 'nossa-patota:demo:v3']
 const SESSION_KEY = 'nossa-patota:demo:session'
 
 const listeners = new Set<(user: SessionUser | null) => void>()
@@ -183,6 +183,7 @@ export const localBackend: Backend = {
         username: wanted,
         photo_url: null,
         status: 'ativo',
+        must_change_password: false,
         role,
         level: 3,
         created_at: new Date().toISOString(),
