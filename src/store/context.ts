@@ -1,6 +1,6 @@
 import { createContext } from 'react'
 import type { PlayerStats } from '../domain/stats'
-import type { AwardInput, EventInput, PlayerInput, RoundInput } from '../data/types'
+import type { AwardInput, EventInput, PlayerInput, RoundInput, SignUpInput } from '../data/types'
 import type {
   Attendance,
   Match,
@@ -17,6 +17,8 @@ export interface AppActions {
   updatePlayer(id: string, patch: Partial<Player>): Promise<void>
   deletePlayer(id: string): Promise<void>
   uploadAvatar(playerId: string, file: File): Promise<void>
+  /** Senha provisória para quem esqueceu a sua. Só administradores. */
+  setPlayerPassword(playerId: string, password: string): Promise<void>
 
   /** Salva a agenda da patota e materializa as próximas rodadas. */
   updateSettings(patch: Partial<PatotaSettings>): Promise<void>
@@ -61,9 +63,11 @@ export interface AppValue {
   stats: Map<string, PlayerStats>
   refresh(): Promise<void>
   signIn(username: string, password: string): Promise<void>
-  signUp(username: string, password: string): Promise<void>
+  signUp(input: SignUpInput): Promise<void>
   signOut(): Promise<void>
   changePassword(password: string): Promise<void>
+  /** Se a patota exige código de entrada no cadastro. */
+  joinCodeRequired(): Promise<boolean>
   actions: AppActions
 }
 

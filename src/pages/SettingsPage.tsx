@@ -10,7 +10,7 @@ import { WEEKDAYS } from '../types'
  * Agenda da patota.
  *
  * O administrador descreve o compromisso uma vez — dia, horário, local e
- * vagas — e o sistema passa a manter as próximas rodadas criadas sozinho.
+ * vagas — e o sistema passa a manter as próximas partidas criadas sozinho.
  */
 export function SettingsPage() {
   const { snapshot, actions } = useApp()
@@ -47,7 +47,7 @@ export function SettingsPage() {
       await actions.updateSettings(patch)
       setMessage(
         pending > 0
-          ? `Agenda salva. ${pending} rodada(s) criada(s) automaticamente.`
+          ? `Agenda salva. ${pending} partida(s) criada(s) automaticamente.`
           : 'Agenda salva.',
       )
     } catch (cause) {
@@ -58,7 +58,7 @@ export function SettingsPage() {
   }
 
   return (
-    <Page title="Agenda da patota" subtitle="O sistema cria as rodadas por você" back>
+    <Page title="Agenda da patota" subtitle="O sistema cria as partidas por você" back>
       <div className="space-y-5 pb-20">
         <Card className="space-y-4 p-4">
           <Field label="Dia da semana">
@@ -101,7 +101,7 @@ export function SettingsPage() {
 
           <Field
             label="Criar com quanta antecedência"
-            hint="Rodadas futuras já disponíveis para os jogadores confirmarem."
+            hint="Partidas futuras já disponíveis para os jogadores confirmarem."
           >
             <Select value={weeksAhead} onChange={(event) => setWeeksAhead(event.target.value)}>
               <option value="0">Não criar automaticamente</option>
@@ -116,7 +116,7 @@ export function SettingsPage() {
 
         {Number(weeksAhead) > 0 && (
           <section>
-            <h2 className="mb-2 px-1 text-title3 text-ink">Próximas rodadas</h2>
+            <h2 className="mb-2 px-1 text-title3 text-ink">Próximas partidas</h2>
             <ListGroup>
               {preview.map((date) => (
                 <p key={date} className="px-4 py-3 text-subhead text-muted">
@@ -132,7 +132,7 @@ export function SettingsPage() {
         {error && <Note tone="error">{error}</Note>}
 
         <Note tone="warn">
-          As rodadas são criadas quando um administrador abre o aplicativo — planos gratuitos não
+          As partidas são criadas quando um administrador abre o aplicativo — planos gratuitos não
           executam tarefas agendadas no servidor.
         </Note>
       </div>

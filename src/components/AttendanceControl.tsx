@@ -6,9 +6,9 @@ import { useApp } from '../store/useApp'
 import { Button, Note } from './ui'
 
 /**
- * Resposta do jogador ao convite da rodada.
+ * Resposta do jogador ao convite da partida.
  *
- * Aparece na tela inicial e na rodada com o mesmo comportamento, porque é a
+ * Aparece na tela inicial e na partida com o mesmo comportamento, porque é a
  * ação que o jogador comum mais faz — e a única que ele faz sozinho.
  */
 export function AttendanceControl({ round }: { round: Round }) {

@@ -21,6 +21,8 @@ export interface Player {
   role: Role
   /** Nível informado pelo administrador (1 a 5), usado no balanceamento. */
   level: number
+  /** Entrou com a senha padrão e precisa trocá-la antes de usar o aplicativo. */
+  must_change_password: boolean
   created_at: string
 }
 
@@ -53,6 +55,11 @@ export interface PatotaSettings {
   max_players: number
   /** Quantas rodadas futuras manter sempre criadas. */
   weeks_ahead: number
+  /**
+   * Código que o jogador digita para se cadastrar. Vazio deixa o cadastro
+   * aberto a quem tiver o endereço do aplicativo.
+   */
+  join_code: string
 }
 
 export const DEFAULT_SETTINGS: PatotaSettings = {
@@ -62,6 +69,7 @@ export const DEFAULT_SETTINGS: PatotaSettings = {
   location: '',
   max_players: 0,
   weeks_ahead: 4,
+  join_code: '',
 }
 
 export const WEEKDAYS = [
@@ -165,10 +173,26 @@ export interface SessionUser {
 }
 
 export const AWARD_LABELS: Record<AwardType, string> = {
-  jogador_rodada: 'Jogador da Rodada',
-  pior_jogador: 'Pior Jogador da Rodada',
-  goleiro_menos_vazado: 'Goleiro Menos Vazado',
+  jogador_rodada: 'Craque da Partida',
+  pior_jogador: 'Bola Murcha',
+  goleiro_menos_vazado: 'Paredão',
 }
+
+/** Versão curta, para caber embaixo de um número na ficha do jogador. */
+export const AWARD_SHORT_LABELS: Record<AwardType, string> = {
+  jogador_rodada: 'Craque',
+  pior_jogador: 'Bola Murcha',
+  goleiro_menos_vazado: 'Paredão',
+}
+
+/**
+ * Senha aplicada pelo administrador quando alguém perde a sua.
+ *
+ * É fixa e conhecida de propósito: o administrador precisa conseguir ditá-la
+ * no grupo sem copiar e colar. O que a torna segura o bastante é durar uma
+ * entrada só — quem entra com ela cai direto na troca obrigatória.
+ */
+export const DEFAULT_PASSWORD = 'patota123'
 
 export const TEAM_PRESETS: Array<{ name: string; color: string }> = [
   { name: 'Time Verde', color: '#22c55e' },

@@ -60,6 +60,7 @@ export function createDemoSnapshot(): Snapshot {
     username: seed.username,
     full_name: seed.name,
     photo_url: null,
+    must_change_password: false,
     player_type: seed.type ?? 'mensalista',
     dominant_foot: seed.foot ?? 'direita',
     position: seed.position ?? 'linha',
@@ -100,7 +101,7 @@ export function createDemoSnapshot(): Snapshot {
     snapshot.rounds.push({
       id: roundId,
       date,
-      title: `Rodada de ${date.slice(8, 10)}/${date.slice(5, 7)}`,
+      title: `Partida de ${date.slice(8, 10)}/${date.slice(5, 7)}`,
       start_time: '20:00',
       location: 'Quadra do Zé',
       team_count: 2,

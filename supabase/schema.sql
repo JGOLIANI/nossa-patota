@@ -30,8 +30,14 @@ create table if not exists public.players (
   role text not null default 'jogador'
     check (role in ('admin', 'jogador')),
   level integer not null default 3 check (level between 1 and 5),
+  -- Marcada quando um administrador aplica a senha padrão. Enquanto estiver
+  -- ligada, o aplicativo não deixa o jogador fazer mais nada antes de trocar.
+  must_change_password boolean not null default false,
   created_at timestamptz not null default now()
 );
+
+alter table public.players
+  add column if not exists must_change_password boolean not null default false;
 
 -- A patota tem dia fixo. Guardar isso em um lugar só permite ao sistema criar
 -- as próximas rodadas sozinho, em vez de o administrador repetir o cadastro
@@ -43,8 +49,13 @@ create table if not exists public.patota_settings (
   location text not null default '',
   -- 0 significa rodada sem limite de vagas.
   max_players integer not null default 0 check (max_players >= 0),
-  weeks_ahead integer not null default 4 check (weeks_ahead between 0 and 12)
+  weeks_ahead integer not null default 4 check (weeks_ahead between 0 and 12),
+  -- Senha de entrada da patota. Vazio deixa o cadastro aberto a quem tiver o
+  -- endereço do aplicativo.
+  join_code text not null default ''
 );
+
+alter table public.patota_settings add column if not exists join_code text not null default '';
 
 insert into public.patota_settings (id) values ('default') on conflict (id) do nothing;
 
@@ -160,13 +171,50 @@ as $$
   );
 $$;
 
--- Vincula a conta recém-criada ao jogador de mesmo nome de usuário.
+-- O código de entrada da patota, consultado antes do login — por isso as duas
+-- funções são SECURITY DEFINER e abertas ao papel anônimo: quem está na tela
+-- de cadastro ainda não tem sessão para ler `patota_settings`.
 --
--- A primeira conta do sistema é a única que nasce administradora — e ela pode
--- se cadastrar livremente, já que ainda não existe ninguém para autorizá-la.
--- Da segunda em diante, só quem foi cadastrado por um administrador consegue
--- criar acesso, e sempre como jogador comum: virar administrador depende de
--- uma promoção explícita feita por outro administrador.
+-- `join_code_matches` confere o código sem nunca devolvê-lo, e existe só para
+-- a mensagem de erro sair certa na tela. A validação que vale é a do gatilho
+-- de cadastro, que roda dentro da transação que cria a conta.
+create or replace function public.join_code_required()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce((select join_code from public.patota_settings where id = 'default'), '') <> '';
+$$;
+
+create or replace function public.join_code_matches(p_code text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce((select join_code from public.patota_settings where id = 'default'), '')
+         in ('', btrim(coalesce(p_code, '')));
+$$;
+
+revoke all on function public.join_code_required() from public;
+revoke all on function public.join_code_matches(text) from public;
+grant execute on function public.join_code_required() to anon, authenticated;
+grant execute on function public.join_code_matches(text) to anon, authenticated;
+
+-- Cria (ou vincula) o jogador da conta recém-nascida.
+--
+-- O jogador se cadastra sozinho: os dados do formulário chegam aqui em
+-- `raw_user_meta_data`, e é este gatilho — não o navegador — que grava a linha
+-- em `players`, porque o RLS reserva a escrita da tabela aos administradores.
+--
+-- Três garantias que não dependem do cliente se comportar bem:
+--   · o código da patota, quando definido, é conferido no servidor;
+--   · ninguém nasce administrador, exceto a primeira conta do sistema — que é
+--     livre porque ainda não existe alguém para autorizá-la;
+--   · uma ficha que já tem dono não é tomada por outra conta.
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -174,9 +222,20 @@ security definer
 set search_path = public
 as $$
 declare
+  meta jsonb := coalesce(new.raw_user_meta_data, '{}'::jsonb);
   wanted text := lower(split_part(new.email, '@', 1));
   target public.players%rowtype;
   is_first boolean;
+  -- O formulário é a fonte destes campos. Ficam nulos quando não vieram ou
+  -- vieram fora da lista — assim um cliente adulterado não derruba o cadastro
+  -- no CHECK, e um cadastro sem formulário não apaga o que já estava na ficha.
+  v_name text := nullif(btrim(coalesce(meta ->> 'full_name', '')), '');
+  v_type text := case when meta ->> 'player_type' in ('mensalista', 'visitante')
+                      then meta ->> 'player_type' end;
+  v_position text := case when meta ->> 'position' in ('goleiro', 'linha')
+                          then meta ->> 'position' end;
+  v_foot text := case when meta ->> 'dominant_foot' in ('direita', 'esquerda', 'ambidestro')
+                      then meta ->> 'dominant_foot' end;
 begin
   select not exists (select 1 from public.players where user_id is not null)
     into is_first;
@@ -185,18 +244,19 @@ begin
 
   if is_first then
     if target.id is null then
-      insert into public.players (user_id, username, full_name, role)
-      values (new.id, wanted, initcap(replace(wanted, '.', ' ')), 'admin');
+      insert into public.players (user_id, username, full_name, player_type, position,
+                                  dominant_foot, role)
+      values (new.id, wanted, coalesce(v_name, initcap(replace(wanted, '.', ' '))),
+              coalesce(v_type, 'mensalista'), coalesce(v_position, 'linha'),
+              coalesce(v_foot, 'direita'), 'admin');
     else
       update public.players set user_id = new.id, role = 'admin' where id = target.id;
     end if;
     return new;
   end if;
 
-  if target.id is null then
-    raise exception
-      'O usuário "%" não está cadastrado na patota. Peça ao administrador para cadastrá-lo.',
-      wanted;
+  if not public.join_code_matches(meta ->> 'join_code') then
+    raise exception 'Código da patota inválido. Peça o código a um administrador.';
   end if;
 
   if target.user_id is not null and target.user_id <> new.id then
@@ -204,7 +264,25 @@ begin
   end if;
 
   -- Nunca administrador no cadastro: a promoção é sempre um ato de um admin.
-  update public.players set user_id = new.id, role = 'jogador' where id = target.id;
+  if target.id is null then
+    insert into public.players (user_id, username, full_name, player_type, position,
+                                dominant_foot, role)
+    values (new.id, wanted, coalesce(v_name, initcap(replace(wanted, '.', ' '))),
+            coalesce(v_type, 'mensalista'), coalesce(v_position, 'linha'),
+            coalesce(v_foot, 'direita'), 'jogador');
+  else
+    -- Ficha aberta pelo administrador antes do primeiro acesso. O que só a
+    -- pessoa sabe — nome, posição, perna — vem do formulário; o que é decisão
+    -- da patota — mensalista ou visitante, nível, situação — fica como está.
+    update public.players
+       set user_id = new.id,
+           role = 'jogador',
+           full_name = coalesce(v_name, target.full_name),
+           position = coalesce(v_position, target.position),
+           dominant_foot = coalesce(v_foot, target.dominant_foot)
+     where id = target.id;
+  end if;
+
   return new;
 end;
 $$;
@@ -321,6 +399,58 @@ $$;
 revoke all on function public.respond_attendance(uuid, text) from public;
 grant execute on function public.respond_attendance(uuid, text) to authenticated;
 
+/*
+ * Redefinição de senha feita por um administrador.
+ *
+ * O login da patota é por nome de usuário em domínio reservado, que não recebe
+ * mensagem nenhuma — então o "esqueci minha senha" por e-mail não tem para
+ * onde ir. Quem destrava é o administrador: gera uma senha provisória e passa
+ * para a pessoa, que troca depois no próprio perfil.
+ *
+ * Trocar a senha de outra conta é privilégio de `service_role`, que não pode
+ * viver no navegador. Daí a função rodar aqui dentro, com SECURITY DEFINER e
+ * `is_admin()` na porta.
+ *
+ * `search_path` inclui `extensions` porque é lá que o Supabase instala o
+ * pgcrypto; em um Postgres comum ele fica em `public` e o schema inexistente é
+ * simplesmente ignorado.
+ */
+create or replace function public.admin_set_password(p_player_id uuid, p_password text)
+returns void
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  target_user uuid;
+begin
+  if not public.is_admin() then
+    raise exception 'Somente administradores podem redefinir a senha de outro jogador.';
+  end if;
+
+  if length(coalesce(p_password, '')) < 6 then
+    raise exception 'A senha precisa ter pelo menos 6 caracteres.';
+  end if;
+
+  select user_id into target_user from public.players where id = p_player_id;
+
+  if target_user is null then
+    raise exception 'Este jogador ainda não criou acesso, então não há senha a redefinir.';
+  end if;
+
+  update auth.users
+     set encrypted_password = crypt(p_password, gen_salt('bf'))
+   where id = target_user;
+
+  -- A senha padrão é conhecida de quem a entregou, então ela serve para entrar
+  -- uma vez e nada mais: na próxima entrada o aplicativo exige a troca.
+  update public.players set must_change_password = true where id = p_player_id;
+end;
+$$;
+
+revoke all on function public.admin_set_password(uuid, text) from public;
+grant execute on function public.admin_set_password(uuid, text) to authenticated;
+
 -- O jogador comum pode ajustar apenas a própria foto e o próprio nome.
 create or replace function public.players_guard_self_update()
 returns trigger
@@ -345,6 +475,10 @@ begin
      or new.user_id is distinct from old.user_id then
     raise exception 'Somente administradores podem alterar estes dados do jogador.';
   end if;
+
+  -- `must_change_password` fica de fora de propósito: é o próprio jogador que
+  -- desliga a marca ao trocar a senha. Desligá-la sem trocar não dá privilégio
+  -- nenhum — só deixa a pessoa com a senha padrão que ela já conhecia.
 
   return new;
 end;
@@ -430,5 +564,18 @@ for delete to authenticated using (bucket_id = 'avatars');
 
 -- Não há nada a semear: a primeira pessoa que criar acesso no aplicativo vira
 -- a administradora da patota, com o nome de usuário que ela escolher. Todas as
--- contas seguintes precisam ter sido cadastradas por ela e entram como
--- jogador comum.
+-- contas seguintes se cadastram sozinhas e entram como jogador comum.
+--
+-- Enquanto ninguém tiver criado a primeira conta, a porta fica aberta — quem
+-- chegar primeiro vira dono da patota. Crie a sua logo depois de rodar este
+-- arquivo e, em Administração, defina o código da patota.
+
+-- --------------------------------------------------- renomeação de rodadas --
+
+-- A patota passou a chamar cada encontro de "partida", e os títulos criados
+-- automaticamente antes disso diziam "Rodada de 10/07". Alinhamos o acervo com
+-- o vocabulário novo; títulos escritos à mão pelo administrador não são
+-- tocados. Reaplicar não faz nada, porque a condição deixa de casar.
+update public.rounds
+   set title = 'Partida de ' || substring(title from 12)
+ where title like 'Rodada de %';

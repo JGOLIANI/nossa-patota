@@ -23,7 +23,7 @@ export function HomePage() {
   const { snapshot, currentPlayer, isAdmin, stats } = useApp()
   const navigate = useNavigate()
 
-  // A próxima rodada em aberto é o que interessa; só quando não há nenhuma
+  // A próxima partida em aberto é o que interessa; só quando não há nenhuma
   // é que a tela cai para a última encerrada.
   const round = upcomingRound(snapshot.rounds, todayISO()) ?? highlightRound(snapshot)
   const myStats = currentPlayer ? stats.get(currentPlayer.id) : undefined
@@ -38,7 +38,7 @@ export function HomePage() {
       <div className="space-y-7">
         <section>
           <SectionHeader
-            title="Rodada"
+            title="Partida"
             action={snapshot.rounds.length > 0 ? <SectionLink to="/rodadas">histórico</SectionLink> : undefined}
           />
 
@@ -85,22 +85,22 @@ export function HomePage() {
                 className="mt-2"
                 onClick={() => navigate(`/rodadas/${round.id}`)}
               >
-                {round.status === 'encerrada' ? 'Ver resultados' : 'Abrir rodada'}
+                {round.status === 'encerrada' ? 'Ver resultados' : 'Abrir partida'}
               </Button>
             </Card>
           ) : (
             <EmptyState
-              title="Nenhuma rodada ainda"
+              title="Nenhuma partida ainda"
               description={
                 isAdmin
-                  ? 'Crie a primeira rodada, escolha quem vai jogar e o sistema monta os times.'
-                  : 'Assim que o administrador criar a próxima rodada, ela aparece aqui.'
+                  ? 'Crie a primeira partida, escolha quem vai jogar e o sistema monta os times.'
+                  : 'Assim que o administrador criar a próxima partida, ela aparece aqui.'
               }
               action={
                 isAdmin ? (
                   <Link to="/rodadas/nova">
                     <Button size="lg">
-                      <IconPlus className="size-5" /> Criar rodada
+                      <IconPlus className="size-5" /> Criar partida
                     </Button>
                   </Link>
                 ) : undefined
@@ -137,7 +137,7 @@ export function HomePage() {
           <section>
             <SectionHeader
               title="Destaques"
-              action={<SectionLink to={`/rodadas/${lastClosed.id}`}>a rodada</SectionLink>}
+              action={<SectionLink to={`/rodadas/${lastClosed.id}`}>a partida</SectionLink>}
             />
             <AwardsCard snapshot={snapshot} roundId={lastClosed.id} />
           </section>

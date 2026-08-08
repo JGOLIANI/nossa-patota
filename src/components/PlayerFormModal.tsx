@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { PlayerInput } from '../data/types'
+import { suggestUsername } from '../lib/player'
 import { useApp } from '../store/useApp'
 import type { Player } from '../types'
 import { ConfirmDialog, Modal } from './Modal'
@@ -16,19 +17,11 @@ const EMPTY: PlayerInput = {
   // Um cadastro novo nunca nasce administrador: a promoção é um ato
   // deliberado de quem já é admin, feito na tela de Administração.
   role: 'jogador',
+  must_change_password: false,
+  // Todo mundo começa no meio da escala. O nível não é perguntado no
+  // cadastro — nem aqui, nem quando o jogador se cadastra sozinho —
+  // porque é avaliação, e avaliação se faz depois de ver jogar.
   level: 3,
-}
-
-function suggestUsername(fullName: string): string {
-  return fullName
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .join('.')
-    .replace(/[^a-z0-9.]/g, '')
 }
 
 /**
@@ -55,6 +48,7 @@ export function PlayerFormModal({
           status: player.status,
           role: player.role,
           level: player.level,
+          must_change_password: player.must_change_password,
         }
       : EMPTY,
   )
@@ -181,18 +175,22 @@ export function PlayerFormModal({
               </Select>
             </Field>
 
-            <Field label="Nível" hint="1 a 5, usado no sorteio.">
-              <Select
-                value={String(form.level)}
-                onChange={(event) => update('level', Number(event.target.value))}
-              >
-                {[1, 2, 3, 4, 5].map((level) => (
-                  <option key={level} value={level}>
-                    {level}
-                  </option>
-                ))}
-              </Select>
-            </Field>
+            {/* O nível só aparece na edição: no cadastro ainda não há como
+                avaliar quem acabou de chegar. */}
+            {player && (
+              <Field label="Nível" hint="1 a 5, usado no sorteio.">
+                <Select
+                  value={String(form.level)}
+                  onChange={(event) => update('level', Number(event.target.value))}
+                >
+                  {[1, 2, 3, 4, 5].map((level) => (
+                    <option key={level} value={level}>
+                      {level}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            )}
           </div>
 
           {player && (
@@ -220,7 +218,7 @@ export function PlayerFormModal({
       <ConfirmDialog
         open={confirmDelete}
         title="Remover jogador"
-        message="Ele sai da lista e das próximas rodadas. Os gols já registrados continuam valendo no placar das partidas antigas. Se for uma ausência temporária, prefira marcar como inativo."
+        message="Ele sai da lista e das próximas partidas. Os gols já registrados continuam valendo no placar das partidas antigas. Se for uma ausência temporária, prefira marcar como inativo."
         confirmLabel="Remover"
         onConfirm={remove}
         onCancel={() => setConfirmDelete(false)}

@@ -1,8 +1,19 @@
 import { useState } from 'react'
-import { ConfirmDialog } from '../components/Modal'
+import { ConfirmDialog, Modal } from '../components/Modal'
 import { Page } from '../components/Page'
 import { PlayerRow } from '../components/PlayerRow'
-import { Button, Card, ListGroup, ListRow, Note, SectionHeader, Select, Tag } from '../components/ui'
+import {
+  Button,
+  Card,
+  Field,
+  Input,
+  ListGroup,
+  ListRow,
+  Note,
+  SectionHeader,
+  Select,
+  Tag,
+} from '../components/ui'
 import { resetDemoData } from '../data/localBackend'
 import { useApp } from '../store/useApp'
 import type { Player, Role } from '../types'
@@ -13,6 +24,9 @@ export function AdminPage() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [confirmReset, setConfirmReset] = useState(false)
+  const [codeOpen, setCodeOpen] = useState(false)
+  const [code, setCode] = useState(snapshot.settings.join_code)
+  const [codeSaved, setCodeSaved] = useState('')
 
   const withAccess = snapshot.players.filter((player) => player.user_id)
   const waiting = snapshot.players.filter(
@@ -31,10 +45,31 @@ export function AdminPage() {
     }
   }
 
+  async function saveCode() {
+    setError('')
+    setBusy(true)
+    try {
+      const value = code.trim()
+      await actions.updateSettings({ join_code: value })
+      setCodeOpen(false)
+      setCodeSaved(
+        value
+          ? `Código salvo. Quem for se cadastrar precisa digitar "${value}".`
+          : 'Código removido. O cadastro está aberto a quem tiver o endereço do aplicativo.',
+      )
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Não foi possível salvar o código.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <Page title="Administração" subtitle="Usuários e permissões" back>
       <div className="space-y-7">
         {error && <Note tone="error">{error}</Note>}
+
+        {codeSaved && <Note>{codeSaved}</Note>}
 
         <section>
           <SectionHeader title="A patota" />
@@ -43,6 +78,20 @@ export function AdminPage() {
               to="/admin/agenda"
               title="Agenda da patota"
               subtitle={`${WEEKDAYS[snapshot.settings.weekday]} às ${snapshot.settings.start_time}${snapshot.settings.location ? ` · ${snapshot.settings.location}` : ''}`}
+              chevron
+            />
+            <ListRow
+              onClick={() => {
+                setCode(snapshot.settings.join_code)
+                setCodeSaved('')
+                setCodeOpen(true)
+              }}
+              title="Código da patota"
+              subtitle={
+                snapshot.settings.join_code
+                  ? `Exigido no cadastro · ${snapshot.settings.join_code}`
+                  : 'Nenhum — qualquer pessoa com o endereço pode se cadastrar'
+              }
               chevron
             />
           </ListGroup>
@@ -89,14 +138,14 @@ export function AdminPage() {
           {waiting.length === 0 ? (
             <Card className="p-4">
               <p className="text-subhead text-muted">
-                Todos os mensalistas já criaram a própria senha.
+                Todos os mensalistas já criaram a própria conta.
               </p>
             </Card>
           ) : (
             <>
               <p className="mb-3 px-1 text-footnote text-muted">
-                Peça para cada um abrir o aplicativo, tocar em “Primeiro acesso” e usar exatamente
-                o nome de usuário abaixo.
+                Fichas abertas por um administrador que ainda não têm dono. Quem se cadastrar com o
+                nome de usuário abaixo assume a ficha e o histórico dela.
               </p>
               <ListGroup>
                 {waiting.map((player) => (
@@ -121,6 +170,37 @@ export function AdminPage() {
           </div>
         </section>
       </div>
+
+      <Modal
+        open={codeOpen}
+        title="Código da patota"
+        onClose={() => setCodeOpen(false)}
+        footer={
+          <Button size="lg" block onClick={saveCode} disabled={busy}>
+            Salvar código
+          </Button>
+        }
+      >
+        <Field
+          label="Código"
+          hint="Deixe em branco para abrir o cadastro a qualquer pessoa com o endereço."
+        >
+          <Input
+            value={code}
+            onChange={(event) => setCode(event.target.value)}
+            autoCapitalize="characters"
+            autoCorrect="off"
+            placeholder="PATOTA24"
+            autoFocus
+          />
+        </Field>
+        <div className="mt-3">
+          <Note>
+            O jogador digita este código ao criar a conta. Trocar o código não afeta quem já entrou
+            — só vale para os cadastros seguintes.
+          </Note>
+        </div>
+      </Modal>
 
       <ConfirmDialog
         open={confirmReset}

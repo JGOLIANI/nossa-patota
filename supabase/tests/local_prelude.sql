@@ -14,7 +14,11 @@ create schema storage;
 
 create table auth.users (
   id uuid primary key default gen_random_uuid(),
-  email text unique
+  email text unique,
+  -- No Supabase é aqui que aterrissa o `options.data` do `signUp`: os campos
+  -- do formulário de cadastro.
+  raw_user_meta_data jsonb,
+  encrypted_password text
 );
 
 create table storage.buckets (
