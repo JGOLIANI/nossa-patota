@@ -98,8 +98,10 @@ export function RequirePasswordChange({ children }: { children: ReactNode }) {
 }
 
 export function RequireAdmin({ children }: { children: ReactNode }) {
-  const { isAdmin, loading, snapshot } = useApp()
-  if (loading && snapshot.players.length === 0) return <LoadingScreen />
+  const { isAdmin, hydrated } = useApp()
+  // Antes da primeira leitura ninguém é administrador ainda — e responder
+  // "acesso restrito" a quem tem a permissão é pior do que esperar.
+  if (!hydrated) return <LoadingScreen />
   if (!isAdmin) {
     return (
       <EmptyState

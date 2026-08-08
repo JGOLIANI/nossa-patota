@@ -20,8 +20,11 @@ export interface AppActions {
   /** Senha provisória para quem esqueceu a sua. Só administradores. */
   setPlayerPassword(playerId: string, password: string): Promise<void>
 
-  /** Salva a agenda da patota e materializa as próximas rodadas. */
-  updateSettings(patch: Partial<PatotaSettings>): Promise<void>
+  /**
+   * Salva a agenda da patota, materializa as próximas rodadas e recolhe as do
+   * dia antigo que ninguém tocou. Devolve quantas foram criadas e removidas.
+   */
+  updateSettings(patch: Partial<PatotaSettings>): Promise<{ created: number; removed: number }>
   ensureUpcomingRounds(): Promise<void>
 
   createRound(input: RoundInput): Promise<Round>
@@ -55,6 +58,8 @@ export interface AppActions {
 export interface AppValue {
   ready: boolean
   loading: boolean
+  /** A primeira leitura do acervo desta sessão já terminou. */
+  hydrated: boolean
   demoMode: boolean
   session: SessionUser | null
   snapshot: Snapshot

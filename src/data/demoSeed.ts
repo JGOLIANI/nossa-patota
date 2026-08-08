@@ -212,7 +212,12 @@ export function createDemoSnapshot(): Snapshot {
       snapshot.matches.push(match)
     }
 
-    const awards = computeRoundAwards(snapshot, roundId)
+    // A cópia não é enfeite: os índices de `selectors` são memorizados por
+    // identidade de snapshot, e aqui o mesmo objeto é preenchido rodada a
+    // rodada. Sem um objeto novo, a segunda rodada em diante leria o índice
+    // congelado na primeira — não enxergaria ninguém em campo e não premiaria
+    // ninguém.
+    const awards = computeRoundAwards({ ...snapshot }, roundId)
     for (const [type, playerIds] of Object.entries(awards)) {
       for (const playerId of playerIds) {
         snapshot.awards.push({

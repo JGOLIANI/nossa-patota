@@ -25,9 +25,14 @@ function toISO(date: Date): string {
  * As próximas `count` datas que caem no dia da semana informado, a partir de
  * `fromISO` (inclusive, quando `fromISO` já é o dia certo).
  */
+/** 0 a 6, aceitando números fora da faixa sem quebrar. */
+function normalizeWeekday(weekday: number): number {
+  return ((Math.trunc(weekday) % 7) + 7) % 7
+}
+
 export function nextOccurrences(weekday: number, fromISO: string, count: number): string[] {
   if (count <= 0) return []
-  const target = ((Math.trunc(weekday) % 7) + 7) % 7
+  const target = normalizeWeekday(weekday)
   const start = parseISO(fromISO)
   const first = new Date(start)
   first.setDate(start.getDate() + ((target - start.getDay() + 7) % 7))
@@ -53,6 +58,59 @@ export function missingRoundDates(
   const existing = new Set(rounds.map((round) => round.date.slice(0, 10)))
   return nextOccurrences(settings.weekday, todayISO, settings.weeks_ahead).filter(
     (date) => !existing.has(date),
+  )
+}
+
+/**
+ * Rodadas que a agenda antiga criou e a nova não criaria mais.
+ *
+ * Trocar o dia da patota de sexta para quarta cria as quartas, mas as sextas
+ * já materializadas continuavam lá para sempre — e a lista de partidas ia
+ * enchendo de dias que ninguém vai jogar.
+ *
+ * Só saem as que ninguém tocou: no dia antigo, ainda em rascunho, com data
+ * ainda por vir e sem uma única resposta de presença. Basta alguém ter
+ * confirmado — ou o administrador ter sorteado os times — para a rodada
+ * deixar de ser um esqueleto e passar a ser decisão dele apagar.
+ */
+export function staleRoundIds(input: {
+  rounds: Array<Pick<Round, 'id' | 'date' | 'status'>>
+  /** Rodadas que já receberam alguma resposta de presença. */
+  answered: ReadonlySet<string>
+  previousWeekday: number
+  nextWeekday: number
+  todayISO: string
+}): string[] {
+  const previous = normalizeWeekday(input.previousWeekday)
+  if (previous === normalizeWeekday(input.nextWeekday)) return []
+
+  return input.rounds
+    .filter(
+      (round) =>
+        round.status === 'rascunho' &&
+        round.date.slice(0, 10) > input.todayISO &&
+        !input.answered.has(round.id) &&
+        parseISO(round.date).getDay() === previous,
+    )
+    .map((round) => round.id)
+}
+
+/**
+ * A partida que ficou rolando: em andamento e com o dia já chegado.
+ *
+ * É ela que interessa mesmo depois de o dia virar — ninguém encerrou e o
+ * placar continua aberto. A comparação com hoje importa: sortear os times de
+ * uma partida da semana que vem também a deixa em andamento, e essa ainda não
+ * é a partida do momento.
+ */
+export function liveRound<T extends Pick<Round, 'date' | 'status'>>(
+  rounds: T[],
+  todayISO: string,
+): T | null {
+  return (
+    [...rounds]
+      .filter((round) => round.status === 'em_andamento' && round.date.slice(0, 10) <= todayISO)
+      .sort((a, b) => b.date.localeCompare(a.date))[0] ?? null
   )
 }
 

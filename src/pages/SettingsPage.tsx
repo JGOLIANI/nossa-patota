@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Page } from '../components/Page'
 import { ActionBar, Button, Card, Field, Input, ListGroup, Note, Select } from '../components/ui'
-import { missingRoundDates, nextOccurrences } from '../domain/schedule'
-import { formatDate, todayISO } from '../lib/format'
+import { nextOccurrences } from '../domain/schedule'
+import { formatDate, plural, todayISO } from '../lib/format'
 import { useApp } from '../store/useApp'
 import { WEEKDAYS } from '../types'
 
@@ -39,17 +39,15 @@ export function SettingsPage() {
         max_players: Number(maxPlayers) || 0,
         weeks_ahead: Number(weeksAhead),
       }
-      const pending = missingRoundDates(
-        { ...settings, ...patch },
-        snapshot.rounds,
-        todayISO(),
-      ).length
-      await actions.updateSettings(patch)
-      setMessage(
-        pending > 0
-          ? `Agenda salva. ${pending} partida(s) criada(s) automaticamente.`
-          : 'Agenda salva.',
-      )
+      const { created, removed } = await actions.updateSettings(patch)
+      // Os números vêm de quem fez o trabalho, e não de uma previsão feita
+      // antes de salvar: contar duas vezes é contar diferente mais cedo ou
+      // mais tarde.
+      const done = [
+        created > 0 && plural(created, 'partida criada', 'partidas criadas'),
+        removed > 0 && plural(removed, 'partida vazia removida', 'partidas vazias removidas'),
+      ].filter((part): part is string => Boolean(part))
+      setMessage(done.length > 0 ? `Agenda salva. ${done.join(' e ')}.` : 'Agenda salva.')
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Não foi possível salvar a agenda.')
     } finally {

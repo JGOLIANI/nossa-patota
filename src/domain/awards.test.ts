@@ -66,6 +66,48 @@ describe('computeRoundAwards', () => {
   })
 })
 
+describe('sem participação em gol não há o que premiar', () => {
+  /**
+   * A guarda é a mesma dos dois lados do placar. Sem ela a Bola Murcha ia
+   * para o time perdedor inteiro numa derrota sem gols — um prêmio que cabe
+   * em todo mundo não diz nada sobre ninguém.
+   */
+  it('derrota sem nenhum gol do time não elege bola murcha', () => {
+    const snapshot = baseScenario()
+    // Só o Time A marca: p3 e p4 terminam a partida em zero participações.
+    snapshot.events = snapshot.events.filter((event) => event.team_id === 'tA')
+    snapshot.matches[0].score_b = 0
+
+    const awards = computeRoundAwards(snapshot, 'r1')
+    expect(awards.pior_jogador).toEqual([])
+    // O outro lado marcou, então o craque continua saindo normalmente.
+    expect(awards.jogador_rodada).toEqual(['p1'])
+  })
+
+  it('empate em que ninguém participou de gol não elege nenhum dos dois', () => {
+    const snapshot = baseScenario()
+    // 1 a 1, os dois gols contra: ninguém pontua de nenhum lado.
+    snapshot.events = [
+      makeEvent('m1', 'tA', 'p3', null, true),
+      makeEvent('m1', 'tB', 'p1', null, true),
+    ]
+    snapshot.matches[0].score_a = 1
+    snapshot.matches[0].score_b = 1
+
+    const awards = computeRoundAwards(snapshot, 'r1')
+    expect(awards.jogador_rodada).toEqual([])
+    expect(awards.pior_jogador).toEqual([])
+    // O paredão não depende de gol marcado, e continua saindo.
+    expect(awards.goleiro_menos_vazado.sort()).toEqual(['gk1', 'gk2'])
+  })
+
+  it('basta um do lado ter participado para o prêmio voltar a existir', () => {
+    const snapshot = baseScenario()
+    // Time B perde de 3 a 1, e o gol dele foi de p3: p4 fica isolado no zero.
+    expect(computeRoundAwards(snapshot, 'r1').pior_jogador).toEqual(['p4'])
+  })
+})
+
 describe('empate — os dois prêmios olham a rodada inteira', () => {
   function drawn() {
     const snapshot = baseScenario()

@@ -42,6 +42,9 @@ function translate(message: string): string {
   if (/password should be at least/i.test(message)) {
     return 'A senha precisa ter pelo menos 6 caracteres.'
   }
+  // `rounds` é única por data, e a mensagem genérica de chave duplicada falava
+  // de nome de usuário — o que não tem nada a ver com marcar uma partida.
+  if (/rounds_date_key/i.test(message)) return 'Já existe uma partida marcada para esta data.'
   if (/duplicate key value/i.test(message)) return 'Já existe um cadastro com esse nome de usuário.'
   if (/row-level security/i.test(message)) {
     return 'Você não tem permissão para executar esta ação.'
@@ -257,6 +260,10 @@ export const supabaseBackend: Backend = {
       const row = byPlayer.get(change.player_id)
       if (!row) continue
       const patch: Partial<RoundPlayer> = { attendance: change.attendance }
+      // Quem deixa de estar confirmado sai do time: o sorteio já podia ter
+      // acontecido, e um desistente com time continuaria na escalação e nas
+      // estatísticas da partida que ele não jogou.
+      if (change.attendance !== 'confirmado') patch.team_id = null
       if (change.responded_at) patch.responded_at = change.responded_at
       const { error } = await db.from('round_players').update(patch).eq('id', row.id)
       if (error) throw new Error(translate(error.message))

@@ -36,6 +36,11 @@ export function decimal(value: number, digits = 2): string {
   return value.toFixed(digits).replace('.', ',')
 }
 
+/** `1 partida`, `3 partidas` — o plural sai errado com frequência demais. */
+export function plural(count: number, singular: string, many = `${singular}s`): string {
+  return `${count} ${count === 1 ? singular : many}`
+}
+
 export function firstName(fullName: string): string {
   return fullName.trim().split(/\s+/)[0] ?? fullName
 }

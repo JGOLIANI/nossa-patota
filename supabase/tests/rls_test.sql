@@ -368,3 +368,99 @@ begin
 
   raise notice 'OK 18 — o jogador desliga a marca de troca, mas nada além dela';
 end $$;
+
+-- 19. Quem desiste depois do sorteio sai do time.
+--
+-- Sem isso o desistente continuaria escalado: a escalação e as estatísticas
+-- da partida são montadas a partir do time, não da presença, então ele
+-- apareceria em campo e levaria vitória, derrota e gols sofridos de um jogo
+-- que não disputou.
+do $$
+declare
+  v_round uuid;
+  v_team uuid;
+  v_zeca uuid;
+begin
+  select id into v_round from public.rounds where title = 'Rodada teste';
+  select id into v_zeca from public.players where username = 'zeca';
+
+  insert into public.teams (round_id, position, name, color)
+  values (v_round, 0, 'Time teste', '#22c55e')
+  returning id into v_team;
+
+  update public.round_players set attendance = 'confirmado', team_id = v_team
+   where round_id = v_round and player_id = v_zeca;
+
+  perform set_config('request.jwt.claim.sub',
+                     (select user_id::text from public.players where id = v_zeca), true);
+  perform public.respond_attendance(v_round, 'fora');
+
+  if (select team_id from public.round_players
+       where round_id = v_round and player_id = v_zeca) is not null then
+    raise exception 'FALHOU: o desistente continuou escalado no time';
+  end if;
+
+  raise notice 'OK 19 — quem desiste depois do sorteio sai do time';
+end $$;
+
+-- 20. A foto é de quem ela retrata: ninguém escreve na pasta alheia.
+--
+-- O caminho é `<id do jogador>/<momento>.jpg`. Sem esta regra qualquer pessoa
+-- da patota podia trocar ou apagar a foto de qualquer outra.
+do $$
+declare
+  v_joao uuid;
+  v_bia uuid;
+  blocked boolean := false;
+begin
+  select id into v_joao from public.players where username = 'joao';   -- administradora
+  select id into v_bia from public.players where username = 'bia';
+
+  -- A Bia envia a própria foto.
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub',
+                     (select user_id::text from public.players where id = v_bia), true);
+  insert into storage.objects (bucket_id, name) values ('avatars', v_bia || '/1.jpg');
+
+  -- E não consegue escrever na pasta de outra pessoa.
+  begin
+    insert into storage.objects (bucket_id, name) values ('avatars', v_joao || '/2.jpg');
+  exception when others then blocked := true;
+  end;
+  if not blocked then
+    raise exception 'FALHOU: um jogador gravou foto na pasta de outro';
+  end if;
+
+  reset role;
+
+  -- O administrador pode mexer em qualquer uma, para limpar o que precisar.
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub',
+                     (select user_id::text from public.players where id = v_joao), true);
+  insert into storage.objects (bucket_id, name) values ('avatars', v_bia || '/3.jpg');
+  reset role;
+
+  raise notice 'OK 20 — a foto só é gravada na pasta do próprio jogador';
+end $$;
+
+-- 21. Apagar a foto alheia também é recusado.
+do $$
+declare
+  v_bia uuid;
+  v_chico uuid;
+begin
+  select id into v_bia from public.players where username = 'bia';
+  select id into v_chico from public.players where username = 'chico';
+
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub',
+                     (select user_id::text from public.players where id = v_chico), true);
+  delete from storage.objects where name = v_bia || '/1.jpg';
+  reset role;
+
+  if not exists (select 1 from storage.objects where name = v_bia || '/1.jpg') then
+    raise exception 'FALHOU: um jogador apagou a foto de outro';
+  end if;
+
+  raise notice 'OK 21 — a foto de outro jogador não pode ser apagada';
+end $$;

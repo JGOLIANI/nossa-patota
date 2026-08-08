@@ -27,8 +27,13 @@ import type {
 
 // A versão faz parte da chave: quando o formato do snapshot muda, os dados
 // antigos são descartados em vez de carregarem sem os campos novos.
-const STORAGE_KEY = 'nossa-patota:demo:v4'
-const LEGACY_KEYS = ['nossa-patota:demo:v1', 'nossa-patota:demo:v2', 'nossa-patota:demo:v3']
+const STORAGE_KEY = 'nossa-patota:demo:v5'
+const LEGACY_KEYS = [
+  'nossa-patota:demo:v1',
+  'nossa-patota:demo:v2',
+  'nossa-patota:demo:v3',
+  'nossa-patota:demo:v4',
+]
 const SESSION_KEY = 'nossa-patota:demo:session'
 
 const listeners = new Set<(user: SessionUser | null) => void>()
@@ -217,7 +222,23 @@ export const localBackend: Backend = {
   async fetchAll() {
     // Objeto novo a cada leitura: é a identidade dele que invalida os
     // índices memorizados e os `useMemo` das telas.
-    return { ...load() }
+    //
+    // As listas também são copiadas, e não é detalhe: o acervo guardado é
+    // mutado no lugar por toda escrita. Entregar a lista viva fazia o
+    // snapshot de quem estava lendo enxergar sozinho a linha recém-gravada —
+    // e quem somava a novidade à lista que já tinha (é o caso do gol, que
+    // recalcula o placar) contava a mesma linha duas vezes.
+    const snapshot = load()
+    return {
+      players: [...snapshot.players],
+      rounds: [...snapshot.rounds],
+      teams: [...snapshot.teams],
+      roundPlayers: [...snapshot.roundPlayers],
+      matches: [...snapshot.matches],
+      events: [...snapshot.events],
+      awards: [...snapshot.awards],
+      settings: { ...snapshot.settings },
+    }
   },
 
   async createPlayer(input: PlayerInput) {
@@ -273,6 +294,11 @@ export const localBackend: Backend = {
 
   async createRound(input: RoundInput) {
     return mutate((snapshot) => {
+      // Mesma regra do banco (`rounds` é única por data): é ela que permite
+      // materializar a agenda quantas vezes for preciso sem duplicar nada.
+      if (snapshot.rounds.some((r) => r.date.slice(0, 10) === input.date.slice(0, 10))) {
+        throw new Error('Já existe uma partida marcada para esta data.')
+      }
       const round: Round = {
         id: uid(),
         date: input.date,
@@ -341,6 +367,10 @@ export const localBackend: Backend = {
         )
         if (existing) {
           existing.attendance = change.attendance
+          // Quem deixa de estar confirmado sai do time: o sorteio já podia ter
+          // acontecido, e um desistente com time continuaria na escalação e nas
+          // estatísticas da partida que ele não jogou.
+          if (change.attendance !== 'confirmado') existing.team_id = null
           if (change.responded_at) existing.responded_at = change.responded_at
         } else {
           snapshot.roundPlayers.push({
@@ -365,6 +395,7 @@ export const localBackend: Backend = {
         )
         if (existing) {
           existing.attendance = change.attendance
+          if (change.attendance !== 'confirmado') existing.team_id = null
           if (change.responded_at) existing.responded_at = change.responded_at
         } else {
           snapshot.roundPlayers.push({
