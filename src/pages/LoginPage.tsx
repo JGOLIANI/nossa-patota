@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import { IconBall } from '../components/icons'
 import { Button, Field, Input, Note, Select } from '../components/ui'
+import type { JoinCodePolicy } from '../data/types'
 import { suggestUsername } from '../lib/player'
 import { useApp } from '../store/useApp'
 import type { DominantFoot, PlayerPosition, PlayerType } from '../types'
@@ -24,7 +25,7 @@ export function LoginPage() {
   const [position, setPosition] = useState<PlayerPosition>('linha')
   const [dominantFoot, setDominantFoot] = useState<DominantFoot>('direita')
   const [joinCode, setJoinCode] = useState('')
-  const [codeRequired, setCodeRequired] = useState(false)
+  const [codePolicy, setCodePolicy] = useState<JoinCodePolicy>('dispensado')
   // Enquanto a pessoa não mexe no campo, o usuário acompanha o nome digitado.
   const [usernameTouched, setUsernameTouched] = useState(false)
   const [error, setError] = useState('')
@@ -36,10 +37,12 @@ export function LoginPage() {
     if (mode !== 'signup') return
     let active = true
     joinCodeRequired()
-      .then((required) => {
-        if (active) setCodeRequired(required)
+      .then((policy) => {
+        if (active) setCodePolicy(policy)
       })
-      .catch(() => {})
+      .catch(() => {
+        if (active) setCodePolicy('desconhecido')
+      })
     return () => {
       active = false
     }
@@ -64,7 +67,10 @@ export function LoginPage() {
       setError('Informe o nome de usuário.')
       return
     }
-    if (mode === 'signup' && codeRequired && !joinCode.trim()) {
+    // Só tranca quando o servidor confirmou que existe código. Em dúvida o
+    // envio segue e o servidor decide — do contrário, uma consulta que falhou
+    // barraria o primeiro acesso, quando não há código nem a quem pedir.
+    if (mode === 'signup' && codePolicy === 'exigido' && !joinCode.trim()) {
       setError('Informe o código da patota.')
       return
     }
@@ -195,8 +201,15 @@ export function LoginPage() {
                 </Select>
               </Field>
 
-              {codeRequired && (
-                <Field label="Código da patota" hint="Peça a um administrador.">
+              {codePolicy !== 'dispensado' && (
+                <Field
+                  label="Código da patota"
+                  hint={
+                    codePolicy === 'exigido'
+                      ? 'Peça a um administrador.'
+                      : 'Só preencha se a sua patota já tiver um código.'
+                  }
+                >
                   <Input
                     value={joinCode}
                     onChange={(event) => setJoinCode(event.target.value)}

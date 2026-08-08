@@ -100,6 +100,14 @@ em 3 e o administrador ajusta depois, ao editar o jogador.
 > pessoa se cadastrar com o mesmo nome de usuário, ela assume a ficha e o
 > histórico dela.
 
+Se no primeiro acesso aparecer o campo **Código da patota**, deixe-o vazio e
+envie assim mesmo: no começo não existe código nem administrador a quem pedir.
+O campo aparece porque o aplicativo não conseguiu perguntar ao banco se há um
+código — quase sempre porque o [passo 3](#3-aplique-o-schema) ainda não foi
+feito, ou foi feito com uma versão anterior do `schema.sql`. Se for esse o
+caso, o cadastro avisa em vez de criar uma conta pela metade: reaplique o
+arquivo inteiro no **SQL Editor** e tente de novo.
+
 ### 5.1. Feche a porta: o código da patota
 
 Em **Perfil → Administração → Código da patota**, defina uma palavra que o

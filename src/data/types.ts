@@ -27,7 +27,7 @@ export interface SignUpInput {
   player_type: Player['player_type']
   position: Player['position']
   dominant_foot: Player['dominant_foot']
-  /** Só é exigido quando a patota definiu um código de entrada. */
+  /** Só é exigido quando a patota já definiu um código de entrada. */
   join_code?: string
 }
 
@@ -67,6 +67,16 @@ export interface AwardInput {
 }
 
 /**
+ * O que a tela de cadastro sabe sobre o código de entrada.
+ *
+ * `desconhecido` existe porque a pergunta vai ao servidor e a resposta pode
+ * não vir. Sem esse terceiro estado, uma consulta que falha viraria "exige
+ * código" — e trancaria o primeiro acesso da patota, quando ainda não há
+ * código nem administrador a quem pedir.
+ */
+export type JoinCodePolicy = 'exigido' | 'dispensado' | 'desconhecido'
+
+/**
  * Contrato único de persistência. Há duas implementações: Supabase (produção)
  * e um backend local em `localStorage` usado no modo demonstração, quando as
  * variáveis de ambiente do Supabase não estão configuradas.
@@ -81,7 +91,7 @@ export interface Backend {
   signOut(): Promise<void>
   changePassword(password: string): Promise<void>
   /** Consultado na tela de cadastro, antes de existir sessão. */
-  joinCodeRequired(): Promise<boolean>
+  joinCodeRequired(): Promise<JoinCodePolicy>
   /**
    * Senha provisória gerada por um administrador para quem esqueceu a sua.
    * Roda no servidor: trocar a senha alheia é privilégio que não cabe no
