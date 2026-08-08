@@ -15,6 +15,11 @@ export function validateUrl(value) {
     return 'URL inválida. Ela se parece com https://abcdefgh.supabase.co'
   }
   if (parsed.protocol !== 'https:') return 'A URL precisa começar com https://'
+  // O engano mais comum é copiar o endereço da documentação da API, que já vem
+  // com o caminho do serviço. Dizer qual pedaço sobra poupa a procura.
+  if (/^\/(rest|auth|storage|realtime|functions)\/v\d+\/?$/i.test(parsed.pathname)) {
+    return `Tire o "${parsed.pathname.replace(/\/$/, '')}" do fim: o aplicativo monta esse caminho sozinho.`
+  }
   if (parsed.pathname !== '/' && parsed.pathname !== '') {
     return 'Use apenas o endereço base, sem caminho depois do domínio.'
   }

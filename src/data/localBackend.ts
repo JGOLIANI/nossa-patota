@@ -19,7 +19,7 @@ import type {
   AwardInput,
   Backend,
   EventInput,
-  JoinCodePolicy,
+  JoinCodeCheck,
   PlayerInput,
   RoundInput,
   SignUpInput,
@@ -203,8 +203,8 @@ export const localBackend: Backend = {
     await localBackend.signIn(wanted, '')
   },
 
-  async joinCodeRequired(): Promise<JoinCodePolicy> {
-    return load().settings.join_code.trim() ? 'exigido' : 'dispensado'
+  async joinCodeRequired(): Promise<JoinCodeCheck> {
+    return { policy: load().settings.join_code.trim() ? 'exigido' : 'dispensado' }
   },
 
   async setPlayerPassword() {

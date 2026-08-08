@@ -162,17 +162,17 @@ describe('uma partida por data', () => {
 
 describe('código de entrada da patota', () => {
   it('sem código definido, o cadastro é dispensado de pedir um', async () => {
-    await expect(backend.joinCodeRequired()).resolves.toBe('dispensado')
+    await expect(backend.joinCodeRequired()).resolves.toEqual({ policy: 'dispensado' })
   })
 
   it('com código definido, passa a ser exigido', async () => {
     await backend.updateSettings({ join_code: 'PATOTA24' })
-    await expect(backend.joinCodeRequired()).resolves.toBe('exigido')
+    await expect(backend.joinCodeRequired()).resolves.toEqual({ policy: 'exigido' })
   })
 
   it('só espaços em branco não valem como código', async () => {
     await backend.updateSettings({ join_code: '   ' })
-    await expect(backend.joinCodeRequired()).resolves.toBe('dispensado')
+    await expect(backend.joinCodeRequired()).resolves.toEqual({ policy: 'dispensado' })
   })
 })
 

@@ -3,7 +3,7 @@ import type { PlayerStats } from '../domain/stats'
 import type {
   AwardInput,
   EventInput,
-  JoinCodePolicy,
+  JoinCodeCheck,
   PlayerInput,
   RoundInput,
   SignUpInput,
@@ -78,7 +78,7 @@ export interface AppValue {
   signOut(): Promise<void>
   changePassword(password: string): Promise<void>
   /** Se a patota exige código de entrada no cadastro. */
-  joinCodeRequired(): Promise<JoinCodePolicy>
+  joinCodeRequired(): Promise<JoinCodeCheck>
   actions: AppActions
 }
 

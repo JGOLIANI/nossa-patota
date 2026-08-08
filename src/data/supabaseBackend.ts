@@ -20,7 +20,7 @@ import type {
   AwardInput,
   Backend,
   EventInput,
-  JoinCodePolicy,
+  JoinCodeCheck,
   PlayerInput,
   RoundInput,
   SignUpInput,
@@ -141,12 +141,19 @@ export const supabaseBackend: Backend = {
     if (error) throw new Error(translate(error.message))
   },
 
-  async joinCodeRequired(): Promise<JoinCodePolicy> {
+  async joinCodeRequired(): Promise<JoinCodeCheck> {
     const { data, error } = await client().rpc('join_code_required')
     // Sem resposta, o campo aparece mas não tranca o envio: quem decide de
-    // verdade é o gatilho de cadastro, no servidor.
-    if (error) return 'desconhecido'
-    return data ? 'exigido' : 'dispensado'
+    // verdade é o gatilho de cadastro, no servidor. A tela ainda diz o que
+    // aconteceu — pedir um código sem explicar por quê é o que transformava
+    // uma configuração pela metade num beco sem saída.
+    if (error) {
+      return {
+        policy: isMissingFunction(error) ? 'sem-schema' : 'desconhecido',
+        detail: [error.message, error.hint].filter(Boolean).join(' — '),
+      }
+    }
+    return { policy: data ? 'exigido' : 'dispensado' }
   },
 
   async setPlayerPassword(playerId: string, password: string) {
