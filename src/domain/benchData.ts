@@ -170,14 +170,3 @@ export function makeSnapshot(scale: BenchScale, seed = 7): Snapshot {
     settings: DEFAULT_SETTINGS,
   }
 }
-
-/** Contagem de linhas do snapshot, para relatar o tamanho medido. */
-export function describeSnapshot(snapshot: Snapshot): string {
-  return [
-    `${snapshot.players.length} jogadores`,
-    `${snapshot.rounds.length} rodadas`,
-    `${snapshot.matches.length} partidas`,
-    `${snapshot.events.length} gols`,
-    `${snapshot.roundPlayers.length} presenças`,
-  ].join(' · ')
-}

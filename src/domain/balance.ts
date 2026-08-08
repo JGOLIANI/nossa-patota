@@ -27,17 +27,6 @@ export const DEFAULT_WEIGHTS: BalanceWeights = {
   recentForm: 0.15,
 }
 
-export const WEIGHT_LABELS: Record<keyof BalanceWeights, string> = {
-  level: 'Nível do jogador',
-  pointsPct: 'Aproveitamento',
-  goalsPerMatch: 'Média de gols',
-  assistsPerMatch: 'Média de assistências',
-  participationsPerMatch: 'Participações em gols',
-  wins: 'Vitórias',
-  losses: 'Derrotas (invertido)',
-  recentForm: 'Desempenho recente',
-}
-
 export interface RatingInput {
   player: Player
   stats: PlayerStats

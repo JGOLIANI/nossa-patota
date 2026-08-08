@@ -20,6 +20,7 @@ import type {
   AwardInput,
   Backend,
   EventInput,
+  JoinCodeCheck,
   PlayerInput,
   RoundInput,
   SignUpInput,
@@ -60,6 +61,19 @@ function translate(message: string): string {
 
 const INVALID_JOIN_CODE = 'Código da patota inválido. Peça o código a um administrador.'
 
+const SCHEMA_MISSING =
+  'O banco de dados ainda não recebeu o schema: abra o SQL Editor do Supabase e execute o ' +
+  'arquivo supabase/schema.sql do projeto.'
+
+/**
+ * O PostgREST responde `PGRST202` quando a função chamada não existe no cache
+ * do schema. É diferente de uma falha de rede: aqui o servidor respondeu, e o
+ * que ele disse é que aquela função nunca foi criada.
+ */
+function isMissingFunction(error: PostgrestError): boolean {
+  return error.code === 'PGRST202' || /could not find the function/i.test(error.message)
+}
+
 export const supabaseBackend: Backend = {
   mode: 'supabase',
 
@@ -96,6 +110,11 @@ export const supabaseBackend: Backend = {
     // gatilho, dentro da transação que cria a conta.
     const check = await client().rpc('join_code_matches', { p_code: input.join_code ?? '' })
     if (!check.error && check.data === false) throw new Error(INVALID_JOIN_CODE)
+    // A função não existir significa que o banco ainda não recebeu o schema —
+    // e então o gatilho que cria a ficha também não existe. Seguir daqui
+    // criaria uma conta de acesso sem jogador nenhum, que ocuparia o nome de
+    // usuário e só sairia pelo painel do Supabase.
+    if (check.error && isMissingFunction(check.error)) throw new Error(SCHEMA_MISSING)
 
     const { error } = await client().auth.signUp({
       email: usernameToEmail(input.username),
@@ -122,12 +141,19 @@ export const supabaseBackend: Backend = {
     if (error) throw new Error(translate(error.message))
   },
 
-  async joinCodeRequired() {
+  async joinCodeRequired(): Promise<JoinCodeCheck> {
     const { data, error } = await client().rpc('join_code_required')
-    // Sem resposta, o formulário mostra o campo: melhor pedir um código à toa
-    // do que esconder o único caminho de cadastro.
-    if (error) return true
-    return Boolean(data)
+    // Sem resposta, o campo aparece mas não tranca o envio: quem decide de
+    // verdade é o gatilho de cadastro, no servidor. A tela ainda diz o que
+    // aconteceu — pedir um código sem explicar por quê é o que transformava
+    // uma configuração pela metade num beco sem saída.
+    if (error) {
+      return {
+        policy: isMissingFunction(error) ? 'sem-schema' : 'desconhecido',
+        detail: [error.message, error.hint].filter(Boolean).join(' — '),
+      }
+    }
+    return { policy: data ? 'exigido' : 'dispensado' }
   },
 
   async setPlayerPassword(playerId: string, password: string) {

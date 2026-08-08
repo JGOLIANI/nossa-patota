@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import { IconBall } from '../components/icons'
 import { Button, Field, Input, Note, Select } from '../components/ui'
+import type { JoinCodeCheck } from '../data/types'
 import { suggestUsername } from '../lib/player'
 import { useApp } from '../store/useApp'
 import type { DominantFoot, PlayerPosition, PlayerType } from '../types'
@@ -24,7 +25,7 @@ export function LoginPage() {
   const [position, setPosition] = useState<PlayerPosition>('linha')
   const [dominantFoot, setDominantFoot] = useState<DominantFoot>('direita')
   const [joinCode, setJoinCode] = useState('')
-  const [codeRequired, setCodeRequired] = useState(false)
+  const [codeCheck, setCodeCheck] = useState<JoinCodeCheck>({ policy: 'dispensado' })
   // Enquanto a pessoa não mexe no campo, o usuário acompanha o nome digitado.
   const [usernameTouched, setUsernameTouched] = useState(false)
   const [error, setError] = useState('')
@@ -36,10 +37,16 @@ export function LoginPage() {
     if (mode !== 'signup') return
     let active = true
     joinCodeRequired()
-      .then((required) => {
-        if (active) setCodeRequired(required)
+      .then((check) => {
+        if (active) setCodeCheck(check)
       })
-      .catch(() => {})
+      .catch((cause: unknown) => {
+        if (!active) return
+        setCodeCheck({
+          policy: 'desconhecido',
+          detail: cause instanceof Error ? cause.message : undefined,
+        })
+      })
     return () => {
       active = false
     }
@@ -64,7 +71,10 @@ export function LoginPage() {
       setError('Informe o nome de usuário.')
       return
     }
-    if (mode === 'signup' && codeRequired && !joinCode.trim()) {
+    // Só tranca quando o servidor confirmou que existe código. Em dúvida o
+    // envio segue e o servidor decide — do contrário, uma consulta que falhou
+    // barraria o primeiro acesso, quando não há código nem a quem pedir.
+    if (mode === 'signup' && codeCheck.policy === 'exigido' && !joinCode.trim()) {
       setError('Informe o código da patota.')
       return
     }
@@ -195,8 +205,34 @@ export function LoginPage() {
                 </Select>
               </Field>
 
-              {codeRequired && (
-                <Field label="Código da patota" hint="Peça a um administrador.">
+              {/* Sem schema não há o que conferir: pedir um código aqui só
+                  esconderia o problema de verdade, que é o banco vazio. */}
+              {codeCheck.policy === 'sem-schema' && (
+                <Note tone="error">
+                  O banco de dados ainda não recebeu o schema. Abra o <strong>SQL Editor</strong>{' '}
+                  do Supabase e execute o arquivo <strong>supabase/schema.sql</strong> do projeto.
+                  {codeCheck.detail && <span className="block opacity-70">{codeCheck.detail}</span>}
+                </Note>
+              )}
+
+              {codeCheck.policy === 'desconhecido' && (
+                <Note tone="warn">
+                  Não foi possível falar com o banco de dados para conferir se a patota tem código
+                  de entrada. Confira a URL e a chave do Supabase, e se o projeto não está pausado
+                  — se a sua patota ainda não definiu um código, pode criar seu acesso mesmo assim.
+                  {codeCheck.detail && <span className="block opacity-70">{codeCheck.detail}</span>}
+                </Note>
+              )}
+
+              {(codeCheck.policy === 'exigido' || codeCheck.policy === 'desconhecido') && (
+                <Field
+                  label="Código da patota"
+                  hint={
+                    codeCheck.policy === 'exigido'
+                      ? 'Peça a um administrador.'
+                      : 'Só preencha se a sua patota já tiver um código.'
+                  }
+                >
                   <Input
                     value={joinCode}
                     onChange={(event) => setJoinCode(event.target.value)}

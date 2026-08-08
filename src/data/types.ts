@@ -27,7 +27,7 @@ export interface SignUpInput {
   player_type: Player['player_type']
   position: Player['position']
   dominant_foot: Player['dominant_foot']
-  /** Só é exigido quando a patota definiu um código de entrada. */
+  /** Só é exigido quando a patota já definiu um código de entrada. */
   join_code?: string
 }
 
@@ -67,6 +67,34 @@ export interface AwardInput {
 }
 
 /**
+ * O que a tela de cadastro sabe sobre o código de entrada.
+ *
+ * Os dois últimos estados existem porque a pergunta vai ao servidor e a
+ * resposta pode não vir. Sem eles, uma consulta que falha viraria "exige
+ * código" — e trancaria o primeiro acesso da patota, quando ainda não há
+ * código nem administrador a quem pedir.
+ *
+ *  · `exigido`     — a patota definiu um código;
+ *  · `dispensado`  — não há código; o cadastro está aberto;
+ *  · `sem-schema`  — o banco respondeu que a função não existe, ou seja, o
+ *                    `supabase/schema.sql` ainda não foi aplicado;
+ *  · `desconhecido`— não houve resposta (rede, URL errada, projeto pausado).
+ */
+export type JoinCodePolicy = 'exigido' | 'dispensado' | 'sem-schema' | 'desconhecido'
+
+export interface JoinCodeCheck {
+  policy: JoinCodePolicy
+  /**
+   * O que o servidor respondeu, quando a pergunta falhou.
+   *
+   * Vai cru para a tela de propósito: quem está configurando a patota precisa
+   * distinguir "chave inválida" de "projeto pausado" de "sem internet", e
+   * nenhuma frase amável nossa diria isso por ele.
+   */
+  detail?: string
+}
+
+/**
  * Contrato único de persistência. Há duas implementações: Supabase (produção)
  * e um backend local em `localStorage` usado no modo demonstração, quando as
  * variáveis de ambiente do Supabase não estão configuradas.
@@ -81,7 +109,7 @@ export interface Backend {
   signOut(): Promise<void>
   changePassword(password: string): Promise<void>
   /** Consultado na tela de cadastro, antes de existir sessão. */
-  joinCodeRequired(): Promise<boolean>
+  joinCodeRequired(): Promise<JoinCodeCheck>
   /**
    * Senha provisória gerada por um administrador para quem esqueceu a sua.
    * Roda no servidor: trocar a senha alheia é privilégio que não cabe no

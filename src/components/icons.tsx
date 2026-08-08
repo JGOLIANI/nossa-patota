@@ -49,12 +49,6 @@ export const IconUsers = (props: IconProps) => (
   </Base>
 )
 
-export const IconUser = (props: IconProps) => (
-  <Base {...props}>
-    <circle cx="12" cy="8" r="3.5" />
-    <path d="M5 20a7 7 0 0 1 14 0" />
-  </Base>
-)
 
 export const IconPlus = (props: IconProps) => (
   <Base {...props}>
@@ -88,11 +82,6 @@ export const IconChevronDown = (props: IconProps) => (
   </Base>
 )
 
-export const IconCheck = (props: IconProps) => (
-  <Base {...props}>
-    <path d="m5 12.5 4.5 4.5L19 7" />
-  </Base>
-)
 
 export const IconClose = (props: IconProps) => (
   <Base {...props}>
@@ -100,19 +89,7 @@ export const IconClose = (props: IconProps) => (
   </Base>
 )
 
-export const IconSettings = (props: IconProps) => (
-  <Base {...props}>
-    <circle cx="12" cy="12" r="3" />
-    <path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1Z" />
-  </Base>
-)
 
-export const IconLogout = (props: IconProps) => (
-  <Base {...props}>
-    <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3" />
-    <path d="M10 8 6 12l4 4M6 12h9" />
-  </Base>
-)
 
 export const IconCamera = (props: IconProps) => (
   <Base {...props}>
@@ -140,12 +117,6 @@ export const IconShuffle = (props: IconProps) => (
   </Base>
 )
 
-export const IconWhistle = (props: IconProps) => (
-  <Base {...props}>
-    <path d="M3 12a6 6 0 0 0 6 6h4l7-4V9l-7-1H9a6 6 0 0 0-6 4Z" />
-    <circle cx="9" cy="12" r="2" />
-  </Base>
-)
 
 /** Bola de ouro: a esfera sobre o pedestal, como o troféu da France Football. */
 export const IconGoldenBall = (props: IconProps) => (
@@ -176,12 +147,6 @@ export const IconSearch = (props: IconProps) => (
   </Base>
 )
 
-export const IconThumbDown = (props: IconProps) => (
-  <Base {...props}>
-    <path d="M7 4h9.4a2 2 0 0 1 2 1.7l.9 6A2 2 0 0 1 17.3 14H14l.8 3.6a2.2 2.2 0 0 1-3.9 1.8L7 13.5V4Z" />
-    <path d="M4 4h3v9.5H4z" />
-  </Base>
-)
 
 export const IconShare = (props: IconProps) => (
   <Base {...props}>

@@ -1,6 +1,13 @@
 import { createContext } from 'react'
 import type { PlayerStats } from '../domain/stats'
-import type { AwardInput, EventInput, PlayerInput, RoundInput, SignUpInput } from '../data/types'
+import type {
+  AwardInput,
+  EventInput,
+  JoinCodeCheck,
+  PlayerInput,
+  RoundInput,
+  SignUpInput,
+} from '../data/types'
 import type {
   Attendance,
   Match,
@@ -71,7 +78,7 @@ export interface AppValue {
   signOut(): Promise<void>
   changePassword(password: string): Promise<void>
   /** Se a patota exige código de entrada no cadastro. */
-  joinCodeRequired(): Promise<boolean>
+  joinCodeRequired(): Promise<JoinCodeCheck>
   actions: AppActions
 }
 

@@ -85,11 +85,6 @@ export function playerMap(snapshot: Snapshot): Map<string, Player> {
   return indexOf(snapshot).playersById
 }
 
-export function findPlayer(snapshot: Snapshot, playerId: string | null): Player | null {
-  if (!playerId) return null
-  return indexOf(snapshot).playersById.get(playerId) ?? null
-}
-
 export function findRound(snapshot: Snapshot, roundId: string): Round | null {
   return indexOf(snapshot).roundsById.get(roundId) ?? null
 }
@@ -113,13 +108,6 @@ export function roundMatches(snapshot: Snapshot, roundId: string): Match[] {
 /** Linhas de presença da rodada, sem passar pelo histórico inteiro. */
 export function roundEntries(snapshot: Snapshot, roundId: string): RoundPlayer[] {
   return indexOf(snapshot).roundPlayersByRound.get(roundId) ?? []
-}
-
-export function roundRoster(snapshot: Snapshot, roundId: string): Player[] {
-  const index = indexOf(snapshot)
-  return (index.roundPlayersByRound.get(roundId) ?? [])
-    .map((rp) => index.playersById.get(rp.player_id))
-    .filter((player): player is Player => Boolean(player))
 }
 
 export function teamPlayers(snapshot: Snapshot, teamId: string): Player[] {
@@ -167,8 +155,4 @@ export function positionInRound(
     ?.find((rp) => rp.player_id === playerId)
   if (row?.position) return row.position
   return index.playersById.get(playerId)?.position ?? 'linha'
-}
-
-export function playerAwards(snapshot: Snapshot, playerId: string): Award[] {
-  return snapshot.awards.filter((award) => award.player_id === playerId)
 }

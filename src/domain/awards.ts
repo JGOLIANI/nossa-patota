@@ -11,12 +11,6 @@ export interface RoundAwards {
   goleiro_menos_vazado: string[]
 }
 
-export const EMPTY_AWARDS: RoundAwards = {
-  jogador_rodada: [],
-  pior_jogador: [],
-  goleiro_menos_vazado: [],
-}
-
 function bestBy(
   entries: PlayerStats[],
   value: (stats: PlayerStats) => number,
