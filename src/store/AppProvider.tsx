@@ -288,13 +288,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       createMatch: (roundId, teamAId, teamBId) =>
         run(() => backend.createMatch(roundId, teamAId, teamBId)),
-      finishMatch: (matchId) =>
-        run(() =>
-          backend.updateMatch(matchId, {
-            status: 'encerrada',
-            ended_at: new Date().toISOString(),
-          }),
-        ),
       /**
        * Reabre a partida e, se a rodada já estava encerrada, reabre a rodada
        * junto.

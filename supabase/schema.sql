@@ -85,7 +85,7 @@ create table if not exists public.teams (
   round_id uuid not null references public.rounds (id) on delete cascade,
   position integer not null default 0,
   name text not null,
-  color text not null default '#22c55e',
+  color text not null default '#000000',
   unique (round_id, position)
 );
 

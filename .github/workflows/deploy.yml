@@ -36,6 +36,15 @@ jobs:
       - name: Testes
         run: npm test
 
+      # Sem credenciais o build termina bem e publica um aplicativo em modo
+      # demonstração — falha silenciosa que só aparece para quem abre o site.
+      - name: Conferir credenciais
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          ALLOW_DEMO_BUILD: ${{ vars.ALLOW_DEMO_BUILD }}
+        run: node scripts/check-credentials.mjs
+
       - name: Build
         env:
           # Em GitHub Pages o site fica em /<nome-do-repositorio>/.

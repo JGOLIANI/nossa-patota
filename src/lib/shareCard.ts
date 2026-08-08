@@ -307,6 +307,16 @@ function drawPlayerToken(
   ctx.fill()
   ctx.restore()
 
+  // O aro é o que separa a ficha da quadra quando o colete é branco — a
+  // madeira clara e as linhas brancas engolem o círculo sem ele. Como a cor
+  // do aro é a que contrasta com o colete, o time preto ganha um aro claro e
+  // o branco um aro escuro, sem precisar de exceção.
+  ctx.strokeStyle = readableInk(color)
+  ctx.lineWidth = Math.max(2, radius * 0.06)
+  ctx.beginPath()
+  ctx.arc(x, y, radius - ctx.lineWidth / 2, 0, Math.PI * 2)
+  ctx.stroke()
+
   if (photo) {
     ctx.save()
     ctx.beginPath()
@@ -380,7 +390,9 @@ function drawBench(
   ctx.fill()
 
   ctx.textAlign = 'center'
-  ctx.fillStyle = team.color
+  // A faixa do banco é sempre escura, então o rótulo é sempre claro: escrito
+  // na cor do time, o colete preto sumiria no fundo.
+  ctx.fillStyle = '#e8edf4'
   ctx.font = `700 20px ${FONT}`
   ctx.fillText('BANCO', strip.x + strip.width / 2, strip.y + 34)
 
@@ -401,6 +413,12 @@ function drawBench(
     ctx.beginPath()
     ctx.arc(centerX, centerY, radius, 0, Math.PI * 2)
     ctx.fill()
+
+    ctx.strokeStyle = readableInk(team.color)
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.arc(centerX, centerY, radius - 1, 0, Math.PI * 2)
+    ctx.stroke()
 
     if (photo) {
       ctx.save()
@@ -507,6 +525,11 @@ export async function drawLineupCard(
     ctx.beginPath()
     ctx.arc(court.x + 58, labelY + 22, 10, 0, Math.PI * 2)
     ctx.fill()
+    ctx.strokeStyle = readableInk(team.color)
+    ctx.lineWidth = 1.5
+    ctx.beginPath()
+    ctx.arc(court.x + 58, labelY + 22, 9.25, 0, Math.PI * 2)
+    ctx.stroke()
     ctx.fillStyle = '#ffffff'
     ctx.fillText(team.name, court.x + 78, labelY + 31)
 
@@ -586,14 +609,20 @@ export async function drawRoundCard(
       roundedRect(ctx, 60, y - 12, WIDTH - 120, 88, 20)
       ctx.fill()
 
-      ctx.fillStyle = match.homeColor
-      ctx.beginPath()
-      ctx.arc(100, y + 32, 12, 0, Math.PI * 2)
-      ctx.fill()
-      ctx.fillStyle = match.awayColor
-      ctx.beginPath()
-      ctx.arc(WIDTH - 100, y + 32, 12, 0, Math.PI * 2)
-      ctx.fill()
+      // Aro contrastante: sem ele o colete preto some na tarja escura.
+      const dot = (x: number, color: string) => {
+        ctx.fillStyle = color
+        ctx.beginPath()
+        ctx.arc(x, y + 32, 12, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.strokeStyle = readableInk(color)
+        ctx.lineWidth = 1.5
+        ctx.beginPath()
+        ctx.arc(x, y + 32, 11.25, 0, Math.PI * 2)
+        ctx.stroke()
+      }
+      dot(100, match.homeColor)
+      dot(WIDTH - 100, match.awayColor)
 
       ctx.font = `600 32px ${FONT}`
       ctx.fillStyle = '#e8edf4'

@@ -119,7 +119,7 @@ export function ConfirmDialog({
         role="alertdialog"
         aria-modal="true"
         aria-label={title}
-        className="material relative w-full max-w-[270px] animate-alert-in overflow-hidden rounded-alert shadow-raised"
+        className="relative w-full max-w-[270px] animate-alert-in overflow-hidden rounded-alert bg-card shadow-raised"
       >
         <div className="max-h-[60dvh] overflow-y-auto px-4 pt-5 pb-4 text-center">
           <h2 className="text-headline text-ink">{title}</h2>

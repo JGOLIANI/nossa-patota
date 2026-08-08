@@ -35,6 +35,14 @@ Pages** (hospedagem com HTTPS, que o PWA exige).
 Em [supabase.com](https://supabase.com) crie um projeto gratuito e anote,
 em **Project Settings → API**, a *Project URL* e a chave *anon public*.
 
+A URL é a raiz do projeto — `https://seu-projeto.supabase.co` —, sem
+`/rest/v1` e sem barra no fim. O cliente do Supabase monta os caminhos
+sozinho; com o sufixo, o login vai bater em `/rest/v1/auth/v1/token` e falhar.
+
+A chave `anon public` é feita para ir no navegador: quem protege os dados é o
+RLS, não o segredo da chave. Já a `service_role` ignora o RLS inteiro e nunca
+pode sair do servidor.
+
 ### 2. Configure o aplicativo
 
 ```bash
@@ -50,6 +58,11 @@ npm run setup -- --check                       # só valida o que já existe
 npm run setup -- --demo                        # volta ao modo demonstração
 npm run setup -- --url=<URL> --key=<KEY> --yes # sem perguntas, para automação
 ```
+
+> Este passo configura **só a sua máquina**. O `.env` fica fora do Git, e o
+> `.env.example` é apenas um modelo — nenhum dos dois é lido pelo build que
+> publica o site. Quem alimenta o site publicado são os secrets do
+> repositório, no [passo 6](#6-deploy-automático).
 
 ### 3. Aplique o schema
 
@@ -120,10 +133,41 @@ próximas partidas sozinho, e os jogadores confirmam presença por conta própri
 
 ### 6. Deploy automático
 
-Em **Settings → Pages**, escolha *Source: GitHub Actions*. Em
-**Settings → Secrets and variables → Actions**, cadastre `VITE_SUPABASE_URL` e
-`VITE_SUPABASE_ANON_KEY`. Todo push na branch `main` roda lint, testes, build e
-publica o site.
+Em **Settings → Pages**, escolha *Source: GitHub Actions*. Enquanto essa opção
+não estiver marcada, o deploy falha com `Get Pages site failed. Please verify
+that the repository has Pages enabled` — o build passa e só a publicação
+quebra.
+
+Em **Settings → Secrets and variables → Actions**, cadastre os dois secrets:
+
+| Secret | Valor |
+| --- | --- |
+| `VITE_SUPABASE_URL` | `https://seu-projeto.supabase.co` |
+| `VITE_SUPABASE_ANON_KEY` | a chave `anon public` |
+
+Todo push na branch `main` roda lint, testes, build e publica o site. No plano
+gratuito o GitHub Pages exige repositório público; o endereço fica
+`https://<usuário>.github.io/<repositório>/`.
+
+Antes do build, o passo **Conferir credenciais** roda
+[`scripts/check-credentials.mjs`](scripts/check-credentials.mjs) e derruba o
+deploy quando as credenciais faltam, quando a URL vem com caminho ou quando a
+chave é a `service_role`. Sem essa guarda a falha é invisível: o build termina
+bem, o site publica e só quem abre o endereço descobre que caiu no modo
+demonstração.
+
+> Os secrets só entram em builds **novos**. Depois de cadastrá-los, republique
+> em **Actions → Deploy → Run workflow** — enquanto nenhum build novo rodar, o
+> que está no ar continua sendo o antigo, sem as credenciais.
+>
+> Se ainda assim o site abrir com a faixa *"Modo demonstração · dados só neste
+> aparelho"*, o culpado provável é o cache: o PWA guarda a versão anterior no
+> service worker. Recarregue com a página aberta em uma aba anônima, ou
+> desinstale e instale de novo o aplicativo no celular.
+
+> Para publicar de propósito sem banco — uma vitrine, um fork sem Supabase —
+> crie a variável (não secret) `ALLOW_DEMO_BUILD` com valor `1` em
+> **Settings → Secrets and variables → Actions → Variables**.
 
 > Prefere Vercel ou Netlify? Importe o repositório, informe as duas variáveis de
 > ambiente e pronto — nesse caso não defina `VITE_BASE`, que só é necessário no

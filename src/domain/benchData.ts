@@ -92,7 +92,7 @@ export function makeSnapshot(scale: BenchScale, seed = 7): Snapshot {
         round_id: roundId,
         position,
         name: position === 0 ? 'Time Verde' : 'Time Azul',
-        color: position === 0 ? '#22c55e' : '#3b82f6',
+        color: position === 0 ? '#000000' : '#ffffff',
       })
       return id
     })

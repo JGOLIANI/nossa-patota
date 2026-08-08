@@ -45,7 +45,6 @@ export interface AppActions {
   closeRound(roundId: string): Promise<void>
 
   createMatch(roundId: string, teamAId: string, teamBId: string): Promise<Match>
-  finishMatch(matchId: string): Promise<void>
   reopenMatch(matchId: string): Promise<void>
   deleteMatch(matchId: string): Promise<void>
 

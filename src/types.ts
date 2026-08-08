@@ -194,11 +194,23 @@ export const AWARD_SHORT_LABELS: Record<AwardType, string> = {
  */
 export const DEFAULT_PASSWORD = 'patota123'
 
+/**
+ * Os coletes da patota, na ordem em que são distribuídos.
+ *
+ * Preto e branco vêm primeiro porque são os dois times de toda partida — é o
+ * par que a quadra reconhece de longe, e o único que continua legível na foto
+ * do grupo, no print e em quem enxerga cor de um jeito diferente. Os demais
+ * ficam de reserva, para o caso de a patota passar a dividir mais times.
+ *
+ * Nenhuma das duas primeiras cores se sustenta sozinha: sobre o cartão branco
+ * o time branco some, sobre o fundo preto do tema escuro some o preto. Onde a
+ * cor aparece como bolinha ou faixa, ela vem sempre com um contorno.
+ */
 export const TEAM_PRESETS: Array<{ name: string; color: string }> = [
-  { name: 'Time Verde', color: '#22c55e' },
-  { name: 'Time Azul', color: '#3b82f6' },
+  { name: 'Time Preto', color: '#000000' },
+  { name: 'Time Branco', color: '#ffffff' },
   { name: 'Time Vermelho', color: '#ef4444' },
   { name: 'Time Amarelo', color: '#eab308' },
-  { name: 'Time Roxo', color: '#a855f7' },
-  { name: 'Time Laranja', color: '#f97316' },
+  { name: 'Time Azul', color: '#3b82f6' },
+  { name: 'Time Verde', color: '#22c55e' },
 ]

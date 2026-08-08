@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Avatar } from '../components/Avatar'
 import { ConfirmDialog, Modal } from '../components/Modal'
 import { Page } from '../components/Page'
@@ -14,10 +14,11 @@ import {
   Note,
   Switch,
   Tag,
+  TeamDot,
 } from '../components/ui'
 import { findMatch, findRound, findTeam, matchEvents, teamPlayers } from '../domain/selectors'
 import { cn } from '../lib/cn'
-import { readableInk } from '../lib/color'
+import { readableInk, teamSurface } from '../lib/color'
 import { firstName } from '../lib/format'
 import { useApp } from '../store/useApp'
 import type { Player } from '../types'
@@ -71,6 +72,7 @@ function PlayerPicker({
 
 export function LiveMatchPage() {
   const { matchId = '' } = useParams()
+  const navigate = useNavigate()
   const { snapshot, isAdmin, actions } = useApp()
 
   const [goalFor, setGoalFor] = useState<string | null>(null)
@@ -150,6 +152,31 @@ export function LiveMatchPage() {
     }
   }
 
+  /**
+   * Encerra a partida inteira, daqui mesmo.
+   *
+   * Antes este botão só congelava o placar: a rodada continuava aberta e os
+   * prêmios só saíam quando alguém voltava e encerrava de novo, num segundo
+   * botão de mesmo nome. Como cada rodada tem uma única partida, os dois
+   * passos eram sempre o mesmo ato — e o primeiro parecia não ter feito nada.
+   * `closeRound` já fecha as partidas em aberto antes de calcular os prêmios.
+   */
+  async function finish() {
+    if (!match) return
+    setConfirmFinish(false)
+    setBusy(true)
+    setError('')
+    try {
+      await actions.closeRound(match.round_id)
+      // Levar direto aos prêmios é o que mostra que encerrou de verdade.
+      navigate(`/rodadas/${match.round_id}`, { state: { tab: 'premios' }, replace: true })
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Não foi possível encerrar a partida.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <Page
       title={`Partida ${match.sequence}`}
@@ -169,11 +196,7 @@ export function LiveMatchPage() {
               <div key={team?.id ?? index} className="contents">
                 {index > 0 && <span aria-hidden="true" className="w-px bg-line" />}
                 <div className="min-w-0 flex-1 p-4 text-center">
-                  <span
-                    aria-hidden="true"
-                    className="mx-auto mb-2 block size-2.5 rounded-full"
-                    style={{ backgroundColor: team?.color }}
-                  />
+                  <TeamDot color={team?.color} className="mx-auto mb-2 block" />
                   <p className="truncate text-subhead text-muted">{team?.name}</p>
                   <p className="mt-1 font-rounded text-[44px] leading-none font-semibold tabular-nums text-ink">
                     {score}
@@ -199,7 +222,7 @@ export function LiveMatchPage() {
                 disabled={busy}
                 className="flex h-14 items-center justify-center gap-2 rounded-[14px] text-headline transition duration-200 ease-ios active:scale-[0.97] active:opacity-80 disabled:opacity-35"
                 style={{
-                  backgroundColor: team?.color ?? '#333',
+                  ...teamSurface(team?.color ?? '#333333'),
                   color: readableInk(team?.color ?? '#333333'),
                 }}
               >
@@ -228,7 +251,7 @@ export function LiveMatchPage() {
                     <span
                       aria-hidden="true"
                       className="absolute inset-y-2 left-0 w-1 rounded-r-full"
-                      style={{ backgroundColor: team?.color }}
+                      style={teamSurface(team?.color)}
                     />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-body text-ink">
@@ -261,8 +284,14 @@ export function LiveMatchPage() {
       {isAdmin && (
         <ActionBar>
           {live ? (
-            <Button size="lg" block variant="secondary" onClick={() => setConfirmFinish(true)}>
-              Encerrar partida
+            <Button
+              size="lg"
+              block
+              variant="secondary"
+              disabled={busy}
+              onClick={() => setConfirmFinish(true)}
+            >
+              {busy ? 'Encerrando…' : 'Encerrar partida'}
             </Button>
           ) : (
             <Button size="lg" block variant="secondary" onClick={() => actions.reopenMatch(match.id)}>
@@ -314,13 +343,10 @@ export function LiveMatchPage() {
       <ConfirmDialog
         open={confirmFinish}
         title="Encerrar partida"
-        message="O placar será congelado e as estatísticas dos jogadores passam a contar esta partida."
+        message="O placar será fechado, os prêmios calculados e as estatísticas atualizadas."
         confirmLabel="Encerrar"
         destructive={false}
-        onConfirm={() => {
-          setConfirmFinish(false)
-          actions.finishMatch(match.id)
-        }}
+        onConfirm={finish}
         onCancel={() => setConfirmFinish(false)}
       />
 
