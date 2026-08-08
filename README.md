@@ -331,7 +331,7 @@ Com um PostgreSQL local:
 ```bash
 psql -d patota -f supabase/tests/local_prelude.sql   # simula auth/storage do Supabase
 psql -d patota -f supabase/schema.sql
-psql -d patota -f supabase/tests/rls_test.sql        # 18 verificações
+psql -d patota -f supabase/tests/rls_test.sql        # 19 verificações
 ```
 
 ---

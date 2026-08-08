@@ -4,7 +4,7 @@ import { Page } from '../components/Page'
 import { IconPlus } from '../components/icons'
 import { Button, EmptyState, ListGroup, ListRow, Tag } from '../components/ui'
 import { roundEntries, roundMatches } from '../domain/selectors'
-import { formatDate } from '../lib/format'
+import { formatDate, plural } from '../lib/format'
 import { useApp } from '../store/useApp'
 
 const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
@@ -80,7 +80,7 @@ export function RoundsPage() {
                 title={round.title}
                 subtitle={
                   matches.length > 0
-                    ? `${roundEntries(snapshot, round.id).length} jogadores · ${matches.length} partidas · ${goals} gols`
+                    ? `${roundEntries(snapshot, round.id).length} jogadores · ${plural(matches.length, 'partida')} · ${plural(goals, 'gol', 'gols')}`
                     : `${roundEntries(snapshot, round.id).length} jogadores · ${formatDate(round.date)}`
                 }
                 trailing={

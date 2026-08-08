@@ -349,8 +349,11 @@ begin
       return;
     end if;
 
+    -- Sai do time junto: o sorteio já podia ter acontecido, e um desistente
+    -- com time continuaria na escalação e nas estatísticas da partida que ele
+    -- não jogou.
     update public.round_players
-       set attendance = 'fora', responded_at = now()
+       set attendance = 'fora', responded_at = now(), team_id = null
      where id = current_row.id;
 
     -- A vaga só abre se quem saiu realmente ocupava uma.
@@ -388,9 +391,11 @@ begin
     insert into public.round_players (round_id, player_id, attendance, responded_at)
     values (p_round_id, me, next_state, now());
   else
-    -- Quem desistiu e voltou entra no fim da fila, não no lugar antigo.
+    -- Quem desistiu e voltou entra no fim da fila, não no lugar antigo — e sem
+    -- time, porque o sorteio que o colocou em um já ficou para trás.
     update public.round_players
-       set attendance = next_state, responded_at = now()
+       set attendance = next_state, responded_at = now(),
+           team_id = case when next_state = 'confirmado' then team_id else null end
      where id = current_row.id;
   end if;
 end;

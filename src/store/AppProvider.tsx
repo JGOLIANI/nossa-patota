@@ -267,8 +267,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
             ended_at: new Date().toISOString(),
           }),
         ),
+      /**
+       * Reabre a partida e, se a rodada já estava encerrada, reabre a rodada
+       * junto.
+       *
+       * Uma partida em andamento sai das estatísticas — então deixar a rodada
+       * fechada guardava prêmios calculados sobre um placar que não conta
+       * mais, e sem o botão de encerrar não havia como refazê-los. Os prêmios
+       * são apagados aqui e recalculados quando a rodada for encerrada de novo.
+       */
       reopenMatch: (matchId) =>
-        run(() => backend.updateMatch(matchId, { status: 'em_andamento', ended_at: null })),
+        run(async () => {
+          await backend.updateMatch(matchId, { status: 'em_andamento', ended_at: null })
+          const current = snapshotRef.current
+          const match = current.matches.find((item) => item.id === matchId)
+          const round = match && current.rounds.find((item) => item.id === match.round_id)
+          if (round?.status !== 'encerrada') return
+          await backend.setAwards(round.id, [])
+          await backend.updateRound(round.id, { status: 'em_andamento', closed_at: null })
+        }),
       deleteMatch: (matchId) => run(() => backend.deleteMatch(matchId)),
 
       addGoal: (match: Match, input: Omit<EventInput, 'match_id'>) =>

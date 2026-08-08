@@ -1,7 +1,7 @@
 import type { Player, Snapshot } from '../types'
 import { computeRatings } from './balance'
 import { computeMatchLogs, computeStats, recentForm, type PlayerStats } from './stats'
-import { decimal, percent } from '../lib/format'
+import { decimal, percent, plural } from '../lib/format'
 
 export interface RankingEntry {
   playerId: string
@@ -129,7 +129,7 @@ export function buildRankings(snapshot: Snapshot, options: Options = {}): Rankin
     {
       key: 'aproveitamento',
       title: 'Aproveitamento',
-      description: `Pontos conquistados · mínimo de ${minMatches} partida(s)`,
+      description: `Pontos conquistados · mínimo de ${plural(minMatches, 'partida')}`,
       entries: rank(
         qualified(active),
         stats,

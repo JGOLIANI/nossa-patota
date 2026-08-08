@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Page } from '../components/Page'
 import { ActionBar, Button, Card, Field, Input, ListGroup, Note, Select } from '../components/ui'
 import { missingRoundDates, nextOccurrences } from '../domain/schedule'
-import { formatDate, todayISO } from '../lib/format'
+import { formatDate, plural, todayISO } from '../lib/format'
 import { useApp } from '../store/useApp'
 import { WEEKDAYS } from '../types'
 
@@ -47,7 +47,7 @@ export function SettingsPage() {
       await actions.updateSettings(patch)
       setMessage(
         pending > 0
-          ? `Agenda salva. ${pending} partida(s) criada(s) automaticamente.`
+          ? `Agenda salva. ${plural(pending, 'partida criada', 'partidas criadas')} automaticamente.`
           : 'Agenda salva.',
       )
     } catch (cause) {

@@ -368,3 +368,37 @@ begin
 
   raise notice 'OK 18 — o jogador desliga a marca de troca, mas nada além dela';
 end $$;
+
+-- 19. Quem desiste depois do sorteio sai do time.
+--
+-- Sem isso o desistente continuaria escalado: a escalação e as estatísticas
+-- da partida são montadas a partir do time, não da presença, então ele
+-- apareceria em campo e levaria vitória, derrota e gols sofridos de um jogo
+-- que não disputou.
+do $$
+declare
+  v_round uuid;
+  v_team uuid;
+  v_zeca uuid;
+begin
+  select id into v_round from public.rounds where title = 'Rodada teste';
+  select id into v_zeca from public.players where username = 'zeca';
+
+  insert into public.teams (round_id, position, name, color)
+  values (v_round, 0, 'Time teste', '#22c55e')
+  returning id into v_team;
+
+  update public.round_players set attendance = 'confirmado', team_id = v_team
+   where round_id = v_round and player_id = v_zeca;
+
+  perform set_config('request.jwt.claim.sub',
+                     (select user_id::text from public.players where id = v_zeca), true);
+  perform public.respond_attendance(v_round, 'fora');
+
+  if (select team_id from public.round_players
+       where round_id = v_round and player_id = v_zeca) is not null then
+    raise exception 'FALHOU: o desistente continuou escalado no time';
+  end if;
+
+  raise notice 'OK 19 — quem desiste depois do sorteio sai do time';
+end $$;

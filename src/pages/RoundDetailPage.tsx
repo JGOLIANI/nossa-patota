@@ -178,21 +178,31 @@ export function RoundDetailPage() {
 
         {tab === 'times' &&
           (teams.length === 0 ? (
-            <EmptyState
-              title="Times ainda não sorteados"
-              description={
-                isAdmin
-                  ? 'O sorteio divide quem confirmou em dois times e já abre o placar.'
-                  : 'O administrador ainda não sorteou as equipes.'
-              }
-              action={
-                isAdmin ? (
-                  <Button onClick={() => setConfirm('sortear')}>
-                    <IconShuffle className="size-5" /> Sortear times
-                  </Button>
-                ) : undefined
-              }
-            />
+            <>
+              <EmptyState
+                title="Times ainda não sorteados"
+                description={
+                  isAdmin
+                    ? 'O sorteio divide quem confirmou em dois times e já abre o placar.'
+                    : 'O administrador ainda não sorteou as equipes.'
+                }
+                action={
+                  isAdmin ? (
+                    <Button onClick={() => setConfirm('sortear')}>
+                      <IconShuffle className="size-5" /> Sortear times
+                    </Button>
+                  ) : undefined
+                }
+              />
+
+              {/* A partida que não vai acontecer também precisa sair da lista —
+                  e a agenda cria semanas inteiras que às vezes não vingam. */}
+              {isAdmin && (
+                <Button variant="quiet" block destructive onClick={() => setConfirm('excluir')}>
+                  Excluir partida
+                </Button>
+              )}
+            </>
           ) : (
             <>
               {matches.length > 0 && (
