@@ -1,5 +1,5 @@
 import { playerMap, roundEntries } from './selectors'
-import type { Attendance, Player, RoundPlayer, Snapshot } from '../types'
+import type { Attendance, Player, Snapshot } from '../types'
 
 /**
  * Confirmação de presença.
@@ -112,17 +112,6 @@ export function confirmedPlayers(snapshot: Snapshot, roundId: string): Player[] 
     .sort((a, b) => a.responded_at.localeCompare(b.responded_at))
     .map((rp) => byId.get(rp.player_id))
     .filter((player) => player !== undefined)
-}
-
-/** Resposta de um jogador específico, ou `null` se ele ainda não respondeu. */
-export function attendanceOf(
-  rows: RoundPlayer[],
-  roundId: string,
-  playerId: string,
-): Attendance | null {
-  return (
-    rows.find((row) => row.round_id === roundId && row.player_id === playerId)?.attendance ?? null
-  )
 }
 
 /** Resumo curto do estado das confirmações, para cabeçalhos. */

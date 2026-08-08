@@ -103,7 +103,6 @@
      forte diluída, para que a etiqueta não deixe passar o que está atrás. */
   --color-win: #248a3d;
   --color-win-soft: #e4f2e8;
-  --color-draw: #8e8e93; /* systemGray */
   --color-loss: #ff3b30; /* systemRed */
   --color-loss-soft: #ffe9e7;
   --color-warn: #b25000; /* systemOrange, legível sobre claro */
@@ -198,7 +197,6 @@
 
     --color-win: #30d158;
     --color-win-soft: #16341f;
-    --color-draw: #98989f;
     --color-loss: #ff453a;
     --color-loss-soft: #3a1a18;
     --color-warn: #ff9f0a;
