@@ -10,6 +10,7 @@ import {
   Input,
   ListGroup,
   ListRow,
+  LoadingScreen,
   Note,
   Stat,
   StatRow,
@@ -18,13 +19,24 @@ import { percent } from '../lib/format'
 import { useApp } from '../store/useApp'
 
 export function ProfilePage() {
-  const { currentPlayer, stats, isAdmin, demoMode, signOut, changePassword, actions } = useApp()
+  const { currentPlayer, stats, isAdmin, demoMode, hydrated, signOut, changePassword, actions } =
+    useApp()
   const fileInput = useRef<HTMLInputElement>(null)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [password, setPassword] = useState('')
   const [passwordOpen, setPasswordOpen] = useState(false)
   const [busy, setBusy] = useState(false)
+
+  // Mesma razão do guarda de administrador: sem o acervo carregado a ficha
+  // ainda não foi encontrada, e dizer que ela não existe seria mentira.
+  if (!hydrated) {
+    return (
+      <Page title="Perfil" back>
+        <LoadingScreen />
+      </Page>
+    )
+  }
 
   if (!currentPlayer) {
     return (

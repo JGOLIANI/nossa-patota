@@ -14,7 +14,7 @@ import {
   Tag,
 } from '../components/ui'
 import { attendanceSummary } from '../domain/attendance'
-import { upcomingRound } from '../domain/schedule'
+import { liveRound, upcomingRound } from '../domain/schedule'
 import { highlightRound, roundEntries, roundMatches } from '../domain/selectors'
 import { firstName, formatDate, formatWeekday, percent, plural, todayISO } from '../lib/format'
 import { useApp } from '../store/useApp'
@@ -23,9 +23,14 @@ export function HomePage() {
   const { snapshot, currentPlayer, isAdmin, stats } = useApp()
   const navigate = useNavigate()
 
-  // A próxima partida em aberto é o que interessa; só quando não há nenhuma
-  // é que a tela cai para a última encerrada.
-  const round = upcomingRound(snapshot.rounds, todayISO()) ?? highlightRound(snapshot)
+  // Nesta ordem: a partida que está rolando, a próxima em aberto e, sem
+  // nenhuma das duas, a última encerrada. O jogo de ontem que ninguém encerrou
+  // vinha por último e sumia atrás do rascunho da semana seguinte — justo ele,
+  // o único com o placar ainda aberto.
+  const round =
+    liveRound(snapshot.rounds, todayISO()) ??
+    upcomingRound(snapshot.rounds, todayISO()) ??
+    highlightRound(snapshot)
   const myStats = currentPlayer ? stats.get(currentPlayer.id) : undefined
   const playedInGoal = (myStats?.keeperMatches ?? 0) > 0
 

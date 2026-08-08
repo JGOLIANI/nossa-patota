@@ -118,14 +118,21 @@ export function computeRoundAwards(snapshot: Snapshot, roundId: string): RoundAw
   const bestPool = outcome.draw ? line : fromTeam(outcome.winner)
   const worstPool = outcome.draw ? line : fromTeam(outcome.loser)
 
-  const topScore = bestPool.length
-    ? Math.max(...bestPool.map((entry) => entry.participations))
-    : 0
+  /**
+   * Sem nenhuma participação em gol no lado avaliado não há o que premiar.
+   *
+   * Vale para os dois prêmios de linha, que são simétricos: se todo mundo ali
+   * está em zero, ninguém se destacou — nem para bem nem para mal. Sem esta
+   * guarda a Bola Murcha ia para o time perdedor inteiro numa derrota sem
+   * gols, e para quase todo mundo num empate magro; um prêmio que cabe em
+   * sete dos dez jogadores não diz nada sobre nenhum deles.
+   */
+  const stood = (pool: PlayerStats[]) =>
+    pool.length > 0 && Math.max(...pool.map((entry) => entry.participations)) > 0
 
   return {
-    // Sem nenhuma participação em gol não há o que premiar.
-    jogador_rodada: topScore > 0 ? bestBy(bestPool, (s) => s.participations, 'max') : [],
-    pior_jogador: bestBy(worstPool, (s) => s.participations, 'min'),
+    jogador_rodada: stood(bestPool) ? bestBy(bestPool, (s) => s.participations, 'max') : [],
+    pior_jogador: stood(worstPool) ? bestBy(worstPool, (s) => s.participations, 'min') : [],
     goleiro_menos_vazado: bestBy(keepers, (s) => s.goalsAgainst, 'min'),
   }
 }

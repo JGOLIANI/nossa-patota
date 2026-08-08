@@ -56,7 +56,8 @@ npm run setup -- --url=<URL> --key=<KEY> --yes # sem perguntas, para automação
 No painel do Supabase abra **SQL Editor → New query**, cole todo o conteúdo de
 [`supabase/schema.sql`](supabase/schema.sql) e execute. O arquivo cria as
 tabelas, os índices, as políticas de segurança (RLS), a função de confirmação
-de presença e o bucket de fotos. Pode ser reaplicado quantas vezes quiser: não
+de presença e o bucket de fotos — onde cada jogador só escreve na própria
+pasta. Pode ser reaplicado quantas vezes quiser: não
 apaga nada do que já existe.
 
 ### 4. Desligue a confirmação de e-mail
@@ -200,6 +201,12 @@ motivos: promover alguém da espera altera a linha de outro jogador, o que as
 políticas de segurança impediriam; e uma trava por partida evita que duas
 pessoas confirmando ao mesmo tempo ocupem a mesma última vaga.
 
+Mudar o dia da patota recolhe o que a agenda antiga tinha deixado: as partidas
+futuras do dia velho que ninguém tocou — ainda em rascunho, sem uma única
+resposta de presença — saem junto com a troca. Basta alguém ter confirmado ou o
+administrador ter sorteado os times para a partida ficar de pé; apagá-la passa
+a ser decisão dele.
+
 > As partidas futuras são materializadas quando um administrador abre o
 > aplicativo — planos gratuitos não executam tarefas agendadas no servidor.
 
@@ -230,9 +237,13 @@ Os dois prêmios de linha são simétricos, cada um preso ao seu lado do placar.
 
 No empate não há vencedor nem derrotado, então os dois prêmios passam a olhar
 a partida inteira: o melhor é quem mais participou de gols entre todos, o pior é
-quem menos participou. Empates dentro do prêmio devolvem todos os empatados. Se
-o time vencedor não participou de nenhum gol — um 1 a 0 de gol contra, por
-exemplo — não há Craque da Partida.
+quem menos participou. Empates dentro do prêmio devolvem todos os empatados.
+
+Quando ninguém do lado avaliado participou de gol, o prêmio simplesmente não
+sai — vale para os dois, como manda a simetria. Um 1 a 0 de gol contra não tem
+Craque da Partida, e uma derrota sem nenhum gol do time não tem Bola Murcha:
+se todo mundo ali está em zero, ninguém se destacou, e um prêmio que cabe no
+time inteiro não diz nada sobre nenhum dos premiados.
 
 ### Goleiro que joga na linha
 
@@ -331,7 +342,7 @@ Com um PostgreSQL local:
 ```bash
 psql -d patota -f supabase/tests/local_prelude.sql   # simula auth/storage do Supabase
 psql -d patota -f supabase/schema.sql
-psql -d patota -f supabase/tests/rls_test.sql        # 19 verificações
+psql -d patota -f supabase/tests/rls_test.sql        # 21 verificações
 ```
 
 ---

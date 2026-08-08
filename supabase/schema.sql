@@ -549,21 +549,49 @@ insert into storage.buckets (id, name, public)
 values ('avatars', 'avatars', true)
 on conflict (id) do nothing;
 
+-- A foto é enviada em `<id do jogador>/<momento>.jpg`, e é a primeira pasta do
+-- caminho que diz de quem ela é. Escrever fora da própria pasta é o que esta
+-- função recusa: sem ela, qualquer pessoa da patota podia trocar ou apagar a
+-- foto de qualquer outra. O administrador continua podendo tudo, para limpar
+-- o que precisar.
+create or replace function public.owns_avatar(p_path text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select public.is_admin() or exists (
+    select 1 from public.players
+     where user_id = auth.uid()
+       and id::text = split_part(coalesce(p_path, ''), '/', 1)
+  );
+$$;
+
+revoke all on function public.owns_avatar(text) from public;
+grant execute on function public.owns_avatar(text) to authenticated;
+
+-- A leitura é aberta de propósito: o bucket é público e as fotos aparecem em
+-- listas, cartões e nas imagens geradas para o WhatsApp.
 drop policy if exists avatars_read on storage.objects;
 create policy avatars_read on storage.objects
 for select using (bucket_id = 'avatars');
 
 drop policy if exists avatars_insert on storage.objects;
 create policy avatars_insert on storage.objects
-for insert to authenticated with check (bucket_id = 'avatars');
+for insert to authenticated
+with check (bucket_id = 'avatars' and public.owns_avatar(name));
 
 drop policy if exists avatars_update on storage.objects;
 create policy avatars_update on storage.objects
-for update to authenticated using (bucket_id = 'avatars');
+for update to authenticated
+using (bucket_id = 'avatars' and public.owns_avatar(name))
+with check (bucket_id = 'avatars' and public.owns_avatar(name));
 
 drop policy if exists avatars_delete on storage.objects;
 create policy avatars_delete on storage.objects
-for delete to authenticated using (bucket_id = 'avatars');
+for delete to authenticated
+using (bucket_id = 'avatars' and public.owns_avatar(name));
 
 -- ------------------------------------------------------- primeiro usuário --
 

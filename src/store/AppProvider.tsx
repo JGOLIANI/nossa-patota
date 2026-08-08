@@ -4,7 +4,7 @@ import type { AwardInput, EventInput, PlayerInput, RoundInput } from '../data/ty
 import { confirmedPlayers, rebalanceWaitlist } from '../domain/attendance'
 import { computeRoundAwards } from '../domain/awards'
 import { generateTeams, seedFromString } from '../domain/balance'
-import { missingRoundDates, roundTitle } from '../domain/schedule'
+import { missingRoundDates, roundTitle, staleRoundIds } from '../domain/schedule'
 import { scoreFromEvents } from '../domain/score'
 import { computeMatchLogs, computeStats } from '../domain/stats'
 import { todayISO } from '../lib/format'
@@ -24,6 +24,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [snapshot, setSnapshot] = useState<Snapshot>(EMPTY_SNAPSHOT)
   const [ready, setReady] = useState(false)
   const [loading, setLoading] = useState(false)
+  // De qual sessão é o acervo que está em mãos.
+  //
+  // A sessão chega antes do acervo, e sem saber que a primeira leitura já
+  // terminou as telas leem "ninguém é administrador" e "esta conta não tem
+  // ficha" de um snapshot ainda vazio — e piscam a resposta errada. Guardar o
+  // dono, e não um sim/não, também cobre a troca de conta: o acervo de quem
+  // saiu não vale como carregado para quem entrou.
+  const [hydratedFor, setHydratedFor] = useState<string | null>(null)
 
   // Espelho do snapshot para as ações lerem o estado mais recente sem
   // recriar os callbacks a cada atualização.
@@ -75,7 +83,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         snapshotRef.current = data
         setSnapshot(data)
       } finally {
-        if (active) setLoading(false)
+        // Também quando a leitura falha: a espera acabou de todo jeito, e
+        // seguir girando prenderia a pessoa numa tela que não sai mais.
+        if (active) {
+          setLoading(false)
+          setHydratedFor(session.id)
+        }
       }
     }
 
@@ -131,10 +144,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       updateSettings: (patch: Partial<PatotaSettings>) =>
         run(async () => {
+          const previous = snapshotRef.current.settings
           await backend.updateSettings(patch)
-          // A agenda mudou: refaz a lista de rodadas futuras antes de seguir.
-          snapshotRef.current = await backend.fetchAll()
-          await createMissingRounds()
+
+          // A agenda mudou: as rodadas do dia antigo que ninguém tocou saem, e
+          // as do dia novo entram. Sem a limpeza a lista de partidas ia
+          // acumulando dias em que ninguém mais joga.
+          let fresh = await backend.fetchAll()
+          const stale = staleRoundIds({
+            rounds: fresh.rounds,
+            answered: new Set(fresh.roundPlayers.map((rp) => rp.round_id)),
+            previousWeekday: previous.weekday,
+            nextWeekday: fresh.settings.weekday,
+            todayISO: todayISO(),
+          })
+          for (const roundId of stale) await backend.deleteRound(roundId)
+          if (stale.length > 0) fresh = await backend.fetchAll()
+
+          snapshotRef.current = fresh
+          return { created: await createMissingRounds(), removed: stale.length }
         }),
 
       ensureUpcomingRounds: () =>
@@ -320,6 +348,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [session, snapshot.players])
 
   const isAdmin = currentPlayer?.role === 'admin'
+  const hydrated = session !== null && hydratedFor === session.id
 
   // O administrador é quem tem permissão de escrita, então é ao abrir o
   // aplicativo dele que as próximas rodadas da agenda são materializadas.
@@ -336,6 +365,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const value: AppValue = {
     ready,
     loading,
+    hydrated,
     demoMode: isDemoMode,
     session,
     snapshot,
