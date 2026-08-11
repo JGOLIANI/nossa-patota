@@ -9,29 +9,13 @@ com ferramentas gratuitas e instalável na tela inicial do celular.
 </p>
 
 ---
-
-## Experimente agora, sem configurar nada
-
-```bash
-npm install
-npm run dev
-```
-
-Sem credenciais do Supabase o aplicativo abre em **modo demonstração**: uma
-patota fictícia com 14 jogadores, 3 partidas já jogadas e uma partida aberta para
-confirmar presença, guardada apenas no navegador. Entre com o usuário `admin`
-(administrador) ou `igor` (jogador comum) e qualquer senha.
-
----
-
-
-### 5.3. Defina a agenda
+### Defina a agenda
 
 Em **Perfil → Administração → Agenda da patota**, informe o dia da semana, o
 horário, o local e quantas vagas a partida tem. O sistema passa a criar as
 próximas partidas sozinho, e os jogadores confirmam presença por conta própria.
 
-### 7. Instale no celular
+### Instale no celular
 
 - **Android (Chrome):** menu ⋮ → *Adicionar à tela inicial*.
 - **iPhone (Safari):** botão Compartilhar → *Adicionar à Tela de Início*.
