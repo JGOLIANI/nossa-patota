@@ -133,6 +133,8 @@
   --animate-fade-in: fade-in 0.24s var(--ease-ios) both;
   --animate-sheet-in: sheet-in 0.4s var(--ease-ios) both;
   --animate-alert-in: alert-in 0.26s var(--ease-ios) both;
+  /* O balão de notificação do iOS desce de trás da barra de status. */
+  --animate-banner-in: banner-in 0.44s var(--ease-ios) both;
   --animate-pulse-dot: pulse-dot 1.6s ease-in-out infinite;
 
   @keyframes fade-in {
@@ -149,6 +151,17 @@
       transform: translateY(100%);
     }
     to {
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes banner-in {
+    from {
+      opacity: 0;
+      transform: translateY(calc(-100% - 1rem));
+    }
+    to {
+      opacity: 1;
       transform: translateY(0);
     }
   }

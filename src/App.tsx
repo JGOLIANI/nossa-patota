@@ -1,4 +1,5 @@
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { InstallBanner } from './components/InstallBanner'
 import { Layout } from './components/Layout'
 import { RequireAdmin, RequireAuth, RequirePasswordChange } from './components/guards'
 import { AdminPage } from './pages/AdminPage'
@@ -18,6 +19,9 @@ import { AppProvider } from './store/AppProvider'
 export function App() {
   return (
     <AppProvider>
+      {/* Fora das rotas: o convite para instalar é da abertura do app, não de
+          uma tela — vale inclusive na de entrar. */}
+      <InstallBanner />
       <HashRouter>
         <Routes>
           <Route path="/entrar" element={<LoginPage />} />
