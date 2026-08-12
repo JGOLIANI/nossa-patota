@@ -4,6 +4,7 @@ import {
   detectPlatform,
   isAppInstalled,
   manualInstallHint,
+  manualInstallSteps,
   readInstallPromptOutcome,
   saveInstallPromptOutcome,
   shouldInviteInstall,
@@ -114,6 +115,34 @@ describe('caminho manual de instalação', () => {
   it('sempre tem algo a dizer', () => {
     for (const userAgent of Object.values(UA)) {
       expect(manualInstallHint(facts({ userAgent })).length).toBeGreaterThan(0)
+    }
+  })
+})
+
+describe('passo a passo da instalação', () => {
+  it('no iPhone começa pelo botão Compartilhar, com o ícone dele', () => {
+    const steps = manualInstallSteps(facts({ userAgent: UA.iphoneSafari }))
+    expect(steps[0].icon).toBe('share')
+    expect(steps[0].text).toContain('Compartilhar')
+    expect(steps.some((step) => step.text.includes('Adicionar à Tela de Início'))).toBe(true)
+  })
+
+  it('no Android começa pelo menu do navegador', () => {
+    const steps = manualInstallSteps(facts({ userAgent: UA.androidChrome }))
+    expect(steps[0].icon).toBe('menu')
+    expect(steps.some((step) => step.text.includes('tela inicial'))).toBe(true)
+  })
+
+  it('no Chrome do computador aponta o ícone da barra de endereço', () => {
+    const steps = manualInstallSteps(facts({ userAgent: UA.windowsChrome, maxTouchPoints: 0 }))
+    expect(steps[0].icon).toBe('install')
+  })
+
+  it('todo navegador recebe passos, e nenhum passo vem vazio', () => {
+    for (const userAgent of Object.values(UA)) {
+      const steps = manualInstallSteps(facts({ userAgent }))
+      expect(steps.length).toBeGreaterThan(1)
+      for (const step of steps) expect(step.text.trim().length).toBeGreaterThan(0)
     }
   })
 })
