@@ -18,9 +18,11 @@ próximas partidas sozinho, e os jogadores confirmam presença por conta própri
 ### Instale no celular
 
 Na primeira abertura o app desce um balão no topo da tela convidando a
-instalá-lo. No Chrome e no Edge o balão traz o botão que abre o diálogo de
-instalação; nos navegadores sem esse diálogo — Safari, Firefox e tudo que roda
-no iPhone — ele mostra o caminho do menu:
+instalá-lo, e o balão inteiro é tocável. No Chrome e no Edge o toque abre o
+diálogo de instalação do próprio navegador — um toque e o ícone está na tela
+de início. Safari, Firefox e todos os navegadores do iPhone não dão a nenhuma
+página o poder de se instalar sozinha; neles o toque abre o passo a passo, e o
+caminho é este:
 
 - **Android (Chrome):** menu ⋮ → *Adicionar à tela inicial*.
 - **iPhone (Safari):** botão Compartilhar → *Adicionar à Tela de Início*.

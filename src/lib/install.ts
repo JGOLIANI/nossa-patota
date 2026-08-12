@@ -109,6 +109,68 @@ export function manualInstallHint(facts: BrowserFacts): string {
   return 'Clique no ícone de instalar, no fim da barra de endereço.'
 }
 
+/** Um ícone do próprio navegador, desenhado dentro do passo que fala dele. */
+export type StepIcon = 'share' | 'menu' | 'install'
+
+export interface InstallStep {
+  text: string
+  icon?: StepIcon
+}
+
+/**
+ * O mesmo caminho manual, agora passo a passo, para quem tocou no convite
+ * querendo que ele fizesse o trabalho.
+ *
+ * Nenhum navegador deixa uma página abrir sozinha o “Adicionar à Tela de
+ * Início” — no iPhone não existe API para isso, e é por aí que a maior parte
+ * da patota vai passar. Como não dá para executar, resta ensinar bem: o
+ * ícone que a pessoa tem que procurar aparece desenhado ao lado do passo.
+ */
+export function manualInstallSteps(facts: BrowserFacts): InstallStep[] {
+  const platform = detectPlatform(facts)
+  const browser = detectBrowser(facts.userAgent)
+
+  if (platform === 'ios') {
+    return [
+      { icon: 'share', text: 'Toque em Compartilhar, na barra do navegador.' },
+      { text: 'Deslize a lista até “Adicionar à Tela de Início” e toque.' },
+      { text: 'Confirme em “Adicionar”. O ícone fica junto dos seus outros apps.' },
+    ]
+  }
+
+  if (platform === 'android') {
+    return [
+      { icon: 'menu', text: 'Abra o menu do navegador.' },
+      {
+        text:
+          browser === 'firefox'
+            ? 'Escolha “Instalar”.'
+            : 'Escolha “Instalar aplicativo” ou “Adicionar à tela inicial”.',
+      },
+      { text: 'Confirme. O ícone fica junto dos seus outros apps.' },
+    ]
+  }
+
+  if (browser === 'safari') {
+    return [
+      { text: 'No menu Arquivo do Safari, escolha “Adicionar ao Dock”.' },
+      { text: 'Confirme em “Adicionar”. O app aparece no Dock.' },
+    ]
+  }
+
+  if (browser === 'firefox') {
+    return [
+      { text: 'O Firefox no computador não instala aplicativos web.' },
+      { text: 'Abra o app no Chrome, no Edge ou no Safari para instalá-lo.' },
+    ]
+  }
+
+  return [
+    { icon: 'install', text: 'Clique no ícone de instalar, no fim da barra de endereço.' },
+    { text: 'Confirme em “Instalar”. O app abre em janela própria.' },
+  ]
+}
+
 /* -------------------------------------------------------------- Memória ---- */
 
 export const INSTALL_PROMPT_KEY = 'patota.convite-instalar.v1'

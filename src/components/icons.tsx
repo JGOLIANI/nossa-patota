@@ -156,6 +156,24 @@ export const IconShare = (props: IconProps) => (
   </Base>
 )
 
+/** Os três pontos do menu do navegador, para as instruções de instalação. */
+export const IconMenuDots = (props: IconProps) => (
+  <Base {...props}>
+    <circle cx="12" cy="5" r="1.4" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="19" r="1.4" fill="currentColor" stroke="none" />
+  </Base>
+)
+
+/** O ícone de instalar que o Chrome mostra no fim da barra de endereço. */
+export const IconInstall = (props: IconProps) => (
+  <Base {...props}>
+    <rect x="3" y="4" width="18" height="13" rx="2" />
+    <path d="M8 21h8" />
+    <path d="M12 7v6m-2.5-2.5L12 13l2.5-2.5" />
+  </Base>
+)
+
 export const IconGlove = (props: IconProps) => (
   <Base {...props}>
     <path d="M6 21V9.5a1.8 1.8 0 0 1 3.6 0V11V5.2a1.8 1.8 0 0 1 3.6 0V11V6.6a1.8 1.8 0 0 1 3.6 0V13c0 4-1.6 8-4.4 8H6Z" />
