@@ -17,6 +17,11 @@ próximas partidas sozinho, e os jogadores confirmam presença por conta própri
 
 ### Instale no celular
 
+Na primeira abertura o app desce um balão no topo da tela convidando a
+instalá-lo. No Chrome e no Edge o balão traz o botão que abre o diálogo de
+instalação; nos navegadores sem esse diálogo — Safari, Firefox e tudo que roda
+no iPhone — ele mostra o caminho do menu:
+
 - **Android (Chrome):** menu ⋮ → *Adicionar à tela inicial*.
 - **iPhone (Safari):** botão Compartilhar → *Adicionar à Tela de Início*.
 
