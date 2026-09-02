@@ -483,7 +483,10 @@ begin
   if round_row.status <> 'encerrada' or round_row.closed_at is null then
     raise exception 'A votação abre quando a partida é encerrada.';
   end if;
-  if now() > round_row.closed_at + interval '16 hours' then
+  -- Fecham a urna duas coisas: o prazo, que corre sozinho, e a apuração, que
+  -- o administrador pode antecipar quando todo mundo já votou.
+  if round_row.awards_settled_at is not null
+     or now() > round_row.closed_at + interval '16 hours' then
     raise exception 'A votação desta partida já foi encerrada.';
   end if;
 
@@ -525,8 +528,9 @@ begin
   end if;
 
   select * into round_row from public.rounds where id = p_round_id;
-  if round_row.closed_at is not null
-     and now() > round_row.closed_at + interval '16 hours' then
+  if round_row.awards_settled_at is not null
+     or (round_row.closed_at is not null
+         and now() > round_row.closed_at + interval '16 hours') then
     raise exception 'A votação desta partida já foi encerrada.';
   end if;
 

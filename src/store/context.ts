@@ -68,6 +68,12 @@ export interface AppActions {
   editGoal(match: Match, eventId: string, input: Omit<EventInput, 'match_id'>): Promise<void>
   removeEvent(match: Match, eventId: string): Promise<void>
 
+  /**
+   * Apura os prêmios antes do prazo de 16 horas e, com isso, fecha a urna.
+   * Só administradores conseguem gravar.
+   */
+  closeVoting(roundId: string): Promise<void>
+
   /** Voto do próprio jogador. Votar de novo troca o voto anterior. */
   castVote(roundId: string, type: AwardType, playerId: string): Promise<void>
   clearVote(roundId: string, type: AwardType): Promise<void>

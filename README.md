@@ -147,10 +147,17 @@ Os dois prêmios de linha são simétricos, cada um preso ao seu lado do placar.
 No empate os dois passam a olhar a partida inteira. Empates dentro do prêmio
 devolvem todos os empatados.
 
-A urna fecha pelo relógio, mas gravar o resultado é escrita, e escrita precisa
-de permissão — então a apuração acontece quando um administrador abre o
-aplicativo depois do prazo. Até lá as telas mostram a mesma apuração calculada
-na hora, então ninguém vê número diferente do que vai ser gravado.
+Fecham a urna duas coisas. O prazo corre sozinho, e o administrador pode
+**encerrar antes**, pela aba Prêmios — quando todo mundo já votou, o resultado
+fica preso por horas sem motivo, e é logo depois do jogo que a patota quer ver
+o pódio. A confirmação diz quantos já votaram; encerrar é definitivo e o
+servidor passa a recusar voto novo.
+
+Apurar é encerrar: a marca da apuração fecha a votação nos dois casos. Gravar o
+resultado é escrita, e escrita precisa de permissão — então, quando o prazo
+vence sozinho, a apuração acontece na primeira vez que um administrador abre o
+aplicativo. Até lá as telas mostram a mesma apuração calculada na hora, então
+ninguém vê número diferente do que vai ser gravado.
 
 > Quem pode votar, em quem, e até quando são regras do servidor, na função
 > `cast_vote`: no navegador seriam só uma sugestão.

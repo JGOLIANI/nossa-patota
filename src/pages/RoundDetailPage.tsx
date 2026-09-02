@@ -23,7 +23,7 @@ import {
   TeamDot,
 } from '../components/ui'
 import { attendanceLists } from '../domain/attendance'
-import { votingDeadline, votingState } from '../domain/awards'
+import { voterTurnout, votingDeadline, votingState } from '../domain/awards'
 import {
   findRound,
   playerMap,
@@ -57,7 +57,9 @@ export function RoundDetailPage() {
   const [tab, setTab] = useState<Tab>(requested ?? (teams.length > 0 ? 'times' : 'presenca'))
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const [confirm, setConfirm] = useState<'sortear' | 'encerrar' | 'excluir' | null>(null)
+  const [confirm, setConfirm] = useState<'sortear' | 'encerrar' | 'excluir' | 'apurar' | null>(
+    null,
+  )
   const [addPlayer, setAddPlayer] = useState(false)
   const [building, setBuilding] = useState(false)
 
@@ -72,6 +74,7 @@ export function RoundDetailPage() {
   const closed = round.status === 'encerrada'
   const voting = votingState(round)
   const deadline = votingDeadline(round)
+  const turnout = voterTurnout(snapshot, roundId)
   const byId = playerMap(snapshot)
   const rows = roundEntries(snapshot, roundId)
   const lists = attendanceLists(rows)
@@ -345,11 +348,27 @@ export function RoundDetailPage() {
               (voting === 'encerrada' ? (
                 <ShareRound round={round} kind="resultado" />
               ) : voting === 'aberta' ? (
-                <Note>
-                  O resultado pode ser compartilhado quando a votação terminar, em{' '}
-                  {deadline ? timeLeft(deadline) : '—'}. Se ninguém votar, os prêmios saem pelas
-                  estatísticas da partida.
-                </Note>
+                <>
+                  <Note>
+                    O resultado pode ser compartilhado quando a votação terminar, em{' '}
+                    {deadline ? timeLeft(deadline) : '—'}. Se ninguém votar, os prêmios saem pelas
+                    estatísticas da partida.
+                  </Note>
+
+                  {/* O relógio resolve o caso comum, mas quando todo mundo já
+                      votou o resultado fica preso por horas sem motivo — e é
+                      logo depois do jogo que a patota quer ver o pódio. */}
+                  {isAdmin && (
+                    <Button
+                      variant="secondary"
+                      block
+                      onClick={() => setConfirm('apurar')}
+                      disabled={busy}
+                    >
+                      Encerrar votação agora
+                    </Button>
+                  )}
+                </>
               ) : null)}
           </>
         )}
@@ -436,6 +455,19 @@ export function RoundDetailPage() {
             await actions.closeRound(roundId)
             setTab('premios')
           })
+        }}
+        onCancel={() => setConfirm(null)}
+      />
+
+      <ConfirmDialog
+        open={confirm === 'apurar'}
+        title="Encerrar votação"
+        message={`${turnout.voted} de ${turnout.total} já votaram. Os prêmios são apurados agora e ninguém mais consegue votar nesta partida.`}
+        confirmLabel="Encerrar"
+        destructive={false}
+        onConfirm={() => {
+          setConfirm(null)
+          guard(() => actions.closeVoting(roundId))
         }}
         onCancel={() => setConfirm(null)}
       />

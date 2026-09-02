@@ -233,6 +233,15 @@ describe('votação dos prêmios', () => {
     expect(votingState(round, after)).toBe('encerrada')
   })
 
+  it('a apuração fecha a urna antes do prazo', () => {
+    const round = closedScenario().rounds[0]
+    expect(votingState(round, during)).toBe('aberta')
+
+    // É o que o administrador faz ao encerrar antes: apurar é encerrar.
+    round.awards_settled_at = '2026-01-11T00:30:00.000Z'
+    expect(votingState(round, during)).toBe('encerrada')
+  })
+
   it('vota quem foi escalado, e só ele', () => {
     const snapshot = closedScenario()
     // Quem confirmou mas ficou fora dos times não entra na urna.

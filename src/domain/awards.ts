@@ -36,9 +36,18 @@ export function votingDeadline(round: Round): Date | null {
   return new Date(closed.getTime() + VOTING_WINDOW_HOURS * 3600_000)
 }
 
+/**
+ * Em que pé está a urna.
+ *
+ * Fecham a votação duas coisas, e a apuração é quem une as duas: o prazo, que
+ * corre sozinho, e o administrador, que pode apurar antes quando todo mundo
+ * já votou e o resultado está preso só pelo relógio. Apurar é encerrar — por
+ * isso a marca da apuração basta aqui, venha ela de onde vier.
+ */
 export function votingState(round: Round, now: Date = new Date()): VotingState {
   const deadline = votingDeadline(round)
   if (round.status !== 'encerrada' || !deadline) return 'nao-comecou'
+  if (round.awards_settled_at) return 'encerrada'
   return now < deadline ? 'aberta' : 'encerrada'
 }
 

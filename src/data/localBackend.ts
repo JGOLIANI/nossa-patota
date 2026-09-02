@@ -14,6 +14,7 @@ import type {
   Snapshot,
   Team,
 } from '../types'
+import { VOTING_WINDOW_HOURS } from '../types'
 import { createDemoSnapshot } from './demoSeed'
 import type {
   AttendanceInput,
@@ -107,6 +108,18 @@ function mutate<T>(fn: (snapshot: Snapshot) => T): T {
 
 function notify(user: SessionUser | null): void {
   for (const listener of listeners) listener(user)
+}
+
+/** Recusa o voto depois de a urna fechar, pelo prazo ou pela apuração. */
+function ensureBallotOpen(roundId: string): void {
+  const round = load().rounds.find((item) => item.id === roundId)
+  if (!round || round.status !== 'encerrada' || !round.closed_at) {
+    throw new Error('A votação abre quando a partida é encerrada.')
+  }
+  const deadline = new Date(round.closed_at).getTime() + VOTING_WINDOW_HOURS * 3600_000
+  if (round.awards_settled_at || Date.now() > deadline) {
+    throw new Error('A votação desta partida já foi encerrada.')
+  }
 }
 
 function readSession(): SessionUser | null {
@@ -523,6 +536,12 @@ export const localBackend: Backend = {
     })
   },
 
+  /**
+   * A urna do modo demonstração segue a mesma regra do servidor: fecham a
+   * votação o prazo e a apuração, e depois de qualquer um dos dois o voto é
+   * recusado. Sem isto o modo demonstração aceitaria voto em rodada apurada
+   * e daria a impressão errada de como o aplicativo funciona.
+   */
   async castVote(roundId: string, type: AwardType, playerId: string) {
     const session = readSession()
     if (!session) throw new Error('Entre na sua conta para votar.')
@@ -531,6 +550,7 @@ export const localBackend: Backend = {
     )
     if (!voter) throw new Error('Sua ficha de jogador não foi encontrada.')
     if (voter.id === playerId) throw new Error('Não dá para votar em você mesmo.')
+    ensureBallotOpen(roundId)
 
     mutate((snapshot) => {
       const existing = snapshot.votes.find(
@@ -559,6 +579,7 @@ export const localBackend: Backend = {
       (player) => player.user_id === session.id || player.username === session.username,
     )
     if (!voter) return
+    ensureBallotOpen(roundId)
     mutate((snapshot) => {
       snapshot.votes = snapshot.votes.filter(
         (vote) =>

@@ -19,6 +19,26 @@ import type {
 import { EMPTY_SNAPSHOT, TEAM_PRESETS } from '../types'
 import { AppContext, type AppActions, type AppValue } from './context'
 
+/**
+ * Apura uma rodada: grava os vencedores e marca a apuração.
+ *
+ * É o mesmo ato quando o prazo vence sozinho e quando o administrador
+ * encerra antes — e `awards_settled_at` é o que fecha a urna nos dois casos,
+ * além de impedir a repetição: uma rodada em que ninguém se destacou é
+ * apurada com zero prêmios, e sem a marca ela seria reapurada para sempre.
+ */
+async function settleRound(snapshot: Snapshot, roundId: string): Promise<void> {
+  const awards = computeRoundAwards(snapshot, roundId)
+  const rows: AwardInput[] = Object.entries(awards).flatMap(([type, playerIds]) =>
+    (playerIds as string[]).map((playerId) => ({
+      type: type as AwardInput['type'],
+      player_id: playerId,
+    })),
+  )
+  await backend.setAwards(roundId, rows)
+  await backend.updateRound(roundId, { awards_settled_at: new Date().toISOString() })
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<SessionUser | null>(null)
   const [snapshot, setSnapshot] = useState<Snapshot>(EMPTY_SNAPSHOT)
@@ -148,17 +168,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const due = current.rounds.filter(
       (round) => !round.awards_settled_at && votingState(round) === 'encerrada',
     )
-    for (const round of due) {
-      const awards = computeRoundAwards(current, round.id)
-      const rows: AwardInput[] = Object.entries(awards).flatMap(([type, playerIds]) =>
-        (playerIds as string[]).map((playerId) => ({
-          type: type as AwardInput['type'],
-          player_id: playerId,
-        })),
-      )
-      await backend.setAwards(round.id, rows)
-      await backend.updateRound(round.id, { awards_settled_at: new Date().toISOString() })
-    }
+    for (const round of due) await settleRound(current, round.id)
     return due.length
   }, [])
 
@@ -433,6 +443,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const events = snapshotRef.current.events.filter((event) => event.id !== eventId)
           await backend.updateMatch(match.id, scoreFromEvents(match, events))
         }),
+
+      /**
+       * Apura antes do prazo.
+       *
+       * O relógio resolve o caso comum, mas quando todo mundo já votou o
+       * resultado fica preso por horas sem motivo — e é justo no fim do jogo
+       * que a patota quer ver o pódio. Encerrar é definitivo: apura na hora,
+       * libera o compartilhamento e o servidor passa a recusar voto novo.
+       */
+      closeVoting: (roundId) =>
+        run(() => settleRound(snapshotRef.current, roundId)),
 
       castVote: (roundId, type, playerId) =>
         run(() => backend.castVote(roundId, type, playerId)),
