@@ -205,7 +205,7 @@ export function LiveMatchPage() {
       back
       action={live ? <Tag tone="live">Ao vivo</Tag> : <Tag tone="done">Encerrada</Tag>}
     >
-      <div className="space-y-6 pb-20">
+      <div className="space-y-6 pb-32">
         {/* O placar usa a cor real de cada time, e é a mesma cor dos botões
             de gol logo abaixo — não há como marcar para o time errado. */}
         <Card className="overflow-hidden">

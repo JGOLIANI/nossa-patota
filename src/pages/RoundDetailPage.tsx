@@ -148,7 +148,7 @@ export function RoundDetailPage() {
         ]}
       />
 
-      <div className="mt-5 space-y-6 pb-24">
+      <div className="mt-5 space-y-6 pb-44">
         {error && <Note tone="error">{error}</Note>}
 
         {tab === 'presenca' && (

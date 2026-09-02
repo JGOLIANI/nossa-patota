@@ -90,32 +90,59 @@ a ser decisão dele.
 Duas imagens são geradas no próprio aparelho, em canvas, sem biblioteca
 nenhuma.
 
-A **escalação** mostra uma quadra de futsal com os cinco titulares de cada time
-nas posições reais — goleiro, fixo, alas e pivô —, cada um com a foto do perfil
-e o nome. Quem passa de cinco vai para o banco de reservas, na lateral da
-quadra. Fotos que o servidor não libera por CORS caem nas iniciais, porque uma
-imagem sem permissão impediria a geração do PNG.
+A régua dos dois cartões é a miniatura do grupo: com uns 200 pixels de largura,
+a imagem precisa dizer a que veio antes de alguém tocar nela.
 
-O **resumo da partida** traz placar, premiações e artilharia.
+A **escalação** traz uma coluna por time e um nome por linha, com a ficha do
+jogador e a marcação de quem foi para o gol. A versão anterior espalhava os
+jogadores por uma quadra de futsal desenhada — bonita e ilegível: catorze
+fichas pequenas viram catorze borrões quando a imagem chega reduzida. Fotos que
+o servidor não libera por CORS caem nas iniciais, porque uma imagem sem
+permissão impediria a geração do PNG.
+
+O **resumo da partida** põe o placar em 116 pixels de altura, porque é a única
+coisa que precisa ser legível na miniatura, e deixa destaques e artilharia
+abaixo, para quem abrir.
+
+A mensagem que vai junto não repete a imagem: traz o que se lê sem abrir nada —
+o placar, o horário — e termina no que fazer em seguida, que enquanto a urna
+está aberta é votar.
 
 No celular abre direto o menu de compartilhar; no computador, baixa o arquivo.
 
 ### Premiações da partida
 
-| Prêmio | Critério |
-| --- | --- |
-| Craque da Partida | Mais participações em gols (gols + assistências) no **time vencedor** |
-| Bola Murcha | Menos participações em gols no **time derrotado** |
-| Paredão | Quem sofreu menos gols entre os que jogaram no gol |
+Os prêmios são **votados**. Encerrar a partida não decide nada: abre uma urna
+de **16 horas** para quem foi escalado — quem estava em quadra é quem viu o
+jogo, e ninguém vota em si mesmo. Dezesseis horas cobrem a noite e a manhã
+seguinte, então quem jogou na sexta à noite ainda vota no sábado.
+
+| Prêmio | Quem disputa | Estatística que pesa |
+| --- | --- | --- |
+| Craque da Partida | Linha do **time vencedor** | Mais participações em gols |
+| Bola Murcha | Linha do **time derrotado** | Menos participações em gols |
+| Paredão | Quem jogou no gol | Menos gols sofridos |
+
+A nota de cada candidato é **70% da fatia de votos** que recebeu e **30% da
+estatística** do prêmio, normalizada entre os candidatos. Quem estava lá viu
+coisas que o placar não registra — a defesa na linha, o passe que ninguém
+converteu —, mas voto sozinho vira popularidade.
+
+Sem voto nenhum a nota vira só a estatística, que é exatamente o critério
+anterior: a rodada em que ninguém votou continua tendo um resultado justo em
+vez de nenhum. Nesse caso vale também a guarda antiga — quando ninguém do lado
+avaliado participou de gol, o prêmio não sai, porque um prêmio que cabe no time
+inteiro não diz nada sobre nenhum dos premiados. Havendo voto, a patota
+decidiu, e o prêmio sai.
 
 Os dois prêmios de linha são simétricos, cada um preso ao seu lado do placar.
+No empate os dois passam a olhar a partida inteira. Empates dentro do prêmio
+devolvem todos os empatados.
 
-No empate não há vencedor nem derrotado, então os dois prêmios passam a olhar
-a partida inteira: o melhor é quem mais participou de gols entre todos, o pior é
-quem menos participou. Empates dentro do prêmio devolvem todos os empatados.
+A urna fecha pelo relógio, mas gravar o resultado é escrita, e escrita precisa
+de permissão — então a apuração acontece quando um administrador abre o
+aplicativo depois do prazo. Até lá as telas mostram a mesma apuração calculada
+na hora, então ninguém vê número diferente do que vai ser gravado.
 
-Quando ninguém do lado avaliado participou de gol, o prêmio simplesmente não
-sai — vale para os dois, como manda a simetria. Um 1 a 0 de gol contra não tem
-Craque da Partida, e uma derrota sem nenhum gol do time não tem Bola Murcha:
-se todo mundo ali está em zero, ninguém se destacou, e um prêmio que cabe no
-time inteiro não diz nada sobre nenhum dos premiados.
+> Quem pode votar, em quem, e até quando são regras do servidor, na função
+> `cast_vote`: no navegador seriam só uma sugestão.

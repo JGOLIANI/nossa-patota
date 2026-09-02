@@ -47,7 +47,7 @@ export function RoundNewPage() {
 
   return (
     <Page title="Partida avulsa" subtitle="Para um jogo fora do dia fixo" back>
-      <div className="space-y-4">
+      <div className="space-y-4 pb-32">
         <Card className="space-y-4 p-4">
           <div className="grid grid-cols-2 gap-3">
             <Field label="Data">
