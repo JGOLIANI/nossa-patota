@@ -231,15 +231,14 @@ export function createDemoSnapshot(): Snapshot {
     if (roundIndex === lastIndex) return
 
     const awards = computeRoundAwards({ ...snapshot }, roundId)
-    for (const [type, playerIds] of Object.entries(awards)) {
-      for (const playerId of playerIds) {
-        snapshot.awards.push({
-          id: `${roundId}-award-${type}-${playerId}`,
-          round_id: roundId,
-          type: type as never,
-          player_id: playerId,
-        })
-      }
+    for (const [type, playerId] of Object.entries(awards)) {
+      if (!playerId) continue
+      snapshot.awards.push({
+        id: `${roundId}-award-${type}-${playerId}`,
+        round_id: roundId,
+        type: type as never,
+        player_id: playerId,
+      })
     }
   })
 

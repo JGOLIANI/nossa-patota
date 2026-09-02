@@ -154,16 +154,20 @@ export const IconGoldenBall = (props: IconProps) => (
 )
 
 /**
- * Bola furada: o rasgo no couro e o ar escapando por ele. Como na bola de
- * ouro, ficou só o pentágono — o que precisa se ler aqui é o furo, e ele
- * some no meio dos gomos.
+ * O bagre do prêmio de mesmo nome.
+ *
+ * O que identifica o peixe é o bigode — sem ele seria um peixe qualquer —,
+ * então os dois barbilhões saem da boca e descem soltos, por fora do corpo,
+ * onde o traço grosso não os empasta contra a barriga.
  */
-export const IconPuncturedBall = (props: IconProps) => (
+export const IconCatfish = (props: IconProps) => (
   <Base {...props}>
-    <circle cx="10.5" cy="13.5" r="6.8" />
-    <path d="M10.5 10.7 13.16 12.64 12.15 15.77H8.85L7.84 12.64 10.5 10.7Z" />
-    <path d="m15.1 9 2.1-2.1" />
-    <path d="M18.9 5.2c.7-.7 1.8-.7 2.5 0M21.5 2.6c.7-.7.7-1.8 0-2.5" />
+    <path d="M3.4 10.6C6.5 5.4 13.2 5.4 16.6 10.6 13.2 15.8 6.5 15.8 3.4 10.6Z" />
+    <path d="M16.6 10.6 21 7.4V13.8Z" />
+    <path d="M8.8 6.9C9.9 4.3 12.4 4.3 13.6 7" />
+    <path d="M3.5 11.5C2 12.9 1.7 15.5 2.7 17.6" />
+    <path d="M4.3 12.7C3.8 14.8 4.8 17 6.7 18" />
+    <circle cx="6.8" cy="9.7" r="1.05" fill="currentColor" stroke="none" />
   </Base>
 )
 

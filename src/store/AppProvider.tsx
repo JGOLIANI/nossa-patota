@@ -29,11 +29,9 @@ import { AppContext, type AppActions, type AppValue } from './context'
  */
 async function settleRound(snapshot: Snapshot, roundId: string): Promise<void> {
   const awards = computeRoundAwards(snapshot, roundId)
-  const rows: AwardInput[] = Object.entries(awards).flatMap(([type, playerIds]) =>
-    (playerIds as string[]).map((playerId) => ({
-      type: type as AwardInput['type'],
-      player_id: playerId,
-    })),
+  // Um eleito por categoria, e `null` quando o prêmio não sai.
+  const rows: AwardInput[] = Object.entries(awards).flatMap(([type, playerId]) =>
+    playerId ? [{ type: type as AwardInput['type'], player_id: playerId }] : [],
   )
   await backend.setAwards(roundId, rows)
   await backend.updateRound(roundId, { awards_settled_at: new Date().toISOString() })

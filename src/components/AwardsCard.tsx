@@ -17,7 +17,7 @@ import { useApp } from '../store/useApp'
 import type { AwardType, Snapshot } from '../types'
 import { AWARD_LABELS } from '../types'
 import { Avatar } from './Avatar'
-import { IconGlove, IconGoldenBall, IconPuncturedBall } from './icons'
+import { IconCatfish, IconGlove, IconGoldenBall } from './icons'
 import { Card, EmptyState, ListGroup, Note, SectionHeader } from './ui'
 
 const STYLES: Record<AwardType, { tone: string; Icon: typeof IconGlove; ask: string }> = {
@@ -33,7 +33,7 @@ const STYLES: Record<AwardType, { tone: string; Icon: typeof IconGlove; ask: str
   },
   pior_jogador: {
     tone: 'text-muted',
-    Icon: IconPuncturedBall,
+    Icon: IconCatfish,
     ask: 'Quem foi o Bagre da Rodada?',
   },
 }
@@ -101,6 +101,22 @@ export function AwardsCard({
   const isSettled = Boolean(round.awards_settled_at)
 
   /**
+   * Quem levou um prêmio.
+   *
+   * A apuração elege um só, mas a leitura continua devolvendo lista: rodadas
+   * gravadas antes da regra do desempate podem ter dois nomes na mesma
+   * categoria, e apagar o histórico para caber no tipo novo seria pior do que
+   * mostrar os dois.
+   */
+  const winnersOf = (type: AwardType): string[] => {
+    if (isSettled) {
+      return settledAwards.filter((award) => award.type === type).map((award) => award.player_id)
+    }
+    const winner = tallyAward(snapshot, roundId, type).winner
+    return winner ? [winner] : []
+  }
+
+  /**
    * O voto vai ao servidor, e o servidor pode recusar: a urna fechou entre a
    * tela carregar e o dedo tocar, o jogador saiu da escalação. Sem isto o
    * toque não fazia nada e ninguém ficava sabendo por quê.
@@ -130,10 +146,7 @@ export function AwardsCard({
 
     const decided = AWARD_TYPES.map((type) => ({
       type,
-      names: (isSettled
-        ? settledAwards.filter((award) => award.type === type).map((award) => award.player_id)
-        : tallyAward(snapshot, roundId, type).winners
-      )
+      names: winnersOf(type)
         .map((id) => byId.get(id))
         .filter((player) => player !== undefined),
     })).filter((row) => row.names.length > 0)
@@ -213,9 +226,7 @@ export function AwardsCard({
         const { tone, Icon, ask } = STYLES[type]
         const tally = tallyAward(snapshot, roundId, type)
         const pool = candidates[type]
-        const winners = isSettled
-          ? settledAwards.filter((award) => award.type === type).map((award) => award.player_id)
-          : tally.winners
+        const winners = winnersOf(type)
 
         return (
           <section key={type}>

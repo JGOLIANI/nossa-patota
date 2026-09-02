@@ -1,15 +1,23 @@
 import type { AwardType, PlayerPosition, Round, Snapshot } from '../types'
 import { STAT_WEIGHT, VOTE_WEIGHT, VOTING_WINDOW_HOURS } from '../types'
+import { mulberry32, seedFromString } from './balance'
 import { roundEntries } from './selectors'
 import { computeStats, type PlayerStats } from './stats'
 
+/**
+ * O eleito de cada prêmio da rodada, ou `null` quando o prêmio não sai.
+ *
+ * É um por categoria, e o tipo diz isso: a cascata de desempate sempre chega
+ * a um nome só, então não há como uma apuração devolver dois campeões e a
+ * tela ter de decidir qual mostrar.
+ */
 export interface RoundAwards {
   /** Craque da Partida. */
-  jogador_rodada: string[]
+  jogador_rodada: string | null
   /** Bagre da Rodada. */
-  pior_jogador: string[]
+  pior_jogador: string | null
   /** Paredão: o goleiro menos vazado. */
-  goleiro_menos_vazado: string[]
+  goleiro_menos_vazado: string | null
 }
 
 export const AWARD_TYPES: AwardType[] = [
@@ -196,13 +204,41 @@ function buildCandidates(
 
 /* ------------------------------------------------------------ apuração ---- */
 
-/** A estatística que cada prêmio olha, e se ali maior é melhor. */
-const METRIC: Record<AwardType, { value: (stats: PlayerStats) => number; higherIsBetter: boolean }> =
+/**
+ * A estatística que cada prêmio olha, e o critério fino que separa dois
+ * candidatos que empataram nela.
+ *
+ * O desempate fino é o que a métrica principal esconde: participações não
+ * distinguem três gols de um gol com duas assistências, e o pódio distingue.
+ * Em `tiebreak`, maior é sempre melhor para aquele prêmio — a direção já vem
+ * embutida, para o comparador não precisar saber de qual prêmio se trata.
+ */
+const METRIC: Record<
+  AwardType,
   {
-    jogador_rodada: { value: (stats) => stats.participations, higherIsBetter: true },
-    pior_jogador: { value: (stats) => stats.participations, higherIsBetter: false },
-    goleiro_menos_vazado: { value: (stats) => stats.goalsAgainst, higherIsBetter: false },
+    value: (stats: PlayerStats) => number
+    higherIsBetter: boolean
+    tiebreak: (stats: PlayerStats) => number
   }
+> = {
+  jogador_rodada: {
+    value: (stats) => stats.participations,
+    higherIsBetter: true,
+    tiebreak: (stats) => stats.goals * 100 + stats.assists,
+  },
+  pior_jogador: {
+    value: (stats) => stats.participations,
+    higherIsBetter: false,
+    tiebreak: (stats) => -(stats.goals * 100 + stats.assists),
+  },
+  goleiro_menos_vazado: {
+    value: (stats) => stats.goalsAgainst,
+    higherIsBetter: false,
+    // Entre dois goleiros igualmente intransponíveis, leva quem ainda ajudou
+    // do outro lado.
+    tiebreak: (stats) => stats.participations,
+  },
+}
 
 export interface AwardTallyEntry {
   playerId: string
@@ -216,11 +252,32 @@ export interface AwardTallyEntry {
 }
 
 export interface AwardTally {
+  /** Candidatos já na ordem da apuração, do primeiro ao último. */
   entries: AwardTallyEntry[]
   /** Quantos votos válidos foram computados neste prêmio. */
   totalVotes: number
-  /** Vencedores: todos os que empataram na maior nota. */
-  winners: string[]
+  /** O eleito, ou `null` quando o prêmio não sai. Nunca mais de um. */
+  winner: string | null
+}
+
+/**
+ * Quantas vezes cada jogador já levou este prêmio antes desta rodada.
+ *
+ * A própria rodada fica de fora: reapurar uma rodada já gravada leria os
+ * prêmios dela como histórico e o vencedor anterior seria punido pela própria
+ * vitória, podendo virar o resultado a cada apuração.
+ */
+function awardHistoryCounts(
+  snapshot: Snapshot,
+  type: AwardType,
+  exceptRoundId: string,
+): Map<string, number> {
+  const counts = new Map<string, number>()
+  for (const award of snapshot.awards) {
+    if (award.type !== type || award.round_id === exceptRoundId) continue
+    counts.set(award.player_id, (counts.get(award.player_id) ?? 0) + 1)
+  }
+  return counts
 }
 
 /**
@@ -251,7 +308,7 @@ function normalizer(values: number[]): (value: number) => number {
  */
 export function tallyAward(snapshot: Snapshot, roundId: string, type: AwardType): AwardTally {
   const pool = awardCandidates(snapshot, roundId)[type]
-  if (pool.length === 0) return { entries: [], totalVotes: 0, winners: [] }
+  if (pool.length === 0) return { entries: [], totalVotes: 0, winner: null }
 
   const eligible = new Set(pool.map((entry) => entry.playerId))
   const counted = snapshot.votes.filter(
@@ -281,7 +338,35 @@ export function tallyAward(snapshot: Snapshot, roundId: string, type: AwardType)
     }
   })
 
-  entries.sort((a, b) => b.score - a.score || b.votes - a.votes)
+  /*
+   * A cascata de desempate. Só pode haver um eleito por categoria, então ela
+   * precisa terminar sempre — e terminar igual, toda vez que rodar, senão a
+   * tela mostraria um vencedor e o banco guardaria outro.
+   *
+   *   1. a nota;
+   *   2. mais votos na contagem bruta;
+   *   3. o desempate fino da estatística (gols, depois assistências, na
+   *      direção do prêmio), que a métrica principal esconde;
+   *   4. quem menos levou este prêmio na história — espalha os troféus em vez
+   *      de concentrar no mesmo de sempre;
+   *   5. um sorteio semeado pela rodada e pelo prêmio. Não é justo, mas é
+   *      decidido e reprodutível, que é o que se pode pedir de um empate que
+   *      chegou até aqui.
+   */
+  const statsById = new Map(pool.map((stats) => [stats.playerId, stats]))
+  const history = awardHistoryCounts(snapshot, type, roundId)
+  const tiebreakOf = (playerId: string) => metric.tiebreak(statsById.get(playerId)!)
+  const luckOf = (playerId: string) =>
+    mulberry32(seedFromString(`${roundId}:${type}:${playerId}`))()
+
+  entries.sort(
+    (a, b) =>
+      b.score - a.score ||
+      b.votes - a.votes ||
+      tiebreakOf(b.playerId) - tiebreakOf(a.playerId) ||
+      (history.get(a.playerId) ?? 0) - (history.get(b.playerId) ?? 0) ||
+      luckOf(b.playerId) - luckOf(a.playerId),
+  )
 
   /*
    * Sem voto nenhum, e com todo mundo zerado na estatística, ninguém se
@@ -294,25 +379,19 @@ export function tallyAward(snapshot: Snapshot, roundId: string, type: AwardType)
   const noneStood =
     type !== 'goleiro_menos_vazado' && Math.max(...pool.map((stats) => stats.participations)) === 0
   if (decidedByStatsAlone && noneStood) {
-    return { entries, totalVotes: 0, winners: [] }
+    return { entries, totalVotes: 0, winner: null }
   }
 
-  const best = Math.max(...entries.map((entry) => entry.score))
-  return {
-    entries,
-    totalVotes: counted.length,
-    winners: entries
-      .filter((entry) => Math.abs(entry.score - best) < 1e-9)
-      .map((entry) => entry.playerId),
-  }
+  // A lista já saiu ordenada pela cascata: o eleito é o primeiro.
+  return { entries, totalVotes: counted.length, winner: entries[0].playerId }
 }
 
 /** Apura os três prêmios de uma vez. */
 export function computeRoundAwards(snapshot: Snapshot, roundId: string): RoundAwards {
   return {
-    jogador_rodada: tallyAward(snapshot, roundId, 'jogador_rodada').winners,
-    pior_jogador: tallyAward(snapshot, roundId, 'pior_jogador').winners,
-    goleiro_menos_vazado: tallyAward(snapshot, roundId, 'goleiro_menos_vazado').winners,
+    jogador_rodada: tallyAward(snapshot, roundId, 'jogador_rodada').winner,
+    pior_jogador: tallyAward(snapshot, roundId, 'pior_jogador').winner,
+    goleiro_menos_vazado: tallyAward(snapshot, roundId, 'goleiro_menos_vazado').winner,
   }
 }
 

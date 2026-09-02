@@ -133,12 +133,15 @@ export function ShareRound({ round, kind }: { round: Round; kind: 'escalacao' | 
      * intervalo mandaria para o grupo um resultado sem destaque nenhum,
      * diferente do que estava vendo na tela.
      */
-    const decided = round.awards_settled_at
+    const computed = computeRoundAwards(snapshot, round.id)
+    const decided: Record<string, string[]> = round.awards_settled_at
       ? roundAwards(snapshot, round.id).reduce<Record<string, string[]>>((acc, award) => {
           acc[award.type] = [...(acc[award.type] ?? []), award.player_id]
           return acc
         }, {})
-      : computeRoundAwards(snapshot, round.id)
+      : Object.fromEntries(
+          Object.entries(computed).map(([type, playerId]) => [type, playerId ? [playerId] : []]),
+        )
 
     const awards: AwardLine[] = AWARD_TYPES.map((type) => ({
       label: AWARD_LABELS[type],

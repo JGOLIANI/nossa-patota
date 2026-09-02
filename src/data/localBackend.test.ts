@@ -195,7 +195,7 @@ describe('patota fictícia', () => {
     expect(voting).toHaveLength(1)
     expect(roundAwards(snapshot, voting[0].id)).toHaveLength(0)
     // Sem prêmio gravado, mas com quem premiar: a apuração já sabe o resultado.
-    expect(computeRoundAwards(snapshot, voting[0].id).jogador_rodada.length).toBeGreaterThan(0)
+    expect(computeRoundAwards(snapshot, voting[0].id).jogador_rodada).toBeTruthy()
   })
 
   it('o placar de cada partida bate com os gols registrados', async () => {

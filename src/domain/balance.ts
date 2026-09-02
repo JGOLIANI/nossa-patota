@@ -67,8 +67,13 @@ function normalizer(values: number[]): (value: number) => number {
   return (value) => (value - min) / (max - min)
 }
 
-/** PRNG determinístico: mesma semente, mesmos times. */
-function mulberry32(seed: number): () => number {
+/**
+ * PRNG determinístico: mesma semente, mesma sequência.
+ *
+ * Serve ao sorteio dos times e ao último degrau do desempate dos prêmios —
+ * nos dois casos o que se quer não é acaso, é uma decisão reprodutível.
+ */
+export function mulberry32(seed: number): () => number {
   let state = seed >>> 0
   return () => {
     state = (state + 0x6d2b79f5) >>> 0

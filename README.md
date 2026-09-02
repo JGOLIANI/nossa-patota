@@ -144,8 +144,25 @@ inteiro não diz nada sobre nenhum dos premiados. Havendo voto, a patota
 decidiu, e o prêmio sai.
 
 Os dois prêmios de linha são simétricos, cada um preso ao seu lado do placar.
-No empate os dois passam a olhar a partida inteira. Empates dentro do prêmio
-devolvem todos os empatados.
+No empate do **placar** os dois passam a olhar a partida inteira.
+
+**Sai um só por categoria.** Quando dois candidatos terminam com a mesma nota,
+a cascata de desempate decide, nesta ordem:
+
+1. **mais votos** na contagem bruta;
+2. o **desempate fino da estatística** — gols, depois assistências, na direção
+   do prêmio. É o que a métrica principal esconde: participações não distinguem
+   três gols de um gol com duas assistências, e o pódio distingue;
+3. **quem menos levou aquele prêmio** na história, o que espalha os troféus em
+   vez de concentrar no mesmo de sempre. A própria rodada fica de fora da
+   conta: reapurar uma rodada já gravada leria os prêmios dela como histórico,
+   e o vencedor seria punido pela própria vitória;
+4. um **sorteio semeado** pela rodada e pelo prêmio. Não é justo, mas é
+   decidido e reprodutível — a tela e o banco nunca discordam de quem levou.
+
+Rodadas gravadas antes desta regra podem ter dois nomes na mesma categoria, e
+as telas continuam mostrando os dois: apagar o histórico para caber no formato
+novo seria pior.
 
 Fecham a urna duas coisas. O prazo corre sozinho, e o administrador pode
 **encerrar antes**, pela aba Prêmios — quando todo mundo já votou, o resultado
