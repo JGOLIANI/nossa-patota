@@ -9,9 +9,15 @@ import type { SVGProps } from 'react'
  * ativo. Estes são figuras: aparecem grandes, num cartão, e trazem cor
  * própria. Herdar cor aqui seria abrir mão do que os torna reconhecíveis.
  *
+ * Os três são troféus, e é isso que os faz um conjunto: mesma base escura,
+ * mesma placa dourada, mesmo ouro por cima. O que muda é a figura no alto —
+ * a bola coroada, o bagre, a luva —, e é só ela que o olho precisa ler,
+ * porque o resto já disse "prêmio".
+ *
  * A paleta é fixa nos dois temas, e escolhida para isso: nada de preto puro
- * nem de branco chapado em área grande, que sumiriam num dos dois. Os tons
- * claros aparecem só por dentro de uma forma escura o bastante para contê-los.
+ * nem de branco chapado em área grande, que sumiriam num dos dois. O ouro é
+ * contornado por um âmbar escuro, e é esse contorno que separa a figura do
+ * fundo claro — sem ele, o dourado encosta no bege do cartão e some.
  */
 type ArtProps = SVGProps<SVGSVGElement>
 
@@ -27,84 +33,229 @@ function Art({ children, ...props }: ArtProps) {
   )
 }
 
+/**
+ * A base do troféu, igual nos três.
+ *
+ * Ela ocupa o quarto de baixo do quadro e não mais do que isso: a esta altura
+ * o prêmio aparece com 28 pixels na tela, e cada unidade que a base toma é
+ * uma unidade a menos para a figura que de fato distingue um prêmio do outro.
+ */
+function Pedestal() {
+  return (
+    <g>
+      {/* Degrau de baixo, o que apoia tudo. */}
+      <rect x="8.4" y="40.4" width="31.2" height="5.8" rx="2.2" fill="#3B404D" />
+      <rect x="8.4" y="40.4" width="31.2" height="2" rx="1" fill="#565C6C" />
+      {/* Bloco de cima, mais estreito, com a placa. */}
+      <path d="M14 34h20l1.6 6.4H12.4Z" fill="#2B303B" />
+      <rect x="17.4" y="35.4" width="13.2" height="3.8" rx="1.4" fill="#F5B81F" />
+      <rect x="17.4" y="35.4" width="13.2" height="1.4" rx="0.7" fill="#FFD75E" />
+    </g>
+  )
+}
+
+/**
+ * Uma pepita: polígono irregular, contornado como o resto do ouro.
+ *
+ * São desenhadas uma a uma, e não como um monte liso, porque é a quina entre
+ * elas que faz o ouro parecer bruto — e é a diferença entre um monte de
+ * pepitas e um pedestal cônico qualquer.
+ */
+function Nugget({ x, y, r = 3.2 }: { x: number; y: number; r?: number }) {
+  return (
+    <path
+      d={`M${x - r} ${y + r * 0.34}L${x - r * 0.72} ${y - r * 0.82}L${x + r * 0.26} ${y - r}L${x + r} ${y - r * 0.12}L${x + r * 0.62} ${y + r}L${x - r * 0.48} ${y + r}Z`}
+      fill="#F5B81F"
+      stroke="#A35D06"
+      strokeWidth="1.2"
+      strokeLinejoin="round"
+    />
+  )
+}
+
 /* ------------------------------------------------- Craque da Partida ------ */
 
-/** Bola de ouro sobre o pedestal, como o troféu da France Football. */
+/**
+ * A bola de ouro coroada, sobre o monte de pepitas.
+ *
+ * A coroa entra tombada para a direita, encavalada na bola, e não centrada em
+ * cima dela: de lado ela é silhueta que se lê de longe, e o alto da bola fica
+ * livre para o brilho — que é o que faz a esfera parecer esfera.
+ */
 export const AwardGoldenBall = (props: ArtProps) => (
   <Art {...props}>
-    <path d="M13.4 44.5 16.4 33h15.2l3 11.5Z" fill="#43536A" />
-    <rect x="20.6" y="27" width="6.8" height="7.4" rx="1.6" fill="#57697F" />
-    <circle cx="24" cy="17" r="12.2" fill="#F5B921" />
-    <path d="M24 8.6 30.9 13.6 28.3 21.7H19.7L17.1 13.6 24 8.6Z" fill="#D2930A" />
-    <circle cx="18.4" cy="11.4" r="2.7" fill="#FFDE8A" />
+    <Pedestal />
+
+    {/* O monte de pepitas em que a bola se apoia. Duas fileiras, a de cima
+        encavalada na bola: assim a esfera se aninha no monte em vez de
+        pousar em cima dele. */}
+    <Nugget x={14.4} y={32.4} />
+    <Nugget x={20} y={32.6} r={3.4} />
+    <Nugget x={26.2} y={32.6} r={3.4} />
+    <Nugget x={31.8} y={32.4} />
+    <Nugget x={17.2} y={29} r={2.9} />
+    <Nugget x={23} y={29.4} r={2.9} />
+    <Nugget x={29} y={29} r={2.9} />
+
+    {/* A bola. */}
+    <circle cx="23" cy="18.2" r="11.4" fill="#F9C33B" stroke="#A35D06" strokeWidth="1.4" />
+    <path
+      d="M23 11.4 29.6 16.2 27.1 24H18.9L16.4 16.2Z"
+      fill="#EFA31A"
+      stroke="#A35D06"
+      strokeWidth="1.1"
+      strokeLinejoin="round"
+    />
+    <g stroke="#A35D06" strokeWidth="1.1" strokeLinecap="round">
+      <path d="M23 11.4V7M29.6 16.2l4.2-1.4M27.1 24l2.6 3.6M18.9 24l-2.6 3.6M16.4 16.2l-4.2-1.4" />
+    </g>
+    <path d="M15.8 12.6a8.6 8.6 0 0 1 4-3.4" stroke="#FFE9A8" strokeWidth="2.6" strokeLinecap="round" />
+
+    {/* A coroa, tombada sobre o ombro direito da bola. */}
+    <g transform="rotate(24 32.4 6.6)">
+      <path
+        d="M26.6 9.6 27.8 3.4l2.6 2.6 2-3.6 2 3.6 2.6-2.6 1.2 6.2Z"
+        fill="#FFCE43"
+        stroke="#A35D06"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+      />
+      <rect
+        x="26.2"
+        y="9"
+        width="12.4"
+        height="3.4"
+        rx="1.5"
+        fill="#EFA31A"
+        stroke="#A35D06"
+        strokeWidth="1.3"
+      />
+      <g fill="#FFCE43" stroke="#A35D06" strokeWidth="1.2">
+        <circle cx="27.8" cy="3" r="1.7" />
+        <circle cx="32.4" cy="1.8" r="1.7" />
+        <circle cx="37" cy="3" r="1.7" />
+      </g>
+    </g>
   </Art>
 )
 
 /* -------------------------------------------------------- Paredão -------- */
 
 /**
- * A defesa: a mão fechando na bola.
+ * A luva de ouro, de palma aberta para quem olha.
  *
- * A luva sozinha era só um objeto; com a bola dentro dela vira o lance que dá
- * nome ao prêmio. A mão vem inclinada, como quem sobe para pegar, e a bola
- * fica atrás, aparecendo por cima dos dedos.
- *
- * A palma é quadrada de propósito: 16 de largura por 16 de altura visível
- * (os outros 4 do retângulo ficam sob o punho verde). Deitada, como era
- * antes, a mão lia como uma pá — e é a palma que manda na largura dos dedos,
- * porque quatro dedos e três folgas têm de caber dentro dela. Em 16, isso dá
- * dedos de 2,8 com folga de 1,2: fino o bastante para se contar os quatro,
- * largo o bastante para nenhum deles sumir no tamanho da cédula de votação.
- *
- * O grupo é girado em torno de (24, 24) e depois arrastado: a rotação sozinha
- * jogava a mão para a direita, por cima da bola, em vez de por baixo dela.
+ * De frente ela é a mão que fecha o gol, e não um objeto largado de lado. A
+ * palma é quadrada porque é ela que manda na largura dos dedos: quatro dedos
+ * e três folgas têm de caber dentro dela e ainda serem contáveis com 28
+ * pixels de tela. O polegar sai pela direita, apontando para cima — abaixo da
+ * horizontal ele lia como um quinto dedo caído.
  */
 export const AwardGlove = (props: ArtProps) => (
   <Art {...props}>
-    <circle cx="31" cy="15" r="12.4" fill="#E3EBF6" />
-    <path d="M31 7.2 37.5 11.9 35 19.6H27L24.5 11.9 31 7.2Z" fill="#A9BACF" />
-    <g stroke="#A9BACF" strokeWidth="1.8" strokeLinecap="round">
-      <path d="M31 2.6v4.6M37.5 11.9l4.4-1.4M35 19.6l2.7 3.7M27 19.6l-2.7 3.7M24.5 11.9l-4.4-1.4" />
+    <Pedestal />
+
+    <g stroke="#A35D06" strokeWidth="1.4" strokeLinejoin="round">
+      {/* Dedos, atrás da palma para nascerem de dentro dela. */}
+      <g fill="#FFCE43">
+        <rect x="14.6" y="10.6" width="4.2" height="14" rx="2.1" />
+        <rect x="19.4" y="7.6" width="4.2" height="17" rx="2.1" />
+        <rect x="24.2" y="8.4" width="4.2" height="16.2" rx="2.1" />
+        <rect x="29" y="11.4" width="4.2" height="13.2" rx="2.1" />
+      </g>
+
+      {/* Polegar: começa dentro da palma, senão fica um apêndice colado. */}
+      <rect
+        x="28.6"
+        y="19.4"
+        width="13.4"
+        height="5.8"
+        rx="2.9"
+        fill="#FFCE43"
+        transform="rotate(-18 28.6 19.4)"
+      />
+
+      {/* Palma e punho. */}
+      <rect x="14.2" y="17" width="19.4" height="13.6" rx="4.6" fill="#F9C33B" />
+      <rect x="16.4" y="28.4" width="15" height="6" rx="2" fill="#EFA31A" />
     </g>
 
-    <g transform="translate(-4 -1.5) rotate(-34 24 24)">
-      <path d="M15.8 31.4 8.8 25" stroke="#5566C4" strokeWidth="4" strokeLinecap="round" />
-      <g fill="#6C7FE0">
-        <rect x="15.4" y="14" width="2.8" height="18" rx="1.4" />
-        <rect x="19.4" y="8.8" width="2.8" height="23.2" rx="1.4" />
-        <rect x="23.4" y="7.6" width="2.8" height="24.4" rx="1.4" />
-        <rect x="27.4" y="11.8" width="2.8" height="20.2" rx="1.4" />
-      </g>
-      <rect x="14.8" y="23" width="16" height="20" rx="4.6" fill="#8093E8" />
-      <rect x="17.6" y="28.4" width="10.4" height="3" rx="1.5" fill="#FBB040" />
-      <path d="M14.8 36.6h16v1.8c0 2.54-2.06 4.6-4.6 4.6H19.4c-2.54 0-4.6-2.06-4.6-4.6Z" fill="#2FB552" />
-    </g>
+    {/* Fecho do punho e o brilho da palma. */}
+    <rect x="19.4" y="29.8" width="9" height="3.2" rx="1.2" fill="#FFCE43" stroke="#A35D06" strokeWidth="1.2" />
+    <path d="M18 21.4a3.4 3.4 0 0 1 3-2.2" stroke="#FFE9A8" strokeWidth="2.4" strokeLinecap="round" />
   </Art>
 )
 
 /* ------------------------------------------------- Bagre da Rodada ------- */
 
 /**
- * O bagre de frente, com os barbilhões subindo.
+ * O bagre de ouro, de perfil, com o rabo apoiado na base.
  *
- * Eles são desenhados antes da cabeça: assim nascem por trás dela e saem
- * pelos lados, sem precisar de folga entre o traço e o contorno — folga que,
- * num quadro deste tamanho, não existiria. E terminam em cima, nos cantos que
- * a cabeça triangular deixa livres, que é para onde eles apontam no peixe.
+ * De frente ele virava uma bolha: sem rabo e sem barbilhão à mostra, um peixe
+ * pequeno na tela é indistinguível de qualquer outra mancha arredondada. De
+ * lado, a silhueta já entrega o bicho — corpo comprido inclinado, rabo
+ * bifurcado atrás, focinho na frente.
+ *
+ * Os barbilhões saem da boca e sobem, e é só por eles que este peixe é um
+ * bagre e não uma sardinha. Por isso são traço grosso, longo e por fora da
+ * silhueta: são a única parte que não pode encolher junto com o resto.
  */
 export const AwardCatfish = (props: ArtProps) => (
   <Art {...props}>
-    <g stroke="#93B1DE" strokeWidth="2.4" strokeLinecap="round">
-      <path d="M17 33C9 31 3.6 24 4.6 15.5 5.2 11 7 8 9.6 6" />
-      <path d="M31 33c8-2 13.4-9 12.4-17.5C42.8 11 41 8 38.4 6" />
+    <Pedestal />
+
+    {/* Barbilhões, antes do corpo para saírem por trás da cabeça. */}
+    <g stroke="#EFA31A" strokeWidth="2.4" strokeLinecap="round" fill="none">
+      <path d="M35.4 13.8c1.2-3 .8-5.8-1.2-8.4" />
+      <path d="M37.4 15.6c3-.8 5-2.8 6-6" />
     </g>
-    <rect x="22.4" y="2.6" width="3.2" height="11" rx="1.6" fill="#C4D6EF" />
-    <path d="M24 7.5C30.4 7.5 41 22.4 41 30.4 41 36.2 33.4 39.8 24 39.8 14.6 39.8 7 36.2 7 30.4 7 22.4 17.6 7.5 24 7.5Z" fill="#AFC5E8" />
-    <path d="M24 7.5C17.6 7.5 7 22.4 7 30.4c0 3.6 3 6.4 7.6 8.1-2.6-2.1-4-4.9-4-8.1 0-6.8 7-18 13.4-22.9Z" fill="#8FAEDC" />
-    <path d="M8.6 31.4c5-3.2 25.8-3.2 30.8 0 0 5-6.8 8.4-15.4 8.4S8.6 36.4 8.6 31.4Z" fill="#F1F8FE" />
-    <path d="M8.6 31.4c5-4.4 25.8-4.4 30.8 0-5 1.6-9.4 1-15.4 1s-10.4.6-15.4-1Z" fill="#8FAEDC" />
-    <path d="M15 34c3.6-2.2 14.4-2.2 18 0-3.6 2.8-14.4 2.8-18 0Z" fill="#6B4A4A" />
-    <rect x="15.4" y="24.6" width="2.4" height="4.6" rx="1.2" fill="#6B6B72" />
-    <rect x="30.2" y="24.6" width="2.4" height="4.6" rx="1.2" fill="#6B6B72" />
+
+    {/* Rabo bifurcado, encostando no bloco da base. */}
+    <path
+      d="M16.4 23.6 6.6 19.8l4.6 6.6-4.2 6.8 9.8-4Z"
+      fill="#EFA31A"
+      stroke="#A35D06"
+      strokeWidth="1.4"
+      strokeLinejoin="round"
+    />
+
+    {/* Nadadeira de cima e nadadeira de baixo. */}
+    <path
+      d="M19.2 17.2 22.4 9.6l6.2 3.4Z"
+      fill="#EFA31A"
+      stroke="#A35D06"
+      strokeWidth="1.4"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M23.4 28 26 34.4 30.6 29.6Z"
+      fill="#EFA31A"
+      stroke="#A35D06"
+      strokeWidth="1.4"
+      strokeLinejoin="round"
+    />
+
+    {/* O corpo: elipse deitada e inclinada, focinho para cima à direita. */}
+    <ellipse
+      cx="25"
+      cy="21.6"
+      rx="12.6"
+      ry="7.6"
+      transform="rotate(-20 25 21.6)"
+      fill="#F9C33B"
+      stroke="#A35D06"
+      strokeWidth="1.4"
+    />
+    {/* A barriga, mais clara, acompanhando a curva de baixo. */}
+    <path
+      d="M17.6 26.4c3.6 3 9.6 3.2 14.6-.6"
+      stroke="#FFE9A8"
+      strokeWidth="2.6"
+      strokeLinecap="round"
+    />
+    {/* Guelra, boca e olho. */}
+    <path d="M28.2 14.6c-2 2.6-2.2 6.2-.6 9" stroke="#A35D06" strokeWidth="1.3" strokeLinecap="round" />
+    <path d="M34 19.8c1.6.4 2.8 0 3.4-1.2" stroke="#A35D06" strokeWidth="1.4" strokeLinecap="round" />
+    <circle cx="32.6" cy="16.4" r="2" fill="#3B404D" />
+    <circle cx="33.2" cy="15.8" r="0.7" fill="#FFE9A8" />
   </Art>
 )

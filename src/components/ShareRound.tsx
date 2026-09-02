@@ -38,17 +38,19 @@ export function ShareRound({ round, kind }: { round: Round; kind: 'escalacao' | 
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
-  const when = [
-    `${formatWeekday(round.date)}, ${formatDate(round.date)}`,
-    round.start_time,
-    round.location,
-  ]
+  const when = [`${formatWeekday(round.date)}, ${formatDate(round.date)}`, round.start_time]
     .filter(Boolean)
     .join(' · ')
 
-  const header = { title: round.title, subtitle: when }
-  // O endereço do mapa fica fora do `when`: ele é da mensagem, e no cartão de
-  // imagem um link não é clicável — seria só uma linha comprida de texto.
+  // No cartão de imagem o local é escrito por extenso: link ali não é
+  // clicável, seria só uma linha comprida de texto.
+  const header = {
+    title: round.title,
+    subtitle: [when, round.location].filter(Boolean).join(' · '),
+  }
+  // Na mensagem ele é o endereço, e só ele: o nome escrito ao lado do link
+  // seria o mesmo lugar dito duas vezes — e é do link que o WhatsApp tira o
+  // cartão de prévia, com o nome do lugar dentro.
   const map = mapsUrl(round.location, round.location_url)
 
   async function share() {
@@ -105,9 +107,6 @@ export function ShareRound({ round, kind }: { round: Round; kind: 'escalacao' | 
     return [
       `⚽ *Nossa Patota* — ${round.title}`,
       `🗓 ${when}`,
-      // O endereço vai em linha própria: o WhatsApp não tem link com nome, e
-      // solto na linha da data ele a esticaria sem que ninguém a lesse. Sozinho
-      // ele ainda vira o cartão do lugar na prévia da conversa.
       ...(map ? [`📍 ${map}`] : []),
       `👥 ${plural(total, 'jogador', 'jogadores')} em quadra`,
       ...lineup,
