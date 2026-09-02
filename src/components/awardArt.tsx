@@ -47,11 +47,17 @@ export const AwardGoldenBall = (props: ArtProps) => (
  *
  * A luva sozinha era só um objeto; com a bola dentro dela vira o lance que dá
  * nome ao prêmio. A mão vem inclinada, como quem sobe para pegar, e a bola
- * fica atrás — aparecendo por cima dos dedos, que é o que se vê de fora.
+ * fica atrás, aparecendo por cima dos dedos.
  *
- * Os dedos são estreitos de propósito. Largos, encostavam um no outro e a mão
- * virava uma pá; a folga entre eles é o que faz enxergar quatro dedos e não
- * um bloco só — e é ela, mais do que o contorno, que dá a forma de mão.
+ * A palma é quadrada de propósito: 16 de largura por 16 de altura visível
+ * (os outros 4 do retângulo ficam sob o punho verde). Deitada, como era
+ * antes, a mão lia como uma pá — e é a palma que manda na largura dos dedos,
+ * porque quatro dedos e três folgas têm de caber dentro dela. Em 16, isso dá
+ * dedos de 2,8 com folga de 1,2: fino o bastante para se contar os quatro,
+ * largo o bastante para nenhum deles sumir no tamanho da cédula de votação.
+ *
+ * O grupo é girado em torno de (24, 24) e depois arrastado: a rotação sozinha
+ * jogava a mão para a direita, por cima da bola, em vez de por baixo dela.
  */
 export const AwardGlove = (props: ArtProps) => (
   <Art {...props}>
@@ -61,17 +67,17 @@ export const AwardGlove = (props: ArtProps) => (
       <path d="M31 2.6v4.6M37.5 11.9l4.4-1.4M35 19.6l2.7 3.7M27 19.6l-2.7 3.7M24.5 11.9l-4.4-1.4" />
     </g>
 
-    <g transform="rotate(-34 21 31)">
-      <path d="M11.6 30.2 7.4 35.8" stroke="#5566C4" strokeWidth="5.2" strokeLinecap="round" />
+    <g transform="translate(-4 -1.5) rotate(-34 24 24)">
+      <path d="M15.8 31.4 8.8 25" stroke="#5566C4" strokeWidth="4" strokeLinecap="round" />
       <g fill="#6C7FE0">
-        <rect x="12" y="18.4" width="4.4" height="20.4" rx="2.2" />
-        <rect x="17.8" y="12.6" width="4.4" height="26.2" rx="2.2" />
-        <rect x="23.6" y="11.2" width="4.4" height="27.6" rx="2.2" />
-        <rect x="29.4" y="15.6" width="4.4" height="23.2" rx="2.2" />
+        <rect x="15.4" y="14" width="2.8" height="18" rx="1.4" />
+        <rect x="19.4" y="8.8" width="2.8" height="23.2" rx="1.4" />
+        <rect x="23.4" y="7.6" width="2.8" height="24.4" rx="1.4" />
+        <rect x="27.4" y="11.8" width="2.8" height="20.2" rx="1.4" />
       </g>
-      <rect x="11.2" y="28.4" width="23.4" height="11.4" rx="4.4" fill="#8093E8" />
-      <rect x="16.4" y="31.6" width="9.6" height="3.6" rx="1.8" fill="#FBB040" />
-      <path d="M11.2 36.2h23.4v2.6c0 2.8-2.2 5-5 5H16.2c-2.8 0-5-2.2-5-5Z" fill="#2FB552" />
+      <rect x="14.8" y="23" width="16" height="20" rx="4.6" fill="#8093E8" />
+      <rect x="17.6" y="28.4" width="10.4" height="3" rx="1.5" fill="#FBB040" />
+      <path d="M14.8 36.6h16v1.8c0 2.54-2.06 4.6-4.6 4.6H19.4c-2.54 0-4.6-2.06-4.6-4.6Z" fill="#2FB552" />
     </g>
   </Art>
 )
