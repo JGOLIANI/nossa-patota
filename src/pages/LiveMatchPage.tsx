@@ -21,7 +21,7 @@ import { cn } from '../lib/cn'
 import { readableInk, teamSurface } from '../lib/color'
 import { firstName } from '../lib/format'
 import { useApp } from '../store/useApp'
-import type { Player } from '../types'
+import type { MatchEvent, Player } from '../types'
 
 /** Grade de jogadores com alvo grande — a tela é usada em pé, com uma mão. */
 function PlayerPicker({
@@ -83,6 +83,9 @@ export function LiveMatchPage() {
   const [busy, setBusy] = useState(false)
   const [confirmFinish, setConfirmFinish] = useState(false)
   const [removing, setRemoving] = useState<string | null>(null)
+  // Quando preenchido, a folha de gol está corrigindo um lance já registrado
+  // em vez de lançar um novo.
+  const [editing, setEditing] = useState<string | null>(null)
 
   const match = findMatch(snapshot, matchId)
   const events = useMemo(() => matchEvents(snapshot, matchId), [snapshot, matchId])
@@ -109,11 +112,27 @@ export function LiveMatchPage() {
   const assistOptions = scoringSquad.filter((player) => player.id !== scorer)
 
   function openGoal(teamId: string) {
+    setEditing(null)
     setGoalFor(teamId)
     setScorer(null)
     setAssist(null)
     setOwnGoal(false)
     setError('')
+  }
+
+  /** Abre a mesma folha já preenchida, para corrigir o lance. */
+  function openEdit(event: MatchEvent) {
+    setEditing(event.id)
+    setGoalFor(event.team_id)
+    setScorer(event.scorer_id)
+    setAssist(event.assist_id)
+    setOwnGoal(event.own_goal)
+    setError('')
+  }
+
+  function closeGoal() {
+    setGoalFor(null)
+    setEditing(null)
   }
 
   async function saveGoal() {
@@ -124,16 +143,18 @@ export function LiveMatchPage() {
     }
     setBusy(true)
     setError('')
+    const input = {
+      team_id: goalFor,
+      scorer_id: scorer,
+      assist_id: ownGoal ? null : assist,
+      own_goal: ownGoal,
+    }
     try {
-      await actions.addGoal(match, {
-        team_id: goalFor,
-        scorer_id: scorer,
-        assist_id: ownGoal ? null : assist,
-        own_goal: ownGoal,
-      })
-      setGoalFor(null)
+      if (editing) await actions.editGoal(match, editing, input)
+      else await actions.addGoal(match, input)
+      closeGoal()
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Não foi possível registrar o gol.')
+      setError(cause instanceof Error ? cause.message : 'Não foi possível salvar o gol.')
     } finally {
       setBusy(false)
     }
@@ -209,7 +230,15 @@ export function LiveMatchPage() {
 
         {error && <Note tone="error">{error}</Note>}
 
-        {isAdmin && live && (
+        {isAdmin && !live && (
+          <Note>
+            A partida está encerrada, mas ainda dá para revisar: toque num gol para corrigir o
+            autor, a assistência ou o time, ou lance um gol que ficou faltando. O placar e as
+            estatísticas se refazem sozinhos.
+          </Note>
+        )}
+
+        {isAdmin && (
           <div className="grid grid-cols-2 gap-3">
             {[
               { team: home, id: match.team_a_id },
@@ -253,10 +282,32 @@ export function LiveMatchPage() {
                       className="absolute inset-y-2 left-0 w-1 rounded-r-full"
                       style={teamSurface(team?.color)}
                     />
-                    <div className="min-w-0 flex-1">
+                    <div
+                      className="min-w-0 flex-1"
+                      role={isAdmin ? 'button' : undefined}
+                      tabIndex={isAdmin ? 0 : undefined}
+                      onClick={isAdmin ? () => openEdit(event) : undefined}
+                      onKeyDown={
+                        isAdmin
+                          ? (keyEvent) => {
+                              if (keyEvent.key === 'Enter' || keyEvent.key === ' ') {
+                                keyEvent.preventDefault()
+                                openEdit(event)
+                              }
+                            }
+                          : undefined
+                      }
+                    >
                       <p className="truncate text-body text-ink">
+                        {/* Para o administrador a linha inteira abre a
+                            correção, então o nome não pode também navegar:
+                            um toque dispararia as duas coisas. */}
                         {scorerPlayer ? (
-                          <Link to={`/jogadores/${scorerPlayer.id}`}>{scorerPlayer.full_name}</Link>
+                          isAdmin ? (
+                            scorerPlayer.full_name
+                          ) : (
+                            <Link to={`/jogadores/${scorerPlayer.id}`}>{scorerPlayer.full_name}</Link>
+                          )
                         ) : (
                           'Jogador removido'
                         )}
@@ -303,11 +354,11 @@ export function LiveMatchPage() {
 
       <Modal
         open={Boolean(goalFor)}
-        title={`Gol do ${goalFor === match.team_a_id ? home?.name : away?.name}`}
-        onClose={() => setGoalFor(null)}
+        title={`${editing ? 'Corrigir gol do' : 'Gol do'} ${goalFor === match.team_a_id ? home?.name : away?.name}`}
+        onClose={closeGoal}
         footer={
           <Button size="lg" block onClick={saveGoal} disabled={busy || !scorer}>
-            {busy ? 'Registrando…' : 'Registrar gol'}
+            {busy ? 'Salvando…' : editing ? 'Salvar correção' : 'Registrar gol'}
           </Button>
         }
       >
@@ -343,7 +394,7 @@ export function LiveMatchPage() {
       <ConfirmDialog
         open={confirmFinish}
         title="Encerrar partida"
-        message="O placar será fechado, os prêmios calculados e as estatísticas atualizadas."
+        message="O placar será fechado e a votação dos prêmios abre por 16 horas para quem jogou."
         confirmLabel="Encerrar"
         destructive={false}
         onConfirm={finish}

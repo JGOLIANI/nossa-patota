@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
+import { computeRoundAwards, votingState } from '../domain/awards'
 import { scoreFromEvents } from '../domain/score'
 import { computeStats } from '../domain/stats'
 import { roundAwards, teamPlayers } from '../domain/selectors'
@@ -177,13 +178,24 @@ describe('código de entrada da patota', () => {
 })
 
 describe('patota fictícia', () => {
-  it('toda partida encerrada tem premiação', async () => {
+  it('toda partida já apurada tem premiação', async () => {
     const snapshot = await backend.fetchAll()
-    const closed = snapshot.rounds.filter((round) => round.status === 'encerrada')
-    expect(closed.length).toBeGreaterThan(1)
-    for (const round of closed) {
+    const settled = snapshot.rounds.filter(
+      (round) => round.status === 'encerrada' && round.awards_settled_at,
+    )
+    expect(settled.length).toBeGreaterThan(1)
+    for (const round of settled) {
       expect(roundAwards(snapshot, round.id).length).toBeGreaterThan(0)
     }
+  })
+
+  it('a partida mais recente está em votação, ainda sem prêmio gravado', async () => {
+    const snapshot = await backend.fetchAll()
+    const voting = snapshot.rounds.filter((round) => votingState(round) === 'aberta')
+    expect(voting).toHaveLength(1)
+    expect(roundAwards(snapshot, voting[0].id)).toHaveLength(0)
+    // Sem prêmio gravado, mas com quem premiar: a apuração já sabe o resultado.
+    expect(computeRoundAwards(snapshot, voting[0].id).jogador_rodada.length).toBeGreaterThan(0)
   })
 
   it('o placar de cada partida bate com os gols registrados', async () => {

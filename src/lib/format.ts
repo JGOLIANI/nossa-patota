@@ -41,6 +41,22 @@ export function plural(count: number, singular: string, many = `${singular}s`): 
   return `${count} ${count === 1 ? singular : many}`
 }
 
+/**
+ * Quanto falta, em português corrente: "faltam 3 h", "faltam 12 min".
+ *
+ * Abaixo de uma hora conta em minutos, porque nos últimos instantes da
+ * votação a diferença entre 50 e 10 minutos é o que decide se dá tempo de
+ * chamar o pessoal no grupo.
+ */
+export function timeLeft(deadline: Date, now: Date = new Date()): string {
+  const minutes = Math.floor((deadline.getTime() - now.getTime()) / 60_000)
+  if (minutes <= 0) return 'encerrada'
+  if (minutes < 60) return `${minutes} min`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours} h`
+  return `${Math.floor(hours / 24)} d`
+}
+
 export function firstName(fullName: string): string {
   return fullName.trim().split(/\s+/)[0] ?? fullName
 }

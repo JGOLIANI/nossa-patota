@@ -4,6 +4,7 @@ import type {
   Player,
   Round,
   RoundPlayer,
+  RoundVote,
   Snapshot,
   Team,
 } from '../types'
@@ -42,6 +43,7 @@ export function makeRound(id: string, overrides: Partial<Round> = {}): Round {
     status: 'encerrada',
     created_at: '2026-01-10T00:00:00.000Z',
     closed_at: null,
+    awards_settled_at: null,
     ...overrides,
   }
 }
@@ -97,6 +99,22 @@ export function makeEvent(
     assist_id: assistId,
     own_goal: ownGoal,
     created_at: '2026-01-10T20:05:00.000Z',
+  }
+}
+
+export function makeVote(
+  roundId: string,
+  type: RoundVote['type'],
+  voterId: string,
+  playerId: string,
+): RoundVote {
+  return {
+    id: `${roundId}-${type}-${voterId}`,
+    round_id: roundId,
+    type,
+    voter_id: voterId,
+    player_id: playerId,
+    created_at: '2026-01-11T09:00:00.000Z',
   }
 }
 

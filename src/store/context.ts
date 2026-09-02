@@ -10,6 +10,7 @@ import type {
 } from '../data/types'
 import type {
   Attendance,
+  AwardType,
   Match,
   PatotaSettings,
   Player,
@@ -48,6 +49,15 @@ export interface AppActions {
 
   /** Sorteia os dois times com quem confirmou e já cria a partida da rodada. */
   generateTeamsForRound(roundId: string): Promise<void>
+  /**
+   * Monta os times na mão. `assignments` diz em que time (0 ou 1) cada
+   * jogador entra; quem não aparece, ou aparece com `null`, fica de fora.
+   *
+   * Sem times ainda, cria os dois e abre o placar, como o sorteio faz. Com os
+   * times já montados, move só quem mudou de lado — refazê-los apagaria a
+   * partida e os gols já registrados.
+   */
+  setManualTeams(roundId: string, assignments: Record<string, number | null>): Promise<void>
   startRound(roundId: string): Promise<void>
   closeRound(roundId: string): Promise<void>
 
@@ -56,9 +66,19 @@ export interface AppActions {
   deleteMatch(matchId: string): Promise<void>
 
   addGoal(match: Match, input: Omit<EventInput, 'match_id'>): Promise<void>
+  /**
+   * Corrige um gol já registrado e recalcula o placar a partir dos eventos.
+   * Vale com a partida encerrada: é assim que a rodada é revisada depois,
+   * quando alguém lembra que o gol foi do outro.
+   */
+  editGoal(match: Match, eventId: string, input: Omit<EventInput, 'match_id'>): Promise<void>
   removeEvent(match: Match, eventId: string): Promise<void>
 
   setAwards(roundId: string, awards: AwardInput[]): Promise<void>
+
+  /** Voto do próprio jogador. Votar de novo troca o voto anterior. */
+  castVote(roundId: string, type: AwardType, playerId: string): Promise<void>
+  clearVote(roundId: string, type: AwardType): Promise<void>
 }
 
 export interface AppValue {

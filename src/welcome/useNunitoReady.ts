@@ -1,17 +1,17 @@
 import { useEffect, useState } from 'react'
-import '@fontsource/nunito/latin-400.css'
-import '@fontsource/nunito/latin-900.css'
 
 /**
- * A abertura só pode começar depois que as duas variações da Nunito estão
- * decodificadas. Sem essa espera o primeiro quadro sai com a fonte do
- * sistema e a marca "pula" de largura no meio do movimento — justo no
- * momento em que a atenção está toda nela.
+ * A abertura só pode começar depois que a Nunito está decodificada. Sem essa
+ * espera o primeiro quadro sai com a fonte de reserva e a marca "pula" de
+ * largura no meio do movimento — justo no momento em que a atenção está toda
+ * nela.
  *
- * Nada além das fontes precisa ser pré-carregado: o ícone é desenhado em SVG
- * e a marca é texto, então os dois já chegam junto com o pacote da aplicação.
+ * A família é carregada em `main.tsx`, porque hoje é a fonte do aplicativo
+ * inteiro; aqui só se espera por ela. Nada além disso precisa ser
+ * pré-carregado: o ícone é desenhado em SVG e a marca é texto, então os dois
+ * já chegam junto com o pacote da aplicação.
  */
-const FACES = ['400 64px Nunito', '900 64px Nunito'] as const
+const FACES = ['400 64px "Nunito Variable"', '900 64px "Nunito Variable"'] as const
 
 export function useNunitoReady() {
   const [ready, setReady] = useState(() => typeof document === 'undefined' || !document.fonts)

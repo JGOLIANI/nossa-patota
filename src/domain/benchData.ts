@@ -83,6 +83,7 @@ export function makeSnapshot(scale: BenchScale, seed = 7): Snapshot {
       status: 'encerrada',
       created_at: `${date}T18:00:00.000Z`,
       closed_at: `${date}T22:00:00.000Z`,
+      awards_settled_at: null,
     })
 
     const teamIds = [0, 1].map((position) => {
@@ -167,6 +168,7 @@ export function makeSnapshot(scale: BenchScale, seed = 7): Snapshot {
     matches,
     events,
     awards: [],
+    votes: [],
     settings: DEFAULT_SETTINGS,
   }
 }

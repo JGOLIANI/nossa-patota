@@ -79,6 +79,7 @@ create table if not exists public.rounds (
 alter table public.rounds add column if not exists start_time text not null default '20:00';
 alter table public.rounds add column if not exists location text not null default '';
 alter table public.rounds add column if not exists max_players integer not null default 0;
+alter table public.rounds add column if not exists awards_settled_at timestamptz;
 
 create table if not exists public.teams (
   id uuid primary key default gen_random_uuid(),
@@ -146,6 +147,27 @@ create table if not exists public.round_awards (
   player_id uuid not null references public.players (id) on delete cascade,
   unique (round_id, type, player_id)
 );
+
+/*
+ * Votos dos prêmios.
+ *
+ * Cada jogador escalado tem um voto por prêmio, e votar de novo troca o
+ * anterior — é o que a chave única garante. A urna fica aberta por 16 horas
+ * depois de a partida ser encerrada; quem decide isso é a função `cast_vote`,
+ * não o cliente.
+ */
+create table if not exists public.round_votes (
+  id uuid primary key default gen_random_uuid(),
+  round_id uuid not null references public.rounds (id) on delete cascade,
+  type text not null
+    check (type in ('jogador_rodada', 'pior_jogador', 'goleiro_menos_vazado')),
+  voter_id uuid not null references public.players (id) on delete cascade,
+  player_id uuid not null references public.players (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  unique (round_id, type, voter_id)
+);
+
+create index if not exists round_votes_round_idx on public.round_votes (round_id);
 
 create index if not exists round_players_round_idx on public.round_players (round_id);
 create index if not exists round_players_team_idx on public.round_players (team_id);
@@ -420,6 +442,99 @@ grant execute on function public.respond_attendance(uuid, text) to authenticated
  * pgcrypto; em um Postgres comum ele fica em `public` e o schema inexistente é
  * simplesmente ignorado.
  */
+/*
+ * Registra o voto de um jogador em um prêmio da rodada.
+ *
+ * Roda no servidor porque as três regras que valem aqui não podem depender do
+ * cliente: só vota quem foi escalado, ninguém vota em si mesmo, e a urna
+ * fecha 16 horas depois do encerramento da partida. Uma política de RLS
+ * sozinha não conseguiria expressar a janela de tempo nem a escalação.
+ */
+create or replace function public.cast_vote(
+  p_round_id uuid,
+  p_type text,
+  p_player_id uuid
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  me uuid;
+  round_row public.rounds%rowtype;
+begin
+  if p_type not in ('jogador_rodada', 'pior_jogador', 'goleiro_menos_vazado') then
+    raise exception 'Prêmio inválido: %', p_type;
+  end if;
+
+  select id into me from public.players where user_id = auth.uid();
+  if me is null then
+    raise exception 'Sua conta ainda não está vinculada a um jogador da patota.';
+  end if;
+  if me = p_player_id then
+    raise exception 'Não dá para votar em você mesmo.';
+  end if;
+
+  select * into round_row from public.rounds where id = p_round_id;
+  if round_row.id is null then
+    raise exception 'Partida não encontrada.';
+  end if;
+  if round_row.status <> 'encerrada' or round_row.closed_at is null then
+    raise exception 'A votação abre quando a partida é encerrada.';
+  end if;
+  if now() > round_row.closed_at + interval '16 hours' then
+    raise exception 'A votação desta partida já foi encerrada.';
+  end if;
+
+  if not exists (
+    select 1 from public.round_players
+    where round_id = p_round_id and player_id = me and team_id is not null
+  ) then
+    raise exception 'Só quem jogou a partida pode votar.';
+  end if;
+
+  if not exists (
+    select 1 from public.round_players
+    where round_id = p_round_id and player_id = p_player_id and team_id is not null
+  ) then
+    raise exception 'Esse jogador não estava escalado nesta partida.';
+  end if;
+
+  insert into public.round_votes (round_id, type, voter_id, player_id)
+  values (p_round_id, p_type, me, p_player_id)
+  on conflict (round_id, type, voter_id)
+  do update set player_id = excluded.player_id, created_at = now();
+end;
+$$;
+
+/* Desfaz o próprio voto, enquanto a urna estiver aberta. */
+create or replace function public.clear_vote(p_round_id uuid, p_type text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  me uuid;
+  round_row public.rounds%rowtype;
+begin
+  select id into me from public.players where user_id = auth.uid();
+  if me is null then
+    return;
+  end if;
+
+  select * into round_row from public.rounds where id = p_round_id;
+  if round_row.closed_at is not null
+     and now() > round_row.closed_at + interval '16 hours' then
+    raise exception 'A votação desta partida já foi encerrada.';
+  end if;
+
+  delete from public.round_votes
+  where round_id = p_round_id and type = p_type and voter_id = me;
+end;
+$$;
+
 create or replace function public.admin_set_password(p_player_id uuid, p_password text)
 returns void
 language plpgsql
@@ -503,6 +618,7 @@ alter table public.round_players enable row level security;
 alter table public.matches enable row level security;
 alter table public.match_events enable row level security;
 alter table public.round_awards enable row level security;
+alter table public.round_votes enable row level security;
 alter table public.patota_settings enable row level security;
 
 -- Leitura liberada para qualquer jogador autenticado; escrita só para admins.
@@ -512,7 +628,7 @@ declare
 begin
   foreach target in array array[
     'players', 'rounds', 'teams', 'round_players', 'matches', 'match_events',
-    'round_awards', 'patota_settings'
+    'round_awards', 'round_votes', 'patota_settings'
   ]
   loop
     execute format('drop policy if exists %I on public.%I', target || '_read', target);

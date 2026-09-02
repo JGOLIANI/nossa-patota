@@ -1,26 +1,61 @@
-import type { AwardType, PlayerPosition, Snapshot } from '../types'
+import type { AwardType, PlayerPosition, Round, Snapshot } from '../types'
+import { STAT_WEIGHT, VOTE_WEIGHT, VOTING_WINDOW_HOURS } from '../types'
 import { roundEntries } from './selectors'
 import { computeStats, type PlayerStats } from './stats'
 
 export interface RoundAwards {
-  /** Mais participações em gols, entre os jogadores de linha que venceram. */
+  /** Craque da Partida. */
   jogador_rodada: string[]
-  /** Menos participações em gols, entre os jogadores de linha que perderam. */
+  /** Bola Murcha. */
   pior_jogador: string[]
-  /** Goleiro(s) que sofreram menos gols na rodada. */
+  /** Paredão: o goleiro menos vazado. */
   goleiro_menos_vazado: string[]
 }
 
-function bestBy(
-  entries: PlayerStats[],
-  value: (stats: PlayerStats) => number,
-  direction: 'max' | 'min',
-): string[] {
-  if (entries.length === 0) return []
-  const values = entries.map(value)
-  const target = direction === 'max' ? Math.max(...values) : Math.min(...values)
-  return entries.filter((entry) => value(entry) === target).map((entry) => entry.playerId)
+export const AWARD_TYPES: AwardType[] = [
+  'jogador_rodada',
+  'goleiro_menos_vazado',
+  'pior_jogador',
+]
+
+/* ------------------------------------------------------------- a urna ----- */
+
+export type VotingState = 'nao-comecou' | 'aberta' | 'encerrada'
+
+/**
+ * Quando a urna fecha: dezesseis horas depois de a partida ser encerrada.
+ *
+ * O relógio começa a correr no encerramento, e não no horário marcado da
+ * rodada, porque é o encerramento que diz que o jogo de fato aconteceu — uma
+ * rodada que ninguém abriu não tem o que apurar.
+ */
+export function votingDeadline(round: Round): Date | null {
+  if (!round.closed_at) return null
+  const closed = new Date(round.closed_at)
+  if (Number.isNaN(closed.getTime())) return null
+  return new Date(closed.getTime() + VOTING_WINDOW_HOURS * 3600_000)
 }
+
+export function votingState(round: Round, now: Date = new Date()): VotingState {
+  const deadline = votingDeadline(round)
+  if (round.status !== 'encerrada' || !deadline) return 'nao-comecou'
+  return now < deadline ? 'aberta' : 'encerrada'
+}
+
+/**
+ * Quem tem direito a voto: quem foi escalado em um dos times.
+ *
+ * Quem estava em quadra é quem viu o jogo. Quem ficou na espera, avisou que
+ * não vinha ou nem respondeu não tem como julgar quem jogou bem, e um voto
+ * desses só faria peso.
+ */
+export function canVote(snapshot: Snapshot, roundId: string, playerId: string): boolean {
+  return roundEntries(snapshot, roundId).some(
+    (entry) => entry.player_id === playerId && Boolean(entry.team_id),
+  )
+}
+
+/* -------------------------------------------------------- o resultado ----- */
 
 export interface RoundOutcome {
   winner: string | null
@@ -74,31 +109,38 @@ export function roundOutcome(snapshot: Snapshot, roundId: string): RoundOutcome 
   }
 }
 
+/* ---------------------------------------------------------- candidatos ---- */
+
 /**
- * Calcula os destaques de uma rodada.
+ * Quem disputa cada prêmio.
  *
- * Os dois prêmios de linha são simétricos: o melhor sai de quem venceu e o
- * pior de quem perdeu. No empate não há de onde separar, então os dois olham
- * a rodada inteira. Empates dentro do próprio prêmio devolvem todos os
- * empatados — cabe à interface decidir como exibir.
+ * Os dois prêmios de linha são simétricos: o Craque sai de quem venceu e a
+ * Bola Murcha de quem perdeu. No empate não há de onde separar, então os dois
+ * olham a rodada inteira.
  *
  * A posição considerada é a da rodada, não a do cadastro: o goleiro que foi
  * para a linha disputa os prêmios de linha, e quem assumiu o gol disputa o de
  * goleiro menos vazado.
  */
-export function computeRoundAwards(snapshot: Snapshot, roundId: string): RoundAwards {
+export function awardCandidates(
+  snapshot: Snapshot,
+  roundId: string,
+): Record<AwardType, PlayerStats[]> {
   const stats = computeStats(snapshot, { roundId })
-  const registered = new Map(snapshot.players.map((p) => [p.id, p.position]))
-  const rows = roundEntries(snapshot, roundId).filter((rp) => rp.team_id)
+  const registered = new Map(snapshot.players.map((player) => [player.id, player.position]))
+  const rows = roundEntries(snapshot, roundId).filter((entry) => entry.team_id)
 
-  const teamOf = new Map(rows.map((rp) => [rp.player_id, rp.team_id]))
+  const teamOf = new Map(rows.map((entry) => [entry.player_id, entry.team_id]))
   const positionOf = new Map<string, PlayerPosition>(
-    rows.map((rp) => [rp.player_id, rp.position ?? registered.get(rp.player_id) ?? 'linha']),
+    rows.map((entry) => [
+      entry.player_id,
+      entry.position ?? registered.get(entry.player_id) ?? 'linha',
+    ]),
   )
 
   const participants = rows
-    .map((rp) => stats.get(rp.player_id))
-    .filter((entry): entry is PlayerStats => Boolean(entry) && entry!.played > 0)
+    .map((entry) => stats.get(entry.player_id))
+    .filter((entry): entry is PlayerStats => entry !== undefined && entry.played > 0)
 
   const line = participants.filter((entry) => positionOf.get(entry.playerId) === 'linha')
   const keepers = participants.filter((entry) => positionOf.get(entry.playerId) === 'goleiro')
@@ -107,28 +149,155 @@ export function computeRoundAwards(snapshot: Snapshot, roundId: string): RoundAw
   const fromTeam = (teamId: string | null) =>
     teamId ? line.filter((entry) => teamOf.get(entry.playerId) === teamId) : []
 
-  // No empate os dois prêmios olham a rodada toda; fora dele, cada um fica
-  // restrito ao seu lado do placar.
-  const bestPool = outcome.draw ? line : fromTeam(outcome.winner)
-  const worstPool = outcome.draw ? line : fromTeam(outcome.loser)
-
-  /**
-   * Sem nenhuma participação em gol no lado avaliado não há o que premiar.
-   *
-   * Vale para os dois prêmios de linha, que são simétricos: se todo mundo ali
-   * está em zero, ninguém se destacou — nem para bem nem para mal. Sem esta
-   * guarda a Bola Murcha ia para o time perdedor inteiro numa derrota sem
-   * gols, e para quase todo mundo num empate magro; um prêmio que cabe em
-   * sete dos dez jogadores não diz nada sobre nenhum deles.
-   */
-  const stood = (pool: PlayerStats[]) =>
-    pool.length > 0 && Math.max(...pool.map((entry) => entry.participations)) > 0
-
   return {
-    jogador_rodada: stood(bestPool) ? bestBy(bestPool, (s) => s.participations, 'max') : [],
-    pior_jogador: stood(worstPool) ? bestBy(worstPool, (s) => s.participations, 'min') : [],
-    goleiro_menos_vazado: bestBy(keepers, (s) => s.goalsAgainst, 'min'),
+    jogador_rodada: outcome.draw ? line : fromTeam(outcome.winner),
+    pior_jogador: outcome.draw ? line : fromTeam(outcome.loser),
+    goleiro_menos_vazado: keepers,
   }
+}
+
+/* ------------------------------------------------------------ apuração ---- */
+
+/** A estatística que cada prêmio olha, e se ali maior é melhor. */
+const METRIC: Record<AwardType, { value: (stats: PlayerStats) => number; higherIsBetter: boolean }> =
+  {
+    jogador_rodada: { value: (stats) => stats.participations, higherIsBetter: true },
+    pior_jogador: { value: (stats) => stats.participations, higherIsBetter: false },
+    goleiro_menos_vazado: { value: (stats) => stats.goalsAgainst, higherIsBetter: false },
+  }
+
+export interface AwardTallyEntry {
+  playerId: string
+  votes: number
+  /** Fatia dos votos válidos daquele prêmio, de 0 a 1. */
+  voteShare: number
+  /** A estatística do prêmio, normalizada de 0 a 1 dentro dos candidatos. */
+  statScore: number
+  /** `VOTE_WEIGHT × voteShare + STAT_WEIGHT × statScore`. */
+  score: number
+}
+
+export interface AwardTally {
+  entries: AwardTallyEntry[]
+  /** Quantos votos válidos foram computados neste prêmio. */
+  totalVotes: number
+  /** Vencedores: todos os que empataram na maior nota. */
+  winners: string[]
+}
+
+/**
+ * Normalizador de 0 a 1 dentro do grupo. Sem variação, devolve 0,5 para
+ * todos — nenhum candidato leva vantagem por estatística, e o voto decide
+ * sozinho.
+ */
+function normalizer(values: number[]): (value: number) => number {
+  if (values.length === 0) return () => 0.5
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  if (max === min) return () => 0.5
+  return (value) => (value - min) / (max - min)
+}
+
+/**
+ * Apura um prêmio da rodada.
+ *
+ * A nota de cada candidato mistura as duas coisas que a patota tem: o que o
+ * pessoal viu (a fatia de votos que recebeu) e o que ficou registrado (a
+ * estatística do prêmio, normalizada entre os candidatos). Quem some da
+ * cédula — porque os times mudaram depois da votação, por exemplo — tem o
+ * voto descartado, e a fatia dos demais é calculada só sobre o que sobrou.
+ *
+ * Sem nenhum voto a nota vira só a estatística, que é exatamente o critério
+ * antigo. É o que mantém a rodada que ninguém votou com um resultado justo em
+ * vez de nenhum.
+ */
+export function tallyAward(snapshot: Snapshot, roundId: string, type: AwardType): AwardTally {
+  const pool = awardCandidates(snapshot, roundId)[type]
+  if (pool.length === 0) return { entries: [], totalVotes: 0, winners: [] }
+
+  const eligible = new Set(pool.map((entry) => entry.playerId))
+  const counted = snapshot.votes.filter(
+    (vote) =>
+      vote.round_id === roundId && vote.type === type && eligible.has(vote.player_id),
+  )
+
+  const votesFor = new Map<string, number>()
+  for (const vote of counted) {
+    votesFor.set(vote.player_id, (votesFor.get(vote.player_id) ?? 0) + 1)
+  }
+
+  const metric = METRIC[type]
+  const scale = normalizer(pool.map(metric.value))
+
+  const entries: AwardTallyEntry[] = pool.map((stats) => {
+    const votes = votesFor.get(stats.playerId) ?? 0
+    const voteShare = counted.length > 0 ? votes / counted.length : 0
+    const normalized = scale(metric.value(stats))
+    const statScore = metric.higherIsBetter ? normalized : 1 - normalized
+    return {
+      playerId: stats.playerId,
+      votes,
+      voteShare,
+      statScore,
+      score: VOTE_WEIGHT * voteShare + STAT_WEIGHT * statScore,
+    }
+  })
+
+  entries.sort((a, b) => b.score - a.score || b.votes - a.votes)
+
+  /*
+   * Sem voto nenhum, e com todo mundo zerado na estatística, ninguém se
+   * destacou — nem para bem nem para mal. Sem esta guarda a Bola Murcha ia
+   * para o time perdedor inteiro numa derrota sem gols, e um prêmio que cabe
+   * em sete dos dez jogadores não diz nada sobre nenhum deles. Havendo voto,
+   * a patota decidiu, e o prêmio sai.
+   */
+  const decidedByStatsAlone = counted.length === 0
+  const noneStood =
+    type !== 'goleiro_menos_vazado' && Math.max(...pool.map((stats) => stats.participations)) === 0
+  if (decidedByStatsAlone && noneStood) {
+    return { entries, totalVotes: 0, winners: [] }
+  }
+
+  const best = Math.max(...entries.map((entry) => entry.score))
+  return {
+    entries,
+    totalVotes: counted.length,
+    winners: entries
+      .filter((entry) => Math.abs(entry.score - best) < 1e-9)
+      .map((entry) => entry.playerId),
+  }
+}
+
+/** Apura os três prêmios de uma vez. */
+export function computeRoundAwards(snapshot: Snapshot, roundId: string): RoundAwards {
+  return {
+    jogador_rodada: tallyAward(snapshot, roundId, 'jogador_rodada').winners,
+    pior_jogador: tallyAward(snapshot, roundId, 'pior_jogador').winners,
+    goleiro_menos_vazado: tallyAward(snapshot, roundId, 'goleiro_menos_vazado').winners,
+  }
+}
+
+/** Em quem este jogador votou, por prêmio. */
+export function votesByVoter(
+  snapshot: Snapshot,
+  roundId: string,
+  voterId: string,
+): Partial<Record<AwardType, string>> {
+  const chosen: Partial<Record<AwardType, string>> = {}
+  for (const vote of snapshot.votes) {
+    if (vote.round_id === roundId && vote.voter_id === voterId) chosen[vote.type] = vote.player_id
+  }
+  return chosen
+}
+
+/** Quantos dos eleitores da rodada já votaram em cada prêmio. */
+export function voterTurnout(snapshot: Snapshot, roundId: string): { voted: number; total: number } {
+  const total = roundEntries(snapshot, roundId).filter((entry) => entry.team_id).length
+  const voters = new Set(
+    snapshot.votes.filter((vote) => vote.round_id === roundId).map((vote) => vote.voter_id),
+  )
+  return { voted: voters.size, total }
 }
 
 /** Conta quantas vezes cada jogador recebeu cada prêmio ao longo da história. */

@@ -6,7 +6,8 @@ import { ConfirmDialog, Modal } from '../components/Modal'
 import { Page } from '../components/Page'
 import { PlayerRow } from '../components/PlayerRow'
 import { ShareRound } from '../components/ShareRound'
-import { IconBall, IconClose, IconGlove, IconPlus, IconShuffle } from '../components/icons'
+import { TeamBuilder } from '../components/TeamBuilder'
+import { IconBall, IconClose, IconGlove, IconPlus, IconShuffle, IconUsers } from '../components/icons'
 import {
   ActionBar,
   Button,
@@ -57,6 +58,7 @@ export function RoundDetailPage() {
   const [busy, setBusy] = useState(false)
   const [confirm, setConfirm] = useState<'sortear' | 'encerrar' | 'excluir' | null>(null)
   const [addPlayer, setAddPlayer] = useState(false)
+  const [building, setBuilding] = useState(false)
 
   if (!round) {
     return (
@@ -187,14 +189,19 @@ export function RoundDetailPage() {
                 title="Times ainda não sorteados"
                 description={
                   isAdmin
-                    ? 'O sorteio divide quem confirmou em dois times e já abre o placar.'
+                    ? 'Sorteie ou monte na mão: os dois dividem quem confirmou em dois times e já abrem o placar.'
                     : 'O administrador ainda não sorteou as equipes.'
                 }
                 action={
                   isAdmin ? (
-                    <Button onClick={() => setConfirm('sortear')}>
-                      <IconShuffle className="size-5" /> Sortear times
-                    </Button>
+                    <div className="flex flex-col items-stretch gap-2">
+                      <Button onClick={() => setConfirm('sortear')}>
+                        <IconShuffle className="size-5" /> Sortear times
+                      </Button>
+                      <Button variant="quiet" onClick={() => setBuilding(true)}>
+                        Prefiro montar na mão
+                      </Button>
+                    </div>
                   ) : undefined
                 }
               />
@@ -306,9 +313,14 @@ export function RoundDetailPage() {
               <ShareRound round={round} kind="escalacao" />
 
               {isAdmin && !closed && (
-                <Button variant="secondary" block onClick={() => setConfirm('sortear')} disabled={busy}>
-                  <IconShuffle className="size-5" /> Sortear novamente
-                </Button>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button variant="secondary" onClick={() => setBuilding(true)} disabled={busy}>
+                    <IconUsers className="size-5" /> Ajustar
+                  </Button>
+                  <Button variant="secondary" onClick={() => setConfirm('sortear')} disabled={busy}>
+                    <IconShuffle className="size-5" /> Sortear
+                  </Button>
+                </div>
               )}
 
               {isAdmin && (
@@ -329,9 +341,14 @@ export function RoundDetailPage() {
 
       {isAdmin && !closed && teams.length === 0 && lists.confirmed.length > 0 && (
         <ActionBar>
-          <Button size="lg" block onClick={() => setConfirm('sortear')} disabled={busy}>
-            <IconShuffle className="size-5" /> Sortear times · {lists.confirmed.length}
-          </Button>
+          <div className="space-y-2">
+            <Button size="lg" block onClick={() => setConfirm('sortear')} disabled={busy}>
+              <IconShuffle className="size-5" /> Sortear times · {lists.confirmed.length}
+            </Button>
+            <Button variant="quiet" block onClick={() => setBuilding(true)} disabled={busy}>
+              Montar na mão
+            </Button>
+          </div>
         </ActionBar>
       )}
 
@@ -342,6 +359,8 @@ export function RoundDetailPage() {
           </Button>
         </ActionBar>
       )}
+
+      <TeamBuilder round={round} open={building} onClose={() => setBuilding(false)} />
 
       <Modal open={addPlayer} title="Confirmar jogador" onClose={() => setAddPlayer(false)}>
         <p className="mb-3 px-1 text-footnote text-muted">
@@ -392,7 +411,7 @@ export function RoundDetailPage() {
       <ConfirmDialog
         open={confirm === 'encerrar'}
         title="Encerrar partida"
-        message="O placar será fechado, os prêmios calculados e as estatísticas atualizadas."
+        message="O placar será fechado e a votação dos prêmios abre por 16 horas para quem jogou."
         confirmLabel="Encerrar"
         destructive={false}
         onConfirm={() => {
