@@ -29,12 +29,12 @@ const STYLES: Record<AwardType, { tone: string; Icon: typeof IconGlove; ask: str
   goleiro_menos_vazado: {
     tone: 'text-brand',
     Icon: IconGlove,
-    ask: 'Qual goleiro segurou melhor?',
+    ask: 'Quem fechou o gol?',
   },
   pior_jogador: {
     tone: 'text-muted',
     Icon: IconPuncturedBall,
-    ask: 'Quem passou em branco?',
+    ask: 'Quem foi o Bagre da Rodada?',
   },
 }
 

@@ -220,16 +220,22 @@ export interface SessionUser {
   username: string
 }
 
+/*
+ * Os nomes que a patota usa. A chave (`pior_jogador` e companhia) é o que
+ * está gravado no banco e não muda com o apelido: trocar o rótulo aqui
+ * renomeia o prêmio em todas as telas, nas imagens e nas mensagens sem tocar
+ * em uma linha do histórico.
+ */
 export const AWARD_LABELS: Record<AwardType, string> = {
   jogador_rodada: 'Craque da Partida',
-  pior_jogador: 'Bola Murcha',
+  pior_jogador: 'Bagre da Rodada',
   goleiro_menos_vazado: 'Paredão',
 }
 
 /** Versão curta, para caber embaixo de um número na ficha do jogador. */
 export const AWARD_SHORT_LABELS: Record<AwardType, string> = {
   jogador_rodada: 'Craque',
-  pior_jogador: 'Bola Murcha',
+  pior_jogador: 'Bagre',
   goleiro_menos_vazado: 'Paredão',
 }
 

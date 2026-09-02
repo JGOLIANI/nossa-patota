@@ -78,7 +78,7 @@ describe('computeRoundAwards', () => {
 
 describe('sem participação em gol não há o que premiar', () => {
   /**
-   * A guarda é a mesma dos dois lados do placar. Sem ela a Bola Murcha ia
+   * A guarda é a mesma dos dois lados do placar. Sem ela a Bagre da Rodada ia
    * para o time perdedor inteiro numa derrota sem gols — um prêmio que cabe
    * em todo mundo não diz nada sobre ninguém.
    */

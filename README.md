@@ -128,7 +128,7 @@ seguinte, então quem jogou na sexta à noite ainda vota no sábado.
 | Prêmio | Quem disputa | Estatística que pesa |
 | --- | --- | --- |
 | Craque da Partida | Linha do **time vencedor** | Mais participações em gols |
-| Bola Murcha | Linha do **time derrotado** | Menos participações em gols |
+| Bagre da Rodada | Linha do **time derrotado** | Menos participações em gols |
 | Paredão | Quem jogou no gol | Menos gols sofridos |
 
 A nota de cada candidato é **70% da fatia de votos** que recebeu e **30% da

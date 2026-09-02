@@ -6,7 +6,7 @@ import { computeStats, type PlayerStats } from './stats'
 export interface RoundAwards {
   /** Craque da Partida. */
   jogador_rodada: string[]
-  /** Bola Murcha. */
+  /** Bagre da Rodada. */
   pior_jogador: string[]
   /** Paredão: o goleiro menos vazado. */
   goleiro_menos_vazado: string[]
@@ -127,7 +127,7 @@ const candidateCache = new WeakMap<Snapshot, Map<string, Record<AwardType, Playe
  * Quem disputa cada prêmio.
  *
  * Os dois prêmios de linha são simétricos: o Craque sai de quem venceu e a
- * Bola Murcha de quem perdeu. No empate não há de onde separar, então os dois
+ * Bagre da Rodada de quem perdeu. No empate não há de onde separar, então os dois
  * olham a rodada inteira.
  *
  * A posição considerada é a da rodada, não a do cadastro: o goleiro que foi
@@ -276,7 +276,7 @@ export function tallyAward(snapshot: Snapshot, roundId: string, type: AwardType)
 
   /*
    * Sem voto nenhum, e com todo mundo zerado na estatística, ninguém se
-   * destacou — nem para bem nem para mal. Sem esta guarda a Bola Murcha ia
+   * destacou — nem para bem nem para mal. Sem esta guarda a Bagre da Rodada ia
    * para o time perdedor inteiro numa derrota sem gols, e um prêmio que cabe
    * em sete dos dez jogadores não diz nada sobre nenhum deles. Havendo voto,
    * a patota decidiu, e o prêmio sai.
