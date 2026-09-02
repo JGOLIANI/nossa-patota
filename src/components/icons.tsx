@@ -154,20 +154,26 @@ export const IconGoldenBall = (props: IconProps) => (
 )
 
 /**
- * O bagre do prêmio de mesmo nome.
+ * O bagre do prêmio de mesmo nome, visto de frente.
  *
- * O que identifica o peixe é o bigode — sem ele seria um peixe qualquer —,
- * então os dois barbilhões saem da boca e descem soltos, por fora do corpo,
- * onde o traço grosso não os empasta contra a barriga.
+ * De frente ele é inconfundível: a cabeça triangular, o espinho dorsal em pé e
+ * os dois barbilhões subindo em arco pelos lados. De perfil seria um peixe
+ * qualquer com um risco embaixo — foi o que a primeira tentativa virou.
+ *
+ * O espaço para os barbilhões vem dos cantos de cima, que a cabeça triangular
+ * deixa vazios. Ao lado dela não caberia: num quadro de 24 unidades com traço
+ * de 2,4, duas formas precisam de umas 4 unidades entre si para continuarem
+ * sendo duas, e uma cabeça larga o bastante para ter cara não deixa isso
+ * sobrar na horizontal.
  */
 export const IconCatfish = (props: IconProps) => (
   <Base {...props}>
-    <path d="M3.4 10.6C6.5 5.4 13.2 5.4 16.6 10.6 13.2 15.8 6.5 15.8 3.4 10.6Z" />
-    <path d="M16.6 10.6 21 7.4V13.8Z" />
-    <path d="M8.8 6.9C9.9 4.3 12.4 4.3 13.6 7" />
-    <path d="M3.5 11.5C2 12.9 1.7 15.5 2.7 17.6" />
-    <path d="M4.3 12.7C3.8 14.8 4.8 17 6.7 18" />
-    <circle cx="6.8" cy="9.7" r="1.05" fill="currentColor" stroke="none" />
+    <path d="M12 6.6C13.9 6.6 19.4 13.4 19.4 16.2 19.4 18 16.1 18.8 12 18.8 7.9 18.8 4.6 18 4.6 16.2 4.6 13.4 10.1 6.6 12 6.6Z" />
+    <path d="M12 6.6V3.2" />
+    <path d="M5.9 17.7C2.9 16.9 1.6 11.6 3 6.2" />
+    <path d="M18.1 17.7C21.1 16.9 22.4 11.6 21 6.2" />
+    <circle cx="9.7" cy="14.2" r="1" fill="currentColor" stroke="none" />
+    <circle cx="14.3" cy="14.2" r="1" fill="currentColor" stroke="none" />
   </Base>
 )
 
