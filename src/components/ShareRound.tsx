@@ -9,7 +9,9 @@ import {
   teamPlayers,
 } from '../domain/selectors'
 import { computeStats } from '../domain/stats'
+import { teamEmoji } from '../lib/color'
 import { formatDate, formatWeekday, plural } from '../lib/format'
+import { mapsUrl } from '../lib/maps'
 import {
   drawRoundCard,
   shareImage,
@@ -45,6 +47,9 @@ export function ShareRound({ round, kind }: { round: Round; kind: 'escalacao' | 
     .join(' · ')
 
   const header = { title: round.title, subtitle: when }
+  // O endereço do mapa fica fora do `when`: ele é da mensagem, e no cartão de
+  // imagem um link não é clicável — seria só uma linha comprida de texto.
+  const map = mapsUrl(round.location, round.location_url)
 
   async function share() {
     setBusy(true)
@@ -69,6 +74,7 @@ export function ShareRound({ round, kind }: { round: Round; kind: 'escalacao' | 
   function lineupText() {
     const teams = roundTeams(snapshot, round.id).map((team) => ({
       name: team.name,
+      color: team.color,
       players: teamPlayers(snapshot, team.id)
         .map((player) => ({
           name: player.full_name,
@@ -86,9 +92,11 @@ export function ShareRound({ round, kind }: { round: Round; kind: 'escalacao' | 
 
     const total = teams.reduce((sum, team) => sum + team.players.length, 0)
 
+    // A bolinha ao lado do nome é o colete: na tela os times se distinguem
+    // pela cor, e no texto puro "Preto" e "Branco" ficariam iguais.
     const lineup = teams.flatMap((team) => [
       '',
-      `*${team.name}*`,
+      `*${team.name}* ${teamEmoji(team.color)}`.trimEnd(),
       ...team.players.map((player) =>
         player.position === 'goleiro' ? `${player.name} (goleiro)` : player.name,
       ),
@@ -97,6 +105,10 @@ export function ShareRound({ round, kind }: { round: Round; kind: 'escalacao' | 
     return [
       `⚽ *Nossa Patota* — ${round.title}`,
       `🗓 ${when}`,
+      // O endereço vai em linha própria: o WhatsApp não tem link com nome, e
+      // solto na linha da data ele a esticaria sem que ninguém a lesse. Sozinho
+      // ele ainda vira o cartão do lugar na prévia da conversa.
+      ...(map ? [`📍 ${map}`] : []),
       `👥 ${plural(total, 'jogador', 'jogadores')} em quadra`,
       ...lineup,
       '',

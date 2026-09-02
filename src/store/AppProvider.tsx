@@ -140,6 +140,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         title: roundTitle(date),
         start_time: current.settings.start_time,
         location: current.settings.location,
+        location_url: current.settings.location_url,
         team_count: 2,
         max_players: current.settings.max_players,
       })

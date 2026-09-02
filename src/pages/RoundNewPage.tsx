@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { LocationField } from '../components/LocationField'
 import { Page } from '../components/Page'
 import { ActionBar, Button, Card, Field, Input, Note, Select } from '../components/ui'
 import { roundTitle } from '../domain/schedule'
@@ -21,6 +22,7 @@ export function RoundNewPage() {
   const [date, setDate] = useState(todayISO())
   const [startTime, setStartTime] = useState(settings.start_time)
   const [location, setLocation] = useState(settings.location)
+  const [locationUrl, setLocationUrl] = useState(settings.location_url)
   const [maxPlayers, setMaxPlayers] = useState(String(settings.max_players))
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -34,6 +36,7 @@ export function RoundNewPage() {
         title: roundTitle(date),
         start_time: startTime,
         location: location.trim(),
+        location_url: locationUrl.trim(),
         team_count: 2,
         max_players: Number(maxPlayers) || 0,
       })
@@ -62,13 +65,13 @@ export function RoundNewPage() {
             </Field>
           </div>
 
-          <Field label="Local">
-            <Input
-              value={location}
-              onChange={(event) => setLocation(event.target.value)}
-              placeholder="Quadra do Zé"
-            />
-          </Field>
+          <LocationField
+            location={location}
+            locationUrl={locationUrl}
+            onLocationChange={setLocation}
+            onLocationUrlChange={setLocationUrl}
+            placeholder="Quadra do Zé"
+          />
 
           <Field label="Vagas" hint="Quem confirmar depois disso entra na lista de espera.">
             <Select value={maxPlayers} onChange={(event) => setMaxPlayers(event.target.value)}>

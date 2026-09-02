@@ -33,6 +33,12 @@ export interface Round {
   /** Horário de início, `HH:MM`. Herdado da configuração da patota. */
   start_time: string
   location: string
+  /**
+   * O local marcado no Google Maps. Vazio quando ninguém marcou — aí o mapa
+   * é aberto por uma busca pelo nome, que acerta o lugar conhecido e erra a
+   * quadra sem placa.
+   */
+  location_url: string
   team_count: number
   /** Vagas da rodada. 0 significa sem limite. */
   max_players: number
@@ -61,6 +67,8 @@ export interface PatotaSettings {
   weekday: number
   start_time: string
   location: string
+  /** O local marcado no Google Maps, herdado por toda partida que nascer daqui. */
+  location_url: string
   max_players: number
   /** Quantas rodadas futuras manter sempre criadas. */
   weeks_ahead: number
@@ -76,6 +84,7 @@ export const DEFAULT_SETTINGS: PatotaSettings = {
   weekday: 5,
   start_time: '20:00',
   location: '',
+  location_url: '',
   max_players: 0,
   weeks_ahead: 4,
   join_code: '',

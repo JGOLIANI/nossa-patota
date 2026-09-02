@@ -35,6 +35,7 @@ import {
 } from '../domain/selectors'
 import { computeStats } from '../domain/stats'
 import { formatDate, formatWeekday, timeLeft } from '../lib/format'
+import { mapsUrl } from '../lib/maps'
 import { playerCaption } from '../lib/player'
 import { useApp } from '../store/useApp'
 import type { Player } from '../types'
@@ -134,7 +135,21 @@ export function RoundDetailPage() {
       subtitle={
         <>
           {formatWeekday(round.date)}, {formatDate(round.date)} às {round.start_time}
-          {round.location && ` · ${round.location}`}
+          {/* O local abre o mapa: quem nunca foi à quadra precisa da
+              navegação, não do nome dela. */}
+          {round.location && (
+            <>
+              {' · '}
+              <a
+                href={mapsUrl(round.location, round.location_url)}
+                target="_blank"
+                rel="noreferrer"
+                className="text-brand underline decoration-brand/40 underline-offset-2"
+              >
+                {round.location}
+              </a>
+            </>
+          )}
         </>
       }
       back

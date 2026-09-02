@@ -47,6 +47,9 @@ create table if not exists public.patota_settings (
   weekday integer not null default 5 check (weekday between 0 and 6),
   start_time text not null default '20:00',
   location text not null default '',
+  -- Endereço do local no Google Maps, do jeito que o administrador colou.
+  -- Vazio faz o aplicativo abrir o mapa por uma busca pelo nome acima.
+  location_url text not null default '',
   -- 0 significa rodada sem limite de vagas.
   max_players integer not null default 0 check (max_players >= 0),
   weeks_ahead integer not null default 4 check (weeks_ahead between 0 and 12),
@@ -56,6 +59,7 @@ create table if not exists public.patota_settings (
 );
 
 alter table public.patota_settings add column if not exists join_code text not null default '';
+alter table public.patota_settings add column if not exists location_url text not null default '';
 
 insert into public.patota_settings (id) values ('default') on conflict (id) do nothing;
 
@@ -65,6 +69,7 @@ create table if not exists public.rounds (
   title text not null default 'Rodada',
   start_time text not null default '20:00',
   location text not null default '',
+  location_url text not null default '',
   team_count integer not null default 2 check (team_count between 1 and 8),
   max_players integer not null default 0 check (max_players >= 0),
   status text not null default 'rascunho'
@@ -78,6 +83,7 @@ create table if not exists public.rounds (
 -- Colunas acrescentadas depois da primeira versão do schema.
 alter table public.rounds add column if not exists start_time text not null default '20:00';
 alter table public.rounds add column if not exists location text not null default '';
+alter table public.rounds add column if not exists location_url text not null default '';
 alter table public.rounds add column if not exists max_players integer not null default 0;
 alter table public.rounds add column if not exists awards_settled_at timestamptz;
 

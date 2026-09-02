@@ -154,6 +154,7 @@ describe('uma partida por data', () => {
         title: 'Amistoso',
         start_time: '20:00',
         location: '',
+        location_url: '',
         team_count: 2,
         max_players: 0,
       }),

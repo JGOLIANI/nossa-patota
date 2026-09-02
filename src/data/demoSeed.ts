@@ -48,6 +48,13 @@ const SEED_PLAYERS: SeedPlayer[] = [
 const ROUND_DATES = ['2026-07-10', '2026-07-17', '2026-07-24']
 
 /**
+ * O local da demonstração marcado no mapa. É uma busca pelo nome, a mesma que
+ * o aplicativo monta sozinho — a demonstração não aponta para nenhuma quadra
+ * de verdade.
+ */
+const DEMO_LOCATION_URL = 'https://www.google.com/maps/search/?api=1&query=Quadra%20do%20Z%C3%A9'
+
+/**
  * Gera uma patota fictícia completa (jogadores, rodadas, partidas, gols e
  * premiações) para que o modo demonstração já abra com conteúdo real.
  */
@@ -79,7 +86,13 @@ export function createDemoSnapshot(): Snapshot {
     events: [],
     awards: [],
     votes: [],
-    settings: { ...DEFAULT_SETTINGS, weekday: 5, location: 'Quadra do Zé', max_players: 14 },
+    settings: {
+      ...DEFAULT_SETTINGS,
+      weekday: 5,
+      location: 'Quadra do Zé',
+      location_url: DEMO_LOCATION_URL,
+      max_players: 14,
+    },
   }
 
   let eventSeq = 0
@@ -113,6 +126,7 @@ export function createDemoSnapshot(): Snapshot {
       title: `Partida de ${date.slice(8, 10)}/${date.slice(5, 7)}`,
       start_time: '20:00',
       location: 'Quadra do Zé',
+      location_url: DEMO_LOCATION_URL,
       team_count: 2,
       max_players: 14,
       status: 'encerrada',
@@ -254,6 +268,7 @@ export function createDemoSnapshot(): Snapshot {
     title: roundTitle(nextDate),
     start_time: '20:00',
     location: 'Quadra do Zé',
+    location_url: DEMO_LOCATION_URL,
     team_count: 2,
     max_players: 14,
     status: 'rascunho',

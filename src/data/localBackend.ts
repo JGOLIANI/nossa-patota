@@ -322,6 +322,7 @@ export const localBackend: Backend = {
         title: input.title,
         start_time: input.start_time,
         location: input.location,
+        location_url: input.location_url,
         team_count: input.team_count,
         max_players: input.max_players,
         status: 'rascunho',
