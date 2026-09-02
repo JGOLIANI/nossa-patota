@@ -104,9 +104,17 @@ O **resumo da partida** põe o placar em 116 pixels de altura, porque é a únic
 coisa que precisa ser legível na miniatura, e deixa destaques e artilharia
 abaixo, para quem abrir.
 
-A mensagem que vai junto não repete a imagem: traz o que se lê sem abrir nada —
-o placar, o horário — e termina no que fazer em seguida, que enquanto a urna
-está aberta é votar.
+A mensagem da **escalação** traz os dois times por extenso, um nome por linha,
+com a marcação de quem ficou no gol. No grupo a imagem chega como miniatura e
+nem todo mundo abre; o nome em texto também é o que se procura com a busca do
+WhatsApp e o que o leitor de tela alcança — a imagem, para os dois, não existe.
+
+A mensagem do **resultado** traz o placar, a artilharia e o pódio.
+
+O resultado só pode ser compartilhado depois que a urna fecha. Mandar antes
+seria anunciar como definitivo um pódio que os votos que faltam ainda podem
+mudar — e ninguém desmente um print. Enquanto a votação corre, a tela diz
+quando o botão aparece.
 
 No celular abre direto o menu de compartilhar; no computador, baixa o arquivo.
 
@@ -128,8 +136,8 @@ estatística** do prêmio, normalizada entre os candidatos. Quem estava lá viu
 coisas que o placar não registra — a defesa na linha, o passe que ninguém
 converteu —, mas voto sozinho vira popularidade.
 
-Sem voto nenhum a nota vira só a estatística, que é exatamente o critério
-anterior: a rodada em que ninguém votou continua tendo um resultado justo em
+Se ninguém votar, a nota vira só a estatística da partida, que é exatamente o
+critério anterior: a rodada em que ninguém votou continua tendo um resultado justo em
 vez de nenhum. Nesse caso vale também a guarda antiga — quando ninguém do lado
 avaliado participou de gol, o prêmio não sai, porque um prêmio que cabe no time
 inteiro não diz nada sobre nenhum dos premiados. Havendo voto, a patota

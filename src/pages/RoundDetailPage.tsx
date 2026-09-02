@@ -23,6 +23,7 @@ import {
   TeamDot,
 } from '../components/ui'
 import { attendanceLists } from '../domain/attendance'
+import { votingDeadline, votingState } from '../domain/awards'
 import {
   findRound,
   playerMap,
@@ -33,7 +34,7 @@ import {
   teamPlayers,
 } from '../domain/selectors'
 import { computeStats } from '../domain/stats'
-import { formatDate, formatWeekday } from '../lib/format'
+import { formatDate, formatWeekday, timeLeft } from '../lib/format'
 import { playerCaption } from '../lib/player'
 import { useApp } from '../store/useApp'
 import type { Player } from '../types'
@@ -69,6 +70,8 @@ export function RoundDetailPage() {
   }
 
   const closed = round.status === 'encerrada'
+  const voting = votingState(round)
+  const deadline = votingDeadline(round)
   const byId = playerMap(snapshot)
   const rows = roundEntries(snapshot, roundId)
   const lists = attendanceLists(rows)
@@ -334,7 +337,20 @@ export function RoundDetailPage() {
         {tab === 'premios' && (
           <>
             <AwardsCard snapshot={snapshot} roundId={roundId} />
-            {matches.length > 0 && <ShareRound round={round} kind="resultado" />}
+
+            {/* O resultado só vai para o grupo depois da urna fechada. Mandar
+                antes seria anunciar como definitivo um pódio que os votos que
+                faltam ainda podem mudar — e ninguém desmente um print. */}
+            {matches.length > 0 &&
+              (voting === 'encerrada' ? (
+                <ShareRound round={round} kind="resultado" />
+              ) : voting === 'aberta' ? (
+                <Note>
+                  O resultado pode ser compartilhado quando a votação terminar, em{' '}
+                  {deadline ? timeLeft(deadline) : '—'}. Se ninguém votar, os prêmios saem pelas
+                  estatísticas da partida.
+                </Note>
+              ) : null)}
           </>
         )}
       </div>
