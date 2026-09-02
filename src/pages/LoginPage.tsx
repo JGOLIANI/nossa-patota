@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
-import { IconBall, IconChevronLeft } from '../components/icons'
+import { IconChevronLeft } from '../components/icons'
 import { Button, Field, Input, Note, Select } from '../components/ui'
 import type { JoinCodeCheck } from '../data/types'
 import { suggestUsername } from '../lib/player'
@@ -124,22 +124,22 @@ export function LoginPage() {
 
   return (
     <div className="mx-auto flex min-h-full w-full max-w-sm flex-col justify-center px-6 py-12">
-      <button
-        type="button"
-        onClick={() => setView('boas-vindas')}
-        className="-ml-1 mb-4 inline-flex h-11 items-center self-start pr-3 text-body text-brand transition duration-200 ease-ios active:opacity-40"
-      >
-        <IconChevronLeft className="size-6" />
-        Voltar
-      </button>
+      {/* Só o cadastro volta para a abertura. Quem chegou para entrar não tem
+          para onde voltar: a abertura é uma apresentação, não uma tela em
+          que se estava fazendo alguma coisa. */}
+      {mode === 'signup' && (
+        <button
+          type="button"
+          onClick={() => setView('boas-vindas')}
+          className="-ml-1 mb-4 inline-flex h-11 items-center self-start pr-3 text-body text-brand transition duration-200 ease-ios active:opacity-40"
+        >
+          <IconChevronLeft className="size-6" />
+          Voltar
+        </button>
+      )}
 
       <div className="mb-9 text-center">
-        {/* O ícone do aplicativo, no mesmo formato do que fica na tela de
-            início do iPhone: quadrado de cantos contínuos. */}
-        <span className="squircle inline-flex size-[72px] items-center justify-center rounded-[22px] bg-brand-fill text-brand-ink shadow-raised">
-          <IconBall className="size-10" />
-        </span>
-        <h1 className="mt-5 text-title1 text-ink">Nossa Patota</h1>
+        <h1 className="text-title1 text-ink">Nossa Patota</h1>
         <p className="mt-1 text-subhead text-muted">{TITLES[mode]}</p>
       </div>
 
