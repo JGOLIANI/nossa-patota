@@ -5,9 +5,18 @@ import { AwardsCard } from '../components/AwardsCard'
 import { ConfirmDialog, Modal } from '../components/Modal'
 import { Page } from '../components/Page'
 import { PlayerRow } from '../components/PlayerRow'
+import { RoundEditModal } from '../components/RoundEditModal'
 import { ShareRound } from '../components/ShareRound'
 import { TeamBuilder } from '../components/TeamBuilder'
-import { IconBall, IconClose, IconGlove, IconPlus, IconShuffle, IconUsers } from '../components/icons'
+import {
+  IconBall,
+  IconClose,
+  IconEdit,
+  IconGlove,
+  IconPlus,
+  IconShuffle,
+  IconUsers,
+} from '../components/icons'
 import {
   ActionBar,
   Button,
@@ -63,6 +72,7 @@ export function RoundDetailPage() {
   )
   const [addPlayer, setAddPlayer] = useState(false)
   const [building, setBuilding] = useState(false)
+  const [editing, setEditing] = useState(false)
 
   if (!round) {
     return (
@@ -73,6 +83,10 @@ export function RoundDetailPage() {
   }
 
   const closed = round.status === 'encerrada'
+  // Enquanto os times não saem, a partida é só um combinado: dá para remarcar
+  // sem contradizer nada. Sorteados, existe placar aberto — e mudar a data por
+  // baixo dele não seria corrigir um combinado, seria reescrever a partida.
+  const draft = round.status === 'rascunho'
   const voting = votingState(round)
   const deadline = votingDeadline(round)
   const turnout = voterTurnout(snapshot, roundId)
@@ -154,9 +168,18 @@ export function RoundDetailPage() {
       }
       back
       action={
-        <Tag tone={closed ? 'done' : round.status === 'em_andamento' ? 'live' : 'neutral'}>
-          {closed ? 'Encerrada' : round.status === 'em_andamento' ? 'Ao vivo' : 'Aberta'}
-        </Tag>
+        <>
+          {/* O lápis fica ao lado do que ele edita: data, horário e local são
+              o que está escrito logo abaixo, no subtítulo. */}
+          {isAdmin && draft && (
+            <IconButton label="Editar partida" tone="tint" onClick={() => setEditing(true)}>
+              <IconEdit className="size-5" />
+            </IconButton>
+          )}
+          <Tag tone={closed ? 'done' : round.status === 'em_andamento' ? 'live' : 'neutral'}>
+            {closed ? 'Encerrada' : round.status === 'em_andamento' ? 'Ao vivo' : 'Aberta'}
+          </Tag>
+        </>
       }
     >
       <Tabs
@@ -411,6 +434,8 @@ export function RoundDetailPage() {
       )}
 
       <TeamBuilder round={round} open={building} onClose={() => setBuilding(false)} />
+
+      <RoundEditModal round={round} open={editing} onClose={() => setEditing(false)} />
 
       <Modal open={addPlayer} title="Confirmar jogador" onClose={() => setAddPlayer(false)}>
         <p className="mb-3 px-1 text-footnote text-muted">

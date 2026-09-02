@@ -13,6 +13,7 @@ import type {
   Match,
   PatotaSettings,
   PlayerPosition,
+  Round,
   SessionUser,
   Snapshot,
 } from '../types'
@@ -208,6 +209,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }),
 
       createRound: (input: RoundInput) => run(() => backend.createRound(input)),
+
+      updateRound: (id: string, patch: Partial<Round>) =>
+        run(async () => {
+          const before = snapshotRef.current.rounds.find((round) => round.id === id)
+          // O título só é refeito enquanto ele for o padrão da data antiga.
+          // Assim uma partida rebatizada à mão não perde o nome ao ser
+          // remarcada — e hoje, sem esse caminho, a conferência não custa nada.
+          const renamed =
+            patch.date && before && before.title === roundTitle(before.date)
+              ? { title: roundTitle(patch.date) }
+              : {}
+          await backend.updateRound(id, { ...patch, ...renamed })
+
+          // Aumentar as vagas abre lugar para quem está na espera. Diminuir
+          // não tira ninguém: quem já estava confirmado continua confirmado,
+          // porque desconfirmar alguém pelas costas é pior do que a partida
+          // ter um a mais.
+          if (patch.max_players === undefined) return
+          const fresh = await backend.fetchAll()
+          const rows = fresh.roundPlayers.filter((rp) => rp.round_id === id)
+          const promotions = rebalanceWaitlist(rows, patch.max_players)
+          if (promotions.length > 0) await backend.setAttendance(id, promotions)
+        }),
+
       deleteRound: (id) => run(() => backend.deleteRound(id)),
 
       respond: (roundId: string, _playerId: string, wants: 'confirmado' | 'fora') =>

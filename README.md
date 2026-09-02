@@ -15,6 +15,11 @@ Em **Perfil → Administração → Agenda da patota**, informe o dia da semana,
 horário, o local e quantas vagas a partida tem. O sistema passa a criar as
 próximas partidas sozinho, e os jogadores confirmam presença por conta própria.
 
+Combinado que muda depois — a quadra sem luz, o horário que atrasa — se
+resolve na própria partida: enquanto os times não foram sorteados, o lápis no
+alto da tela abre data, horário, local e vagas para edição, sem perder as
+confirmações que já chegaram.
+
 No local há dois campos: o nome, que é como a patota chama o lugar, e o link do
 Google Maps, que é o endereço de verdade. Para pegar o link, toque em
 **Procurar no Google Maps**, ache o lugar, use o botão de compartilhar do Maps
