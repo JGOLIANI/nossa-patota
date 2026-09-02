@@ -1,13 +1,22 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
-import { IconBall } from '../components/icons'
+import { IconBall, IconChevronLeft } from '../components/icons'
 import { Button, Field, Input, Note, Select } from '../components/ui'
 import type { JoinCodeCheck } from '../data/types'
 import { suggestUsername } from '../lib/player'
 import { useApp } from '../store/useApp'
 import type { DominantFoot, PlayerPosition, PlayerType } from '../types'
+import { PatotaWelcome, type WelcomeActionId } from '../welcome'
 
 type Mode = 'login' | 'signup' | 'recuperar'
+
+/**
+ * A entrada tem duas etapas: a abertura da marca, que é onde a pessoa
+ * escolhe entre criar acesso e entrar, e o formulário correspondente. Quem
+ * volta da segunda para a primeira não assiste à abertura de novo — ela é
+ * uma apresentação, e apresentação repetida vira obstáculo.
+ */
+type View = 'boas-vindas' | 'formulario'
 
 const TITLES: Record<Mode, string> = {
   login: 'Entre para ver a partida',
@@ -30,6 +39,8 @@ export function LoginPage() {
   const [usernameTouched, setUsernameTouched] = useState(false)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [view, setView] = useState<View>('boas-vindas')
+  const [introSeen, setIntroSeen] = useState(false)
 
   // A patota pode exigir um código de entrada, e quem responde é o servidor —
   // só perguntamos quando o formulário de cadastro aparece.
@@ -57,6 +68,16 @@ export function LoginPage() {
   function go(next: Mode) {
     setMode(next)
     setError('')
+  }
+
+  function openForm(action: WelcomeActionId) {
+    go(action === 'patota.get-started' ? 'signup' : 'login')
+    setIntroSeen(true)
+    setView('formulario')
+  }
+
+  if (view === 'boas-vindas') {
+    return <PatotaWelcome autoplay={!introSeen} onActionPress={openForm} />
   }
 
   async function submit(event: FormEvent) {
@@ -103,6 +124,15 @@ export function LoginPage() {
 
   return (
     <div className="mx-auto flex min-h-full w-full max-w-sm flex-col justify-center px-6 py-12">
+      <button
+        type="button"
+        onClick={() => setView('boas-vindas')}
+        className="-ml-1 mb-4 inline-flex h-11 items-center self-start pr-3 text-body text-brand transition duration-200 ease-ios active:opacity-40"
+      >
+        <IconChevronLeft className="size-6 stroke-[2.6]" />
+        Voltar
+      </button>
+
       <div className="mb-9 text-center">
         {/* O ícone do aplicativo, no mesmo formato do que fica na tela de
             início do iPhone: quadrado de cantos contínuos. */}

@@ -23,6 +23,14 @@
     ui-rounded, 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', var(--font-sans);
 
   /*
+   * Nunito: só a tela de boas-vindas usa. É a única fonte que o aplicativo
+   * carrega de verdade — o resto continua com a do sistema — e vem embutida
+   * no pacote, para a abertura não depender da rede nem de um servidor de
+   * fontes de terceiros.
+   */
+  --font-nunito: 'Nunito', var(--font-rounded);
+
+  /*
    * Escala tipográfica do iOS. Os nomes são os mesmos dos estilos de texto
    * do sistema, então `text-headline` na tela quer dizer exatamente o que
    * quer dizer no aparelho.
@@ -97,6 +105,18 @@
   --color-brand: #34c759; /* systemGreen */
   --color-brand-ink: #ffffff;
   --color-brand-soft: #e6f7ec;
+
+  /*
+   * Abertura. O verde de campo é mais fundo que o verde de ação de
+   * propósito: a marca em branco por cima dele chega a 4,8:1 de contraste,
+   * o que o `--color-brand` sozinho não alcança. As duas cores de apoio são
+   * o degrau que dá volume aos botões da tela de entrada — cada uma fica um
+   * passo afastada do próprio botão, e no tema escuro esse passo é para o
+   * claro, porque ali a sombra escura desaparece no fundo.
+   */
+  --color-pitch: #12833c;
+  --color-lift-brand: #248a3d;
+  --color-lift-line: #d6d6da;
 
   /* Significado. Usadas apenas para comunicar resultado ou risco.
      As versões `-soft` são o fundo das etiquetas: cores cheias, e não a cor
@@ -207,6 +227,9 @@
     --color-brand: #30d158;
     --color-brand-ink: #04220f;
     --color-brand-soft: #16341f;
+
+    --color-lift-brand: #1d7f37;
+    --color-lift-line: #48484a;
 
     --color-win: #30d158;
     --color-win-soft: #16341f;
