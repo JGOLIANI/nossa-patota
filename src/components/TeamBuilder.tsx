@@ -80,6 +80,9 @@ export function TeamBuilder({
   )
   const outside = Object.values(draft).filter((value) => value === null).length
   const building = teams.length === 0
+  // Montando do zero, os dois times precisam de gente: sem isto o botão
+  // convidava ao toque só para devolver um erro que dava para prever.
+  const ready = !building || counts.every((count) => count > 0)
 
   async function save() {
     setError('')
@@ -100,7 +103,7 @@ export function TeamBuilder({
       title={building ? 'Montar os times' : 'Ajustar os times'}
       onClose={onClose}
       footer={
-        <Button size="lg" block onClick={save} disabled={busy}>
+        <Button size="lg" block onClick={save} disabled={busy || !ready}>
           {busy ? 'Salvando…' : building ? 'Criar times e abrir placar' : 'Salvar mudanças'}
         </Button>
       }

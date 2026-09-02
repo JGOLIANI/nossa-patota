@@ -144,7 +144,7 @@ export function HomePage() {
               title="Destaques"
               action={<SectionLink to={`/rodadas/${lastClosed.id}`}>a partida</SectionLink>}
             />
-            <AwardsCard snapshot={snapshot} roundId={lastClosed.id} />
+            <AwardsCard snapshot={snapshot} roundId={lastClosed.id} compact />
           </section>
         )}
       </div>

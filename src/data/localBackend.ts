@@ -501,12 +501,6 @@ export const localBackend: Backend = {
     })
   },
 
-  async deleteMatch(id: string) {
-    mutate((snapshot) => {
-      snapshot.matches = snapshot.matches.filter((m) => m.id !== id)
-      snapshot.events = snapshot.events.filter((e) => e.match_id !== id)
-    })
-  },
 
   async addEvent(input: EventInput) {
     return mutate((snapshot) => {

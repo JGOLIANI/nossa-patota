@@ -112,6 +112,18 @@ export function roundOutcome(snapshot: Snapshot, roundId: string): RoundOutcome 
 /* ---------------------------------------------------------- candidatos ---- */
 
 /**
+ * Memória dos candidatos, por snapshot e por rodada.
+ *
+ * Montar a lista custa uma passada de `computeStats` sobre o histórico, e a
+ * tela dos prêmios pede a mesma lista quatro vezes: uma por prêmio, mais uma
+ * para saber quem concorre. Sem esta memória eram quatro passadas por
+ * renderização — na patota com anos de acervo, milissegundos de sobra a cada
+ * toque. Como a chave é o próprio snapshot, e cada recarga produz um objeto
+ * novo, o cache se invalida sozinho e nunca serve dado velho.
+ */
+const candidateCache = new WeakMap<Snapshot, Map<string, Record<AwardType, PlayerStats[]>>>()
+
+/**
  * Quem disputa cada prêmio.
  *
  * Os dois prêmios de linha são simétricos: o Craque sai de quem venceu e a
@@ -123,6 +135,23 @@ export function roundOutcome(snapshot: Snapshot, roundId: string): RoundOutcome 
  * goleiro menos vazado.
  */
 export function awardCandidates(
+  snapshot: Snapshot,
+  roundId: string,
+): Record<AwardType, PlayerStats[]> {
+  let byRound = candidateCache.get(snapshot)
+  if (!byRound) {
+    byRound = new Map()
+    candidateCache.set(snapshot, byRound)
+  }
+  const cached = byRound.get(roundId)
+  if (cached) return cached
+
+  const computed = buildCandidates(snapshot, roundId)
+  byRound.set(roundId, computed)
+  return computed
+}
+
+function buildCandidates(
   snapshot: Snapshot,
   roundId: string,
 ): Record<AwardType, PlayerStats[]> {

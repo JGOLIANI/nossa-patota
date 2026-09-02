@@ -198,13 +198,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           return { created: await createMissingRounds(), removed: stale.length }
         }),
 
-      ensureUpcomingRounds: () =>
-        run(async () => {
-          await createMissingRounds()
-        }),
-
       createRound: (input: RoundInput) => run(() => backend.createRound(input)),
-      updateRound: (id, patch) => run(() => backend.updateRound(id, patch)),
       deleteRound: (id) => run(() => backend.deleteRound(id)),
 
       respond: (roundId: string, _playerId: string, wants: 'confirmado' | 'fora') =>
@@ -359,9 +353,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
           await backend.updateRound(roundId, { team_count: 2, status: 'em_andamento' })
         }),
 
-      startRound: (roundId) =>
-        run(() => backend.updateRound(roundId, { status: 'em_andamento' })),
-
       /**
        * Encerra a partida e abre a urna.
        *
@@ -389,11 +380,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
           await backend.updateRound(roundId, {
             status: 'encerrada',
             closed_at: new Date().toISOString(),
+            // A urna recomeça, então a apuração anterior não vale mais. Sem
+            // zerar esta marca a rodada reencerrada nunca seria reapurada, e
+            // ficaria para sempre com os prêmios vazios que acabaram de sair.
+            awards_settled_at: null,
           })
         }),
 
-      createMatch: (roundId, teamAId, teamBId) =>
-        run(() => backend.createMatch(roundId, teamAId, teamBId)),
       /**
        * Reabre a partida e, se a rodada já estava encerrada, reabre a rodada
        * junto.
@@ -411,9 +404,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const round = match && current.rounds.find((item) => item.id === match.round_id)
           if (round?.status !== 'encerrada') return
           await backend.setAwards(round.id, [])
-          await backend.updateRound(round.id, { status: 'em_andamento', closed_at: null })
+          await backend.updateRound(round.id, {
+            status: 'em_andamento',
+            closed_at: null,
+            awards_settled_at: null,
+          })
         }),
-      deleteMatch: (matchId) => run(() => backend.deleteMatch(matchId)),
 
       addGoal: (match: Match, input: Omit<EventInput, 'match_id'>) =>
         run(async () => {
@@ -442,10 +438,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         run(() => backend.castVote(roundId, type, playerId)),
       clearVote: (roundId, type) => run(() => backend.clearVote(roundId, type)),
 
-      setAwards: (roundId, awards) =>
-        run(async () => {
-          await backend.setAwards(roundId, awards)
-        }),
     }),
     [run, createMissingRounds],
   )

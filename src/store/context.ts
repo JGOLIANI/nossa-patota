@@ -1,7 +1,6 @@
 import { createContext } from 'react'
 import type { PlayerStats } from '../domain/stats'
 import type {
-  AwardInput,
   EventInput,
   JoinCodeCheck,
   PlayerInput,
@@ -33,10 +32,8 @@ export interface AppActions {
    * dia antigo que ninguém tocou. Devolve quantas foram criadas e removidas.
    */
   updateSettings(patch: Partial<PatotaSettings>): Promise<{ created: number; removed: number }>
-  ensureUpcomingRounds(): Promise<void>
 
   createRound(input: RoundInput): Promise<Round>
-  updateRound(id: string, patch: Partial<Round>): Promise<void>
   deleteRound(id: string): Promise<void>
 
   /** Resposta do próprio jogador ao convite, com lista de espera. */
@@ -58,12 +55,9 @@ export interface AppActions {
    * partida e os gols já registrados.
    */
   setManualTeams(roundId: string, assignments: Record<string, number | null>): Promise<void>
-  startRound(roundId: string): Promise<void>
   closeRound(roundId: string): Promise<void>
 
-  createMatch(roundId: string, teamAId: string, teamBId: string): Promise<Match>
   reopenMatch(matchId: string): Promise<void>
-  deleteMatch(matchId: string): Promise<void>
 
   addGoal(match: Match, input: Omit<EventInput, 'match_id'>): Promise<void>
   /**
@@ -73,8 +67,6 @@ export interface AppActions {
    */
   editGoal(match: Match, eventId: string, input: Omit<EventInput, 'match_id'>): Promise<void>
   removeEvent(match: Match, eventId: string): Promise<void>
-
-  setAwards(roundId: string, awards: AwardInput[]): Promise<void>
 
   /** Voto do próprio jogador. Votar de novo troca o voto anterior. */
   castVote(roundId: string, type: AwardType, playerId: string): Promise<void>

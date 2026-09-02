@@ -396,10 +396,6 @@ export const supabaseBackend: Backend = {
     unwrap(await client().from('matches').update(patch).eq('id', id).select())
   },
 
-  async deleteMatch(id: string) {
-    const { error } = await client().from('matches').delete().eq('id', id)
-    if (error) throw new Error(translate(error.message))
-  },
 
   async addEvent(input: EventInput) {
     const created = unwrap<MatchEvent[]>(

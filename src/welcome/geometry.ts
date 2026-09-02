@@ -18,12 +18,7 @@ export function box([left, top, width, height]: Box): CSSProperties {
   return { position: 'absolute', left, top, width, height }
 }
 
-/** O mesmo, para o que precisa ficar centralizado na largura do plano. */
-export function center(width: number, top: number, height: number): CSSProperties {
-  return box([(REFERENCE_WIDTH - width) / 2, top, width, height])
-}
-
-export function clamp01(value: number) {
+function clamp01(value: number) {
   return Math.min(1, Math.max(0, value))
 }
 

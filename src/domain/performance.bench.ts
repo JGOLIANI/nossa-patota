@@ -38,8 +38,19 @@ for (const [name, scale] of Object.entries(SCALES)) {
       computeStats(snapshot, { roundId: lastRound.id })
     })
 
-    // Roda ao encerrar a rodada.
-    bench('computeRoundAwards', () => {
+    /*
+     * Os prêmios têm dois custos bem diferentes, e medir só um deles engana.
+     *
+     * A lista de candidatos fica memorizada por identidade de snapshot, então
+     * a primeira apuração paga uma passada de estatística e as seguintes não
+     * pagam quase nada. A tela dos prêmios faz quatro chamadas por
+     * renderização, e é o segundo número que ela sente.
+     */
+    bench('computeRoundAwards (snapshot novo)', () => {
+      computeRoundAwards({ ...snapshot }, lastRound.id)
+    })
+
+    bench('computeRoundAwards (mesmo snapshot)', () => {
       computeRoundAwards(snapshot, lastRound.id)
     })
 

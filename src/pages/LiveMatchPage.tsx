@@ -345,7 +345,26 @@ export function LiveMatchPage() {
               {busy ? 'Encerrando…' : 'Encerrar partida'}
             </Button>
           ) : (
-            <Button size="lg" block variant="secondary" onClick={() => actions.reopenMatch(match.id)}>
+            <Button
+              size="lg"
+              block
+              variant="secondary"
+              disabled={busy}
+              onClick={() => {
+                // Reabrir mexe na rodada inteira e pode falhar; era a única
+                // ação desta tela que engolia o erro em silêncio.
+                setBusy(true)
+                setError('')
+                actions
+                  .reopenMatch(match.id)
+                  .catch((cause: unknown) =>
+                    setError(
+                      cause instanceof Error ? cause.message : 'Não foi possível reabrir a partida.',
+                    ),
+                  )
+                  .finally(() => setBusy(false))
+              }}
+            >
               Reabrir partida
             </Button>
           )}

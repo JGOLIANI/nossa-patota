@@ -90,7 +90,6 @@
   --color-fill-strong: #dde1e6;
   /* Borda dos cartões e dos campos. Grossa, então precisa ser visível. */
   --color-line: #d7dbe0;
-  --color-elevated: #ffffff;
   --color-bar: #ffffff;
   --color-scrim: rgb(10 20 14 / 0.5);
 
@@ -218,7 +217,6 @@
     --color-fill: #2a2b31;
     --color-fill-strong: #3a3b42;
     --color-line: #35363d;
-    --color-elevated: #2a2b31;
     --color-bar: #1e1f24;
     --color-scrim: rgb(0 0 0 / 0.66);
 

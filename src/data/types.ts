@@ -157,7 +157,6 @@ export interface Backend {
 
   createMatch(roundId: string, teamAId: string, teamBId: string): Promise<Match>
   updateMatch(id: string, patch: Partial<Match>): Promise<void>
-  deleteMatch(id: string): Promise<void>
 
   addEvent(input: EventInput): Promise<MatchEvent>
   /**

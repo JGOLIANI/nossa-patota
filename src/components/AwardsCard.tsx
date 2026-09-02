@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   AWARD_TYPES,
@@ -17,13 +18,13 @@ import type { AwardType, Snapshot } from '../types'
 import { AWARD_LABELS } from '../types'
 import { Avatar } from './Avatar'
 import { IconGlove, IconGoldenBall, IconPuncturedBall } from './icons'
-import { Card, EmptyState, Note, SectionHeader } from './ui'
+import { Card, EmptyState, ListGroup, Note, SectionHeader } from './ui'
 
 const STYLES: Record<AwardType, { tone: string; Icon: typeof IconGlove; ask: string }> = {
   jogador_rodada: {
     tone: 'text-gold',
     Icon: IconGoldenBall,
-    ask: 'Quem jogou mais?',
+    ask: 'Quem foi o craque?',
   },
   goleiro_menos_vazado: {
     tone: 'text-brand',
@@ -46,8 +47,25 @@ const STYLES: Record<AwardType, { tone: string; Icon: typeof IconGlove; ask: str
  * duas coisas — o número de votos que a pessoa recebeu e o que ela fez em
  * quadra —, para que o resultado nunca pareça ter saído do nada.
  */
-export function AwardsCard({ snapshot, roundId }: { snapshot: Snapshot; roundId: string }) {
+export function AwardsCard({
+  snapshot,
+  roundId,
+  compact,
+}: {
+  snapshot: Snapshot
+  roundId: string
+  /**
+   * Resumo de uma linha por prêmio, para a tela de início.
+   *
+   * Lá isto já vive dentro de uma seção chamada "Destaques": a cédula
+   * inteira acrescentaria três subtítulos aninhados e meia tela de rolagem
+   * ao que deveria ser um cartão de relance.
+   */
+  compact?: boolean
+}) {
   const { currentPlayer, actions } = useApp()
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
   const round = findRound(snapshot, roundId)
   const byId = playerMap(snapshot)
 
@@ -70,13 +88,101 @@ export function AwardsCard({ snapshot, roundId }: { snapshot: Snapshot; roundId:
   const myVotes = currentPlayer ? votesByVoter(snapshot, roundId, currentPlayer.id) : {}
   const turnout = voterTurnout(snapshot, roundId)
   const candidates = awardCandidates(snapshot, roundId)
-  // Depois da apuração vale o que foi gravado; antes dela, o cálculo ao vivo.
-  // Os dois dão no mesmo número — a diferença é só quem já pôde escrever.
-  const settled = roundAwards(snapshot, roundId)
+  /*
+   * Depois da apuração vale o que foi gravado; antes dela, o cálculo ao vivo.
+   * Os dois dão no mesmo número — a diferença é só quem já pôde escrever.
+   *
+   * Quem responde por "já apurou?" é a marca na rodada, e não a existência de
+   * linhas de prêmio: uma partida em que ninguém se destacou é apurada com
+   * zero prêmios, e ali contar linhas diria "ainda não" para sempre — a tela
+   * mostraria vencedores ao vivo que nunca entraram no histórico.
+   */
+  const settledAwards = roundAwards(snapshot, roundId)
+  const isSettled = Boolean(round.awards_settled_at)
+
+  /**
+   * O voto vai ao servidor, e o servidor pode recusar: a urna fechou entre a
+   * tela carregar e o dedo tocar, o jogador saiu da escalação. Sem isto o
+   * toque não fazia nada e ninguém ficava sabendo por quê.
+   */
+  if (compact) {
+    if (open) {
+      const mine = AWARD_TYPES.filter((type) => myVotes[type]).length
+      return (
+        <ListGroup>
+          <div className="px-4 py-3.5">
+            <p className="text-headline text-ink">
+              Votação aberta · encerra em {deadline ? timeLeft(deadline) : '—'}
+            </p>
+            <p className="mt-0.5 text-footnote text-muted">
+              {!eligible
+                ? `${turnout.voted} de ${turnout.total} já ${turnout.voted === 1 ? 'votou' : 'votaram'}.`
+                : mine === 0
+                  ? 'Você ainda não votou. Abra a partida para escolher.'
+                  : mine === AWARD_TYPES.length
+                    ? 'Você já votou nos três prêmios.'
+                    : `Você votou em ${mine} de ${AWARD_TYPES.length}. Abra a partida para completar.`}
+            </p>
+          </div>
+        </ListGroup>
+      )
+    }
+
+    const decided = AWARD_TYPES.map((type) => ({
+      type,
+      names: (isSettled
+        ? settledAwards.filter((award) => award.type === type).map((award) => award.player_id)
+        : tallyAward(snapshot, roundId, type).winners
+      )
+        .map((id) => byId.get(id))
+        .filter((player) => player !== undefined),
+    })).filter((row) => row.names.length > 0)
+
+    if (decided.length === 0) {
+      return <EmptyState title="Ninguém se destacou nesta partida" />
+    }
+
+    return (
+      <ListGroup>
+        {decided.map(({ type, names }) => {
+          const { tone, Icon } = STYLES[type]
+          return (
+            <div key={type} className="flex items-center gap-3 px-4 py-3">
+              <Icon className={cn('size-6 shrink-0', tone)} />
+              <div className="min-w-0 flex-1">
+                <p className="text-caption2 text-muted uppercase">{AWARD_LABELS[type]}</p>
+                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                  {names.map((player) => (
+                    <Link
+                      key={player.id}
+                      to={`/jogadores/${player.id}`}
+                      className="flex items-center gap-1.5"
+                    >
+                      <Avatar player={player} size="sm" />
+                      <span className="text-subhead text-ink">{player.full_name}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </ListGroup>
+    )
+  }
 
   async function vote(type: AwardType, playerId: string) {
-    if (myVotes[type] === playerId) await actions.clearVote(roundId, type)
-    else await actions.castVote(roundId, type, playerId)
+    if (busy) return
+    setBusy(true)
+    setError('')
+    try {
+      if (myVotes[type] === playerId) await actions.clearVote(roundId, type)
+      else await actions.castVote(roundId, type, playerId)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Não foi possível registrar seu voto.')
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
@@ -101,12 +207,14 @@ export function AwardsCard({ snapshot, roundId }: { snapshot: Snapshot; roundId:
         </Note>
       )}
 
+      {error && <Note tone="error">{error}</Note>}
+
       {AWARD_TYPES.map((type) => {
         const { tone, Icon, ask } = STYLES[type]
         const tally = tallyAward(snapshot, roundId, type)
         const pool = candidates[type]
-        const winners = settled.length > 0
-          ? settled.filter((award) => award.type === type).map((award) => award.player_id)
+        const winners = isSettled
+          ? settledAwards.filter((award) => award.type === type).map((award) => award.player_id)
           : tally.winners
 
         return (
@@ -132,7 +240,7 @@ export function AwardsCard({ snapshot, roundId }: { snapshot: Snapshot; roundId:
                     const mine = myVotes[type] === entry.playerId
                     const won = !open && winners.includes(entry.playerId)
                     const self = currentPlayer?.id === entry.playerId
-                    const canPick = open && eligible && !self
+                    const canPick = open && eligible && !self && !busy
 
                     const body = (
                       <>

@@ -140,8 +140,6 @@ function useSplashThemeColor(active: boolean) {
 export function PatotaWelcome({
   autoplay = true,
   onActionPress,
-  onPrimaryPress,
-  onSecondaryPress,
   replayKey = 0,
 }: WelcomeScreenProps) {
   const reducedMotion = useReducedMotion()
@@ -186,8 +184,8 @@ export function PatotaWelcome({
 
   useWelcomeTimeline(REVEAL_END_MS, mode, replayKey, onFrame)
 
-  const getStarted = resolveActionPress('patota.get-started', onActionPress, onPrimaryPress)
-  const logIn = resolveActionPress('patota.log-in', onActionPress, onSecondaryPress)
+  const getStarted = resolveActionPress('patota.get-started', onActionPress)
+  const logIn = resolveActionPress('patota.log-in', onActionPress)
 
   return (
     <ReferenceCanvas
