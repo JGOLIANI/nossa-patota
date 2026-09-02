@@ -6,7 +6,8 @@ import { ConfirmDialog, Modal } from '../components/Modal'
 import { Page } from '../components/Page'
 import { PlayerRow } from '../components/PlayerRow'
 import { ShareRound } from '../components/ShareRound'
-import { IconBall, IconClose, IconGlove, IconPlus, IconShuffle } from '../components/icons'
+import { TeamBuilder } from '../components/TeamBuilder'
+import { IconBall, IconClose, IconGlove, IconPlus, IconShuffle, IconUsers } from '../components/icons'
 import {
   ActionBar,
   Button,
@@ -22,6 +23,7 @@ import {
   TeamDot,
 } from '../components/ui'
 import { attendanceLists } from '../domain/attendance'
+import { voterTurnout, votingDeadline, votingState } from '../domain/awards'
 import {
   findRound,
   playerMap,
@@ -32,7 +34,7 @@ import {
   teamPlayers,
 } from '../domain/selectors'
 import { computeStats } from '../domain/stats'
-import { formatDate, formatWeekday } from '../lib/format'
+import { formatDate, formatWeekday, timeLeft } from '../lib/format'
 import { playerCaption } from '../lib/player'
 import { useApp } from '../store/useApp'
 import type { Player } from '../types'
@@ -55,8 +57,11 @@ export function RoundDetailPage() {
   const [tab, setTab] = useState<Tab>(requested ?? (teams.length > 0 ? 'times' : 'presenca'))
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const [confirm, setConfirm] = useState<'sortear' | 'encerrar' | 'excluir' | null>(null)
+  const [confirm, setConfirm] = useState<'sortear' | 'encerrar' | 'excluir' | 'apurar' | null>(
+    null,
+  )
   const [addPlayer, setAddPlayer] = useState(false)
+  const [building, setBuilding] = useState(false)
 
   if (!round) {
     return (
@@ -67,6 +72,9 @@ export function RoundDetailPage() {
   }
 
   const closed = round.status === 'encerrada'
+  const voting = votingState(round)
+  const deadline = votingDeadline(round)
+  const turnout = voterTurnout(snapshot, roundId)
   const byId = playerMap(snapshot)
   const rows = roundEntries(snapshot, roundId)
   const lists = attendanceLists(rows)
@@ -146,7 +154,7 @@ export function RoundDetailPage() {
         ]}
       />
 
-      <div className="mt-5 space-y-6 pb-24">
+      <div className="mt-5 space-y-6 pb-44">
         {error && <Note tone="error">{error}</Note>}
 
         {tab === 'presenca' && (
@@ -187,14 +195,19 @@ export function RoundDetailPage() {
                 title="Times ainda não sorteados"
                 description={
                   isAdmin
-                    ? 'O sorteio divide quem confirmou em dois times e já abre o placar.'
+                    ? 'Sorteie ou monte na mão: os dois dividem quem confirmou em dois times e já abrem o placar.'
                     : 'O administrador ainda não sorteou as equipes.'
                 }
                 action={
                   isAdmin ? (
-                    <Button onClick={() => setConfirm('sortear')}>
-                      <IconShuffle className="size-5" /> Sortear times
-                    </Button>
+                    <div className="flex flex-col items-stretch gap-2">
+                      <Button onClick={() => setConfirm('sortear')}>
+                        <IconShuffle className="size-5" /> Sortear times
+                      </Button>
+                      <Button variant="quiet" onClick={() => setBuilding(true)}>
+                        Prefiro montar na mão
+                      </Button>
+                    </div>
                   ) : undefined
                 }
               />
@@ -306,9 +319,14 @@ export function RoundDetailPage() {
               <ShareRound round={round} kind="escalacao" />
 
               {isAdmin && !closed && (
-                <Button variant="secondary" block onClick={() => setConfirm('sortear')} disabled={busy}>
-                  <IconShuffle className="size-5" /> Sortear novamente
-                </Button>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button variant="secondary" onClick={() => setBuilding(true)} disabled={busy}>
+                    <IconUsers className="size-5" /> Ajustar
+                  </Button>
+                  <Button variant="secondary" onClick={() => setConfirm('sortear')} disabled={busy}>
+                    <IconShuffle className="size-5" /> Sortear
+                  </Button>
+                </div>
               )}
 
               {isAdmin && (
@@ -322,16 +340,50 @@ export function RoundDetailPage() {
         {tab === 'premios' && (
           <>
             <AwardsCard snapshot={snapshot} roundId={roundId} />
-            {matches.length > 0 && <ShareRound round={round} kind="resultado" />}
+
+            {/* O resultado só vai para o grupo depois da urna fechada. Mandar
+                antes seria anunciar como definitivo um pódio que os votos que
+                faltam ainda podem mudar — e ninguém desmente um print. */}
+            {matches.length > 0 &&
+              (voting === 'encerrada' ? (
+                <ShareRound round={round} kind="resultado" />
+              ) : voting === 'aberta' ? (
+                <>
+                  <Note>
+                    O resultado pode ser compartilhado quando a votação terminar, em{' '}
+                    {deadline ? timeLeft(deadline) : '—'}. Se ninguém votar, os prêmios saem pelas
+                    estatísticas da partida.
+                  </Note>
+
+                  {/* O relógio resolve o caso comum, mas quando todo mundo já
+                      votou o resultado fica preso por horas sem motivo — e é
+                      logo depois do jogo que a patota quer ver o pódio. */}
+                  {isAdmin && (
+                    <Button
+                      variant="secondary"
+                      block
+                      onClick={() => setConfirm('apurar')}
+                      disabled={busy}
+                    >
+                      Encerrar votação agora
+                    </Button>
+                  )}
+                </>
+              ) : null)}
           </>
         )}
       </div>
 
       {isAdmin && !closed && teams.length === 0 && lists.confirmed.length > 0 && (
         <ActionBar>
-          <Button size="lg" block onClick={() => setConfirm('sortear')} disabled={busy}>
-            <IconShuffle className="size-5" /> Sortear times · {lists.confirmed.length}
-          </Button>
+          <div className="space-y-2">
+            <Button size="lg" block onClick={() => setConfirm('sortear')} disabled={busy}>
+              <IconShuffle className="size-5" /> Sortear times · {lists.confirmed.length}
+            </Button>
+            <Button variant="quiet" block onClick={() => setBuilding(true)} disabled={busy}>
+              Montar na mão
+            </Button>
+          </div>
         </ActionBar>
       )}
 
@@ -342,6 +394,8 @@ export function RoundDetailPage() {
           </Button>
         </ActionBar>
       )}
+
+      <TeamBuilder round={round} open={building} onClose={() => setBuilding(false)} />
 
       <Modal open={addPlayer} title="Confirmar jogador" onClose={() => setAddPlayer(false)}>
         <p className="mb-3 px-1 text-footnote text-muted">
@@ -392,7 +446,7 @@ export function RoundDetailPage() {
       <ConfirmDialog
         open={confirm === 'encerrar'}
         title="Encerrar partida"
-        message="O placar será fechado, os prêmios calculados e as estatísticas atualizadas."
+        message="O placar será fechado e a votação dos prêmios abre por 16 horas para quem jogou."
         confirmLabel="Encerrar"
         destructive={false}
         onConfirm={() => {
@@ -401,6 +455,19 @@ export function RoundDetailPage() {
             await actions.closeRound(roundId)
             setTab('premios')
           })
+        }}
+        onCancel={() => setConfirm(null)}
+      />
+
+      <ConfirmDialog
+        open={confirm === 'apurar'}
+        title="Encerrar votação"
+        message={`${turnout.voted} de ${turnout.total} já votaram. Os prêmios são apurados agora e ninguém mais consegue votar nesta partida.`}
+        confirmLabel="Encerrar"
+        destructive={false}
+        onConfirm={() => {
+          setConfirm(null)
+          guard(() => actions.closeVoting(roundId))
         }}
         onCancel={() => setConfirm(null)}
       />

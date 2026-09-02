@@ -7,11 +7,29 @@ import { initials } from './format'
  * Tudo é desenhado em canvas, sem nenhuma biblioteca: o resultado é um PNG
  * pronto para o `navigator.share`, ou para download quando o aparelho não
  * suporta compartilhar arquivos.
+ *
+ * A régua aqui é a miniatura. No grupo a imagem chega com uns 200 pixels de
+ * largura, e é nesse tamanho que ela precisa dizer a que veio — quem jogou
+ * contra quem, quanto foi. Por isso o placar é enorme, os nomes vão em lista
+ * e não espalhados por uma quadra, e cada cartão tem uma informação
+ * dominante em vez de cinco de mesmo peso.
+ *
+ * As cores são fixas, e não lidas do tema: a imagem sai do aparelho de quem
+ * compartilha e é vista por todo mundo — ela não pode mudar de cor porque
+ * quem enviou estava no tema escuro.
  */
 
 const WIDTH = 1080
-const HEIGHT = 1440
-const FONT = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+const FONT = "'Nunito Variable', ui-rounded, system-ui, sans-serif"
+
+const INK = '#101418'
+const MUTED = '#5f6672'
+const CARD = '#ffffff'
+const CANVAS = '#f1f3f5'
+const LINE = '#d7dbe0'
+const LIFT = '#cdd2d9'
+const PITCH = '#12833c'
+const GOLD = '#8a6d00'
 
 export interface LineupPlayer {
   name: string
@@ -30,10 +48,12 @@ export interface CardHeader {
   subtitle: string
 }
 
-function canvas(): { ctx: CanvasRenderingContext2D; el: HTMLCanvasElement } {
+/* ------------------------------------------------------------ desenho ----- */
+
+function canvas(height: number): { ctx: CanvasRenderingContext2D; el: HTMLCanvasElement } {
   const el = document.createElement('canvas')
   el.width = WIDTH
-  el.height = HEIGHT
+  el.height = height
   const ctx = el.getContext('2d')
   if (!ctx) throw new Error('Este navegador não consegue gerar a imagem.')
   return { ctx, el }
@@ -48,6 +68,24 @@ function toBlob(el: HTMLCanvasElement): Promise<Blob> {
   })
 }
 
+/**
+ * O canvas desenha com a fonte que já estiver decodificada. Sem esta espera o
+ * cartão sai na fonte de reserva — com outra largura e outro peso — e ninguém
+ * descobre por quê.
+ */
+async function waitForFont(): Promise<void> {
+  if (typeof document === 'undefined' || !document.fonts) return
+  try {
+    await Promise.all([
+      document.fonts.load(`400 40px ${FONT}`),
+      document.fonts.load(`700 40px ${FONT}`),
+      document.fonts.load(`900 40px ${FONT}`),
+    ])
+  } catch {
+    // Fonte indisponível não impede o cartão: ele sai na de reserva.
+  }
+}
+
 function fitText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string {
   if (ctx.measureText(text).width <= maxWidth) return text
   let result = text
@@ -55,43 +93,6 @@ function fitText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number):
     result = result.slice(0, -1)
   }
   return `${result}…`
-}
-
-/** Quebra o texto em até `maxLines` linhas; a última recebe reticências. */
-function wrapText(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  maxWidth: number,
-  maxLines: number,
-): string[] {
-  const words = text.split(' ')
-  const lines: string[] = []
-  let current = ''
-
-  for (const word of words) {
-    const candidate = current ? `${current} ${word}` : word
-    if (ctx.measureText(candidate).width <= maxWidth) {
-      current = candidate
-      continue
-    }
-    if (current) lines.push(current)
-    current = word
-    if (lines.length === maxLines - 1) break
-  }
-
-  if (lines.length < maxLines && current) {
-    lines.push(lines.length === maxLines - 1 ? fitText(ctx, current, maxWidth) : current)
-  }
-
-  const consumed = lines.join(' ')
-  if (consumed.length < text.length && lines.length > 0) {
-    lines[lines.length - 1] = fitText(
-      ctx,
-      `${lines[lines.length - 1]} ${text.slice(consumed.length).trim()}`,
-      maxWidth,
-    )
-  }
-  return lines
 }
 
 function roundedRect(
@@ -111,74 +112,106 @@ function roundedRect(
   ctx.closePath()
 }
 
-function drawHeader(ctx: CanvasRenderingContext2D, header: CardHeader): void {
-  ctx.fillStyle = '#0b1220'
-  ctx.fillRect(0, 0, WIDTH, 190)
+/** Superfície do padrão: borda cheia e o degrau sólido embaixo. */
+function panel(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius = 28,
+): void {
+  ctx.fillStyle = LIFT
+  roundedRect(ctx, x, y + 8, width, height, radius)
+  ctx.fill()
 
-  ctx.textAlign = 'left'
-  ctx.fillStyle = '#ffffff'
-  ctx.font = `700 58px ${FONT}`
-  ctx.fillText(fitText(ctx, header.title, WIDTH - 120), 60, 92)
+  ctx.fillStyle = CARD
+  roundedRect(ctx, x, y, width, height, radius)
+  ctx.fill()
 
-  ctx.fillStyle = '#93a2b5'
-  ctx.font = `400 34px ${FONT}`
-  ctx.fillText(fitText(ctx, header.subtitle, WIDTH - 120), 60, 146)
+  ctx.strokeStyle = LINE
+  ctx.lineWidth = 4
+  roundedRect(ctx, x + 2, y + 2, width - 4, height - 4, radius - 2)
+  ctx.stroke()
 }
 
-function drawFooter(ctx: CanvasRenderingContext2D): void {
-  ctx.fillStyle = '#0b1220'
-  ctx.fillRect(0, HEIGHT - 90, WIDTH, 90)
+/** Faixa verde do topo, com o nome da partida e quando ela foi. */
+function drawHeader(ctx: CanvasRenderingContext2D, header: CardHeader, height: number): void {
+  ctx.fillStyle = PITCH
+  ctx.fillRect(0, 0, WIDTH, height)
+
   ctx.textAlign = 'center'
-  ctx.fillStyle = '#5f6d80'
-  ctx.font = `600 30px ${FONT}`
-  ctx.fillText('NOSSA PATOTA', WIDTH / 2, HEIGHT - 34)
+  ctx.fillStyle = 'rgba(255,255,255,0.72)'
+  ctx.font = `800 30px ${FONT}`
+  ctx.fillText('NOSSA PATOTA', WIDTH / 2, 76)
+
+  ctx.fillStyle = '#ffffff'
+  ctx.font = `900 68px ${FONT}`
+  ctx.fillText(fitText(ctx, header.title, WIDTH - 120), WIDTH / 2, 158)
+
+  ctx.fillStyle = 'rgba(255,255,255,0.82)'
+  ctx.font = `600 34px ${FONT}`
+  ctx.fillText(fitText(ctx, header.subtitle, WIDTH - 120), WIDTH / 2, 210)
 }
 
-/** Posições de futsal, em coordenadas relativas à metade do time. */
-const SLOTS = {
-  goleiro: { x: 0.5, y: 0.04 },
-  fixo: { x: 0.5, y: 0.32 },
-  alaEsquerda: { x: 0.19, y: 0.6 },
-  alaDireita: { x: 0.81, y: 0.6 },
-  pivo: { x: 0.5, y: 0.88 },
-} as const
-
-/**
- * Espaço mínimo entre duas fileiras: o token de cima, sua placa de nome e o
- * token de baixo. É este número que dita o tamanho da ficha e a altura do
- * cartão — sem ele os nomes desaparecem atrás do jogador seguinte.
- */
-function rowPitch(radius: number): number {
-  return radius * 2 + 8 + nameplateHeight(radius)
+function drawFooter(ctx: CanvasRenderingContext2D, height: number, label: string): void {
+  ctx.textAlign = 'center'
+  ctx.fillStyle = MUTED
+  ctx.font = `700 28px ${FONT}`
+  ctx.fillText(fitText(ctx, label, WIDTH - 120), WIDTH / 2, height - 40)
 }
 
-function nameplateHeight(radius: number): number {
-  return nameplateFont(radius) + 14
+/** Ficha redonda com a foto do jogador, ou as iniciais quando não há foto. */
+function drawToken(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  radius: number,
+  name: string,
+  color: string,
+  photo: HTMLImageElement | undefined,
+): void {
+  ctx.fillStyle = color
+  ctx.beginPath()
+  ctx.arc(x, y, radius, 0, Math.PI * 2)
+  ctx.fill()
+
+  if (photo) {
+    ctx.save()
+    ctx.beginPath()
+    ctx.arc(x, y, radius - 3, 0, Math.PI * 2)
+    ctx.clip()
+    const side = Math.min(photo.width, photo.height)
+    ctx.drawImage(
+      photo,
+      (photo.width - side) / 2,
+      (photo.height - side) / 2,
+      side,
+      side,
+      x - radius + 3,
+      y - radius + 3,
+      (radius - 3) * 2,
+      (radius - 3) * 2,
+    )
+    ctx.restore()
+  } else {
+    ctx.fillStyle = readableInk(color)
+    ctx.font = `800 ${Math.round(radius * 0.78)}px ${FONT}`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(initials(name), x, y + 1)
+    ctx.textBaseline = 'alphabetic'
+  }
+
+  // O aro contrastante é o que separa a ficha do fundo quando o colete é
+  // branco — e o que separa o colete preto do fundo escuro.
+  ctx.strokeStyle = readableInk(color)
+  ctx.lineWidth = 3
+  ctx.beginPath()
+  ctx.arc(x, y, radius - 1.5, 0, Math.PI * 2)
+  ctx.stroke()
 }
 
-function nameplateFont(radius: number): number {
-  return Math.max(19, Math.round(radius * 0.5))
-}
-
-type SlotName = keyof typeof SLOTS
-
-/**
- * Quais posições entram em campo conforme o tamanho do time.
- *
- * O futsal joga com cinco, então a escalação completa é goleiro, fixo, dois
- * alas e pivô. Com menos gente, tiram-se as posições de fora para dentro.
- */
-const FORMATIONS: Record<number, SlotName[]> = {
-  1: ['goleiro'],
-  2: ['goleiro', 'pivo'],
-  3: ['goleiro', 'alaEsquerda', 'alaDireita'],
-  4: ['goleiro', 'fixo', 'alaEsquerda', 'alaDireita'],
-  5: ['goleiro', 'fixo', 'alaEsquerda', 'alaDireita', 'pivo'],
-}
-
-const COURT_PLAYERS = 5
-
-/** Carrega a foto do jogador; qualquer falha vira `null` e cai nas iniciais. */
 function loadImage(url: string): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
     const image = new Image()
@@ -198,11 +231,9 @@ async function loadPhotos(teams: LineupTeam[]): Promise<Map<string, HTMLImageEle
       if (player.photoUrl) urls.add(player.photoUrl)
     }
   }
-
   const loaded = await Promise.all(
     [...urls].map(async (url) => [url, await loadImage(url)] as const),
   )
-
   const map = new Map<string, HTMLImageElement>()
   for (const [url, image] of loaded) {
     if (image) map.set(url, image)
@@ -210,360 +241,89 @@ async function loadPhotos(teams: LineupTeam[]): Promise<Map<string, HTMLImageEle
   return map
 }
 
-interface Rect {
-  x: number
-  y: number
-  width: number
-  height: number
-}
+/* --------------------------------------------------------- escalação ----- */
 
-/** Quadra de futsal: piso de madeira, meia-lua nas áreas e círculo central. */
-function drawCourt(ctx: CanvasRenderingContext2D, court: Rect): void {
-  const { x, y, width, height } = court
-
-  ctx.fillStyle = '#b8793f'
-  ctx.fillRect(x, y, width, height)
-
-  // Tábuas do piso.
-  ctx.strokeStyle = 'rgba(0,0,0,0.07)'
-  ctx.lineWidth = 2
-  for (let plank = x + 34; plank < x + width; plank += 34) {
-    ctx.beginPath()
-    ctx.moveTo(plank, y)
-    ctx.lineTo(plank, y + height)
-    ctx.stroke()
-  }
-
-  ctx.strokeStyle = 'rgba(255,255,255,0.92)'
-  ctx.lineWidth = 5
-
-  const pad = 26
-  const left = x + pad
-  const right = x + width - pad
-  const top = y + pad
-  const bottom = y + height - pad
-  const middle = y + height / 2
-
-  ctx.strokeRect(left, top, right - left, bottom - top)
-
-  ctx.beginPath()
-  ctx.moveTo(left, middle)
-  ctx.lineTo(right, middle)
-  ctx.stroke()
-
-  ctx.beginPath()
-  ctx.arc(x + width / 2, middle, 78, 0, Math.PI * 2)
-  ctx.stroke()
-
-  // Meia-lua das áreas e a pequena baliza, em cada extremidade.
-  const areaRadius = 132
-  const goalWidth = 150
-
-  ctx.beginPath()
-  ctx.arc(x + width / 2, top, areaRadius, 0, Math.PI)
-  ctx.stroke()
-  ctx.beginPath()
-  ctx.arc(x + width / 2, bottom, areaRadius, Math.PI, Math.PI * 2)
-  ctx.stroke()
-
-  ctx.lineWidth = 8
-  ctx.beginPath()
-  ctx.moveTo(x + width / 2 - goalWidth / 2, top)
-  ctx.lineTo(x + width / 2 + goalWidth / 2, top)
-  ctx.moveTo(x + width / 2 - goalWidth / 2, bottom)
-  ctx.lineTo(x + width / 2 + goalWidth / 2, bottom)
-  ctx.stroke()
-
-  // Marca do pênalti.
-  ctx.fillStyle = 'rgba(255,255,255,0.92)'
-  for (const spot of [top + 78, bottom - 78]) {
-    ctx.beginPath()
-    ctx.arc(x + width / 2, spot, 5, 0, Math.PI * 2)
-    ctx.fill()
-  }
-}
-
-/** Ficha do jogador: foto (ou iniciais), anel na cor do time e o nome. */
-function drawPlayerToken(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  player: LineupPlayer,
-  color: string,
-  photos: Map<string, HTMLImageElement>,
-  radius: number,
-  /** No time de baixo o nome vai acima da ficha, senão sai da quadra. */
-  plateAbove: boolean,
-): void {
-  const photo = player.photoUrl ? photos.get(player.photoUrl) : undefined
-
-  ctx.save()
-  ctx.shadowColor = 'rgba(0,0,0,0.4)'
-  ctx.shadowBlur = 12
-  ctx.shadowOffsetY = 4
-  ctx.fillStyle = color
-  ctx.beginPath()
-  ctx.arc(x, y, radius, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.restore()
-
-  // O aro é o que separa a ficha da quadra quando o colete é branco — a
-  // madeira clara e as linhas brancas engolem o círculo sem ele. Como a cor
-  // do aro é a que contrasta com o colete, o time preto ganha um aro claro e
-  // o branco um aro escuro, sem precisar de exceção.
-  ctx.strokeStyle = readableInk(color)
-  ctx.lineWidth = Math.max(2, radius * 0.06)
-  ctx.beginPath()
-  ctx.arc(x, y, radius - ctx.lineWidth / 2, 0, Math.PI * 2)
-  ctx.stroke()
-
-  if (photo) {
-    ctx.save()
-    ctx.beginPath()
-    ctx.arc(x, y, radius - 5, 0, Math.PI * 2)
-    ctx.clip()
-    // Recorte "cover": a foto preenche o círculo sem distorcer.
-    const side = Math.min(photo.width, photo.height)
-    ctx.drawImage(
-      photo,
-      (photo.width - side) / 2,
-      (photo.height - side) / 2,
-      side,
-      side,
-      x - radius + 5,
-      y - radius + 5,
-      (radius - 5) * 2,
-      (radius - 5) * 2,
-    )
-    ctx.restore()
-  } else {
-    ctx.fillStyle = readableInk(color)
-    ctx.font = `700 ${Math.round(radius * 0.72)}px ${FONT}`
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillText(initials(player.name), x, y + 1)
-    ctx.textBaseline = 'alphabetic'
-  }
-
-  ctx.strokeStyle = color
-  ctx.lineWidth = 5
-  ctx.beginPath()
-  ctx.arc(x, y, radius - 2, 0, Math.PI * 2)
-  ctx.stroke()
-
-  if (player.position === 'goleiro') {
-    ctx.strokeStyle = '#ffffff'
-    ctx.lineWidth = 4
-    ctx.beginPath()
-    ctx.arc(x, y, radius + 6, 0, Math.PI * 2)
-    ctx.stroke()
-  }
-
-  const label = player.name.split(/\s+/)[0]
-  const fontSize = nameplateFont(radius)
-  const height = nameplateHeight(radius)
-  ctx.font = `600 ${fontSize}px ${FONT}`
-  ctx.textAlign = 'center'
-  const width = ctx.measureText(label).width + 22
-  const top = plateAbove ? y - radius - 8 - height : y + radius + 8
-
-  ctx.fillStyle = 'rgba(8,16,26,0.78)'
-  roundedRect(ctx, x - width / 2, top, width, height, height / 2)
-  ctx.fill()
-
-  ctx.fillStyle = '#ffffff'
-  ctx.fillText(label, x, top + fontSize + 4)
-}
-
-/** Banco de reservas: a coluna ao lado da quadra, um jogador por linha. */
-function drawBench(
-  ctx: CanvasRenderingContext2D,
-  strip: Rect,
-  team: LineupTeam,
-  substitutes: LineupPlayer[],
-  photos: Map<string, HTMLImageElement>,
-): void {
-  if (substitutes.length === 0) return
-
-  ctx.fillStyle = 'rgba(255,255,255,0.05)'
-  roundedRect(ctx, strip.x + 8, strip.y, strip.width - 16, strip.height, 18)
-  ctx.fill()
-
-  ctx.textAlign = 'center'
-  // A faixa do banco é sempre escura, então o rótulo é sempre claro: escrito
-  // na cor do time, o colete preto sumiria no fundo.
-  ctx.fillStyle = '#e8edf4'
-  ctx.font = `700 20px ${FONT}`
-  ctx.fillText('BANCO', strip.x + strip.width / 2, strip.y + 34)
-
-  const radius = 30
-  const available = strip.height - 60
-  const step = Math.min(96, available / substitutes.length)
-  const startY = strip.y + 58 + Math.min(step, 96) / 2
-
-  ctx.font = `500 18px ${FONT}`
-  substitutes.forEach((player, index) => {
-    const centerY = startY + index * step
-    if (centerY + radius > strip.y + strip.height) return
-
-    const photo = player.photoUrl ? photos.get(player.photoUrl) : undefined
-    const centerX = strip.x + strip.width / 2
-
-    ctx.fillStyle = team.color
-    ctx.beginPath()
-    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2)
-    ctx.fill()
-
-    ctx.strokeStyle = readableInk(team.color)
-    ctx.lineWidth = 2
-    ctx.beginPath()
-    ctx.arc(centerX, centerY, radius - 1, 0, Math.PI * 2)
-    ctx.stroke()
-
-    if (photo) {
-      ctx.save()
-      ctx.beginPath()
-      ctx.arc(centerX, centerY, radius - 3, 0, Math.PI * 2)
-      ctx.clip()
-      const side = Math.min(photo.width, photo.height)
-      ctx.drawImage(
-        photo,
-        (photo.width - side) / 2,
-        (photo.height - side) / 2,
-        side,
-        side,
-        centerX - radius + 3,
-        centerY - radius + 3,
-        (radius - 3) * 2,
-        (radius - 3) * 2,
-      )
-      ctx.restore()
-    } else {
-      ctx.fillStyle = readableInk(team.color)
-      ctx.font = `700 22px ${FONT}`
-      ctx.textBaseline = 'middle'
-      ctx.fillText(initials(player.name), centerX, centerY + 1)
-      ctx.textBaseline = 'alphabetic'
-    }
-
-    ctx.fillStyle = '#c9d4e2'
-    ctx.font = `500 18px ${FONT}`
-    ctx.fillText(
-      fitText(ctx, player.name.split(/\s+/)[0], strip.width - 20),
-      centerX,
-      centerY + radius + 22,
-    )
-  })
-}
-
-/** Separa quem começa em quadra de quem fica no banco. */
-function splitSquad(players: LineupPlayer[]): {
-  starters: LineupPlayer[]
-  substitutes: LineupPlayer[]
-} {
-  const keepers = players.filter((player) => player.position === 'goleiro')
-  const line = players.filter((player) => player.position !== 'goleiro')
-
-  const starters = [...keepers.slice(0, 1), ...line].slice(0, COURT_PLAYERS)
-  const chosen = new Set(starters)
-  return { starters, substitutes: players.filter((player) => !chosen.has(player)) }
-}
+const HEADER_HEIGHT = 250
+const ROW_HEIGHT = 68
+const TEAM_HEADER = 84
 
 /**
- * Escalação em quadra de futsal.
+ * Escalação: uma coluna por time, um nome por linha.
  *
- * Cada time ocupa uma metade, com os cinco titulares nas posições reais do
- * futsal — goleiro, fixo, alas e pivô. Quem passa disso vai para o banco, na
- * lateral da quadra, como acontece no jogo de verdade.
+ * A versão anterior desenhava os jogadores espalhados por uma quadra de
+ * futsal. Era bonita e ilegível: catorze fichas pequenas viram catorze
+ * borrões na miniatura do grupo, e o nome embaixo de cada uma sumia. Em duas
+ * colunas o nome tem 40 pixels de altura e a lista continua legível quando a
+ * imagem chega reduzida.
  */
-export async function drawLineupCard(
-  header: CardHeader,
-  teams: LineupTeam[],
-): Promise<Blob> {
+export async function drawLineupCard(header: CardHeader, teams: LineupTeam[]): Promise<Blob> {
+  await waitForFont()
   const photos = await loadPhotos(teams)
-  const { ctx, el } = canvas()
 
-  ctx.fillStyle = '#0b1220'
-  ctx.fillRect(0, 0, WIDTH, HEIGHT)
-  drawHeader(ctx, header)
+  const longest = Math.max(1, ...teams.map((team) => team.players.length))
+  const columnHeight = TEAM_HEADER + longest * ROW_HEIGHT + 24
+  const height = Math.max(1080, HEADER_HEIGHT + 40 + columnHeight + 40 + 90)
 
-  const squads = teams.map((team) => ({ team, ...splitSquad(team.players) }))
-  const hasBench = squads.some((squad) => squad.substitutes.length > 0)
-  const benchWidth = hasBench ? 152 : 0
+  const { ctx, el } = canvas(height)
+  ctx.fillStyle = CANVAS
+  ctx.fillRect(0, 0, WIDTH, height)
+  drawHeader(ctx, header, HEADER_HEIGHT)
 
-  const court: Rect = {
-    x: benchWidth,
-    y: 190,
-    width: WIDTH - benchWidth * 2,
-    height: HEIGHT - 190 - 90,
-  }
-  drawCourt(ctx, court)
+  const gap = 32
+  const columns = Math.max(teams.length, 1)
+  const columnWidth = (WIDTH - 48 * 2 - gap * (columns - 1)) / columns
+  const top = HEADER_HEIGHT + 40
 
-  const bandHeight = court.height / Math.max(squads.length, 1)
+  teams.forEach((team, index) => {
+    const x = 48 + index * (columnWidth + gap)
+    panel(ctx, x, top, columnWidth, columnHeight)
 
-  // A ficha encolhe até as quatro fileiras caberem na metade do time.
-  const rows = 4
-  let tokenRadius = squads.length > 2 ? 34 : 42
-  while (tokenRadius > 24 && rowPitch(tokenRadius) * (rows - 1) + rowPitch(tokenRadius) > bandHeight) {
-    tokenRadius -= 2
-  }
-
-  squads.forEach(({ team, starters, substitutes }, index) => {
-    const bandTop = court.y + index * bandHeight
-    // O primeiro time ataca para baixo; o segundo, espelhado, para cima.
-    const mirrored = index % 2 === 1
-
-    // Etiqueta do time, encostada na linha de fundo daquele lado.
-    ctx.textAlign = 'left'
-    ctx.font = `700 28px ${FONT}`
-    const labelWidth = ctx.measureText(team.name).width + 62
-    const labelY = mirrored ? bandTop + bandHeight - 58 : bandTop + 14
-    ctx.fillStyle = 'rgba(8,16,26,0.78)'
-    roundedRect(ctx, court.x + 34, labelY, labelWidth, 44, 22)
-    ctx.fill()
+    // Cabeçalho do time, na cor do colete.
     ctx.fillStyle = team.color
-    ctx.beginPath()
-    ctx.arc(court.x + 58, labelY + 22, 10, 0, Math.PI * 2)
+    roundedRect(ctx, x + 4, top + 4, columnWidth - 8, TEAM_HEADER - 8, 24)
     ctx.fill()
     ctx.strokeStyle = readableInk(team.color)
-    ctx.lineWidth = 1.5
-    ctx.beginPath()
-    ctx.arc(court.x + 58, labelY + 22, 9.25, 0, Math.PI * 2)
+    ctx.lineWidth = 3
+    roundedRect(ctx, x + 5.5, top + 5.5, columnWidth - 11, TEAM_HEADER - 11, 22)
     ctx.stroke()
-    ctx.fillStyle = '#ffffff'
-    ctx.fillText(team.name, court.x + 78, labelY + 31)
 
-    const formation = FORMATIONS[starters.length] ?? FORMATIONS[COURT_PLAYERS]
-    const usableTop = bandTop + 48
-    const usableHeight = bandHeight - 96
+    ctx.textAlign = 'center'
+    ctx.fillStyle = readableInk(team.color)
+    ctx.font = `900 38px ${FONT}`
+    ctx.fillText(fitText(ctx, team.name, columnWidth - 40), x + columnWidth / 2, top + 56)
 
-    starters.forEach((player, slotIndex) => {
-      const slot = SLOTS[formation[slotIndex] ?? 'pivo']
-      const depth = mirrored ? 1 - slot.y : slot.y
-      const x = court.x + court.width * (mirrored ? 1 - slot.x : slot.x)
-      const y = usableTop + usableHeight * depth
-      drawPlayerToken(ctx, x, y, player, team.color, photos, tokenRadius, mirrored)
-    })
+    team.players.forEach((player, row) => {
+      const centerY = top + TEAM_HEADER + 12 + row * ROW_HEIGHT + ROW_HEIGHT / 2
+      const photo = player.photoUrl ? photos.get(player.photoUrl) : undefined
+      drawToken(ctx, x + 46, centerY, 24, player.name, team.color, photo)
 
-    if (benchWidth > 0) {
-      drawBench(
-        ctx,
-        {
-          x: mirrored ? WIDTH - benchWidth : 0,
-          y: court.y + 10,
-          width: benchWidth,
-          height: court.height - 20,
-        },
-        team,
-        substitutes,
-        photos,
+      ctx.textAlign = 'left'
+      ctx.fillStyle = INK
+      ctx.font = `700 34px ${FONT}`
+      const label = player.name.split(/\s+/)[0]
+      const reserved = player.position === 'goleiro' ? 74 : 24
+      ctx.fillText(
+        fitText(ctx, label, columnWidth - 92 - reserved),
+        x + 82,
+        centerY + 12,
       )
-    }
+
+      // O goleiro é a única marcação: é o que muda a leitura da escalação.
+      if (player.position === 'goleiro') {
+        ctx.textAlign = 'right'
+        ctx.fillStyle = PITCH
+        ctx.font = `800 24px ${FONT}`
+        ctx.fillText('GOL', x + columnWidth - 24, centerY + 10)
+      }
+    })
   })
 
-  drawFooter(ctx)
+  const total = teams.reduce((sum, team) => sum + team.players.length, 0)
+  drawFooter(ctx, height, `${total} em quadra`)
   return toBlob(el)
 }
+
+/* ---------------------------------------------------------- resultado ----- */
 
 export interface MatchLine {
   home: string
@@ -579,102 +339,119 @@ export interface AwardLine {
   names: string[]
 }
 
-/** Resumo da partida: placares, destaques e artilharia do dia. */
+/**
+ * Resultado: o placar ocupando o cartão, e o resto embaixo.
+ *
+ * Quem abre o grupo quer saber quanto foi. O placar vai em 150 pixels porque
+ * é a única coisa que precisa ser legível na miniatura; destaques e
+ * artilharia são para quem abrir a imagem.
+ */
 export async function drawRoundCard(
   header: CardHeader,
   matches: MatchLine[],
   awards: AwardLine[],
   scorers: Array<{ name: string; goals: number }>,
+  footer: string,
 ): Promise<Blob> {
-  const { ctx, el } = canvas()
+  await waitForFont()
 
-  ctx.fillStyle = '#0f1720'
-  ctx.fillRect(0, 0, WIDTH, HEIGHT)
-  drawHeader(ctx, header)
+  const visibleAwards = awards.filter((award) => award.names.length > 0)
+  const topScorers = scorers.slice(0, 5)
+  const scoreHeight = 260
+  const awardsHeight = visibleAwards.length > 0 ? 96 + visibleAwards.length * 92 : 0
+  const scorersHeight = topScorers.length > 0 ? 96 + topScorers.length * 66 : 0
+  const height = Math.max(
+    1080,
+    HEADER_HEIGHT + 40 + matches.length * (scoreHeight + 28) + awardsHeight + scorersHeight + 130,
+  )
 
-  let y = 250
+  const { ctx, el } = canvas(height)
+  ctx.fillStyle = CANVAS
+  ctx.fillRect(0, 0, WIDTH, height)
+  drawHeader(ctx, header, HEADER_HEIGHT)
+
+  let y = HEADER_HEIGHT + 40
+
+  for (const match of matches) {
+    panel(ctx, 48, y, WIDTH - 96, scoreHeight)
+
+    const half = (WIDTH - 96) / 2
+    const sides = [
+      { name: match.home, color: match.homeColor, score: match.scoreHome, x: 48 + half / 2 },
+      {
+        name: match.away,
+        color: match.awayColor,
+        score: match.scoreAway,
+        x: 48 + half + half / 2,
+      },
+    ]
+    const winner = Math.max(match.scoreHome, match.scoreAway)
+    const drawn = match.scoreHome === match.scoreAway
+
+    for (const side of sides) {
+      drawToken(ctx, side.x, y + 62, 26, side.name, side.color, undefined)
+
+      ctx.textAlign = 'center'
+      ctx.fillStyle = MUTED
+      ctx.font = `700 30px ${FONT}`
+      ctx.fillText(fitText(ctx, side.name, half - 60), side.x, y + 128)
+
+      ctx.fillStyle = !drawn && side.score === winner ? PITCH : INK
+      ctx.font = `900 116px ${FONT}`
+      ctx.fillText(String(side.score), side.x, y + 226)
+    }
+
+    ctx.strokeStyle = LINE
+    ctx.lineWidth = 4
+    ctx.beginPath()
+    ctx.moveTo(WIDTH / 2, y + 40)
+    ctx.lineTo(WIDTH / 2, y + scoreHeight - 40)
+    ctx.stroke()
+
+    y += scoreHeight + 28
+  }
 
   const section = (title: string) => {
     ctx.textAlign = 'left'
-    ctx.fillStyle = '#6ee7a8'
-    ctx.font = `700 28px ${FONT}`
-    ctx.fillText(title.toUpperCase(), 60, y)
-    y += 46
+    ctx.fillStyle = PITCH
+    ctx.font = `800 28px ${FONT}`
+    ctx.fillText(title.toUpperCase(), 60, y + 52)
+    y += 80
   }
 
-  if (matches.length > 0) {
-    section('Resultados')
-    for (const match of matches.slice(0, 6)) {
-      ctx.fillStyle = '#1a2430'
-      roundedRect(ctx, 60, y - 12, WIDTH - 120, 88, 20)
-      ctx.fill()
-
-      // Aro contrastante: sem ele o colete preto some na tarja escura.
-      const dot = (x: number, color: string) => {
-        ctx.fillStyle = color
-        ctx.beginPath()
-        ctx.arc(x, y + 32, 12, 0, Math.PI * 2)
-        ctx.fill()
-        ctx.strokeStyle = readableInk(color)
-        ctx.lineWidth = 1.5
-        ctx.beginPath()
-        ctx.arc(x, y + 32, 11.25, 0, Math.PI * 2)
-        ctx.stroke()
-      }
-      dot(100, match.homeColor)
-      dot(WIDTH - 100, match.awayColor)
-
-      ctx.font = `600 32px ${FONT}`
-      ctx.fillStyle = '#e8edf4'
-      ctx.textAlign = 'left'
-      ctx.fillText(fitText(ctx, match.home, 300), 130, y + 44)
-      ctx.textAlign = 'right'
-      ctx.fillText(fitText(ctx, match.away, 300), WIDTH - 130, y + 44)
-
-      ctx.textAlign = 'center'
-      ctx.font = `700 42px ${FONT}`
-      ctx.fillStyle = '#ffffff'
-      ctx.fillText(`${match.scoreHome} – ${match.scoreAway}`, WIDTH / 2, y + 46)
-
-      y += 104
-    }
-    y += 20
-  }
-
-  const visibleAwards = awards.filter((award) => award.names.length > 0)
   if (visibleAwards.length > 0) {
     section('Destaques')
     for (const award of visibleAwards) {
+      panel(ctx, 48, y, WIDTH - 96, 76, 22)
       ctx.textAlign = 'left'
-      ctx.fillStyle = '#93a2b5'
-      ctx.font = `400 28px ${FONT}`
-      ctx.fillText(award.label, 60, y)
-      ctx.fillStyle = '#ffffff'
-      ctx.font = `600 36px ${FONT}`
-      const lines = wrapText(ctx, award.names.join(', '), WIDTH - 120, 2)
-      lines.forEach((line, index) => ctx.fillText(line, 60, y + 44 + index * 44))
-      y += 96 + (lines.length - 1) * 44
+      ctx.fillStyle = GOLD
+      ctx.font = `800 24px ${FONT}`
+      ctx.fillText(award.label.toUpperCase(), 76, y + 32)
+      ctx.fillStyle = INK
+      ctx.font = `800 34px ${FONT}`
+      ctx.fillText(fitText(ctx, award.names.join(', '), WIDTH - 200), 76, y + 64)
+      y += 92
     }
-    y += 12
+    y += 4
   }
 
-  if (scorers.length > 0 && y < HEIGHT - 260) {
-    section('Artilharia da partida')
-    for (const scorer of scorers.slice(0, 5)) {
-      if (y > HEIGHT - 150) break
+  if (topScorers.length > 0) {
+    section('Artilharia')
+    for (const scorer of topScorers) {
       ctx.textAlign = 'left'
-      ctx.fillStyle = '#e8edf4'
-      ctx.font = `500 32px ${FONT}`
-      ctx.fillText(fitText(ctx, scorer.name, WIDTH - 260), 60, y)
+      ctx.fillStyle = INK
+      ctx.font = `700 34px ${FONT}`
+      ctx.fillText(fitText(ctx, scorer.name, WIDTH - 220), 60, y + 40)
+
       ctx.textAlign = 'right'
-      ctx.fillStyle = '#6ee7a8'
-      ctx.font = `700 32px ${FONT}`
-      ctx.fillText(`${scorer.goals}`, WIDTH - 60, y)
-      y += 54
+      ctx.fillStyle = PITCH
+      ctx.font = `900 34px ${FONT}`
+      ctx.fillText(String(scorer.goals), WIDTH - 60, y + 40)
+      y += 66
     }
   }
 
-  drawFooter(ctx)
+  drawFooter(ctx, height, footer)
   return toBlob(el)
 }
 

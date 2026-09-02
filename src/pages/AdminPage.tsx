@@ -114,7 +114,10 @@ export function AdminPage() {
                     player.id === currentPlayer?.id ? (
                       <Tag tone="live">você</Tag>
                     ) : (
-                      <span className="block w-36">
+                      // O seletor encolheu junto com o rótulo: com a
+                      // tipografia nova, "Administrador" empurrava o nome do
+                      // jogador para as reticências.
+                      <span className="block w-32">
                         <Select
                           value={player.role}
                           disabled={busy}
@@ -122,7 +125,7 @@ export function AdminPage() {
                           onChange={(event) => changeRole(player, event.target.value as Role)}
                         >
                           <option value="jogador">Jogador</option>
-                          <option value="admin">Administrador</option>
+                          <option value="admin">Admin</option>
                         </Select>
                       </span>
                     )

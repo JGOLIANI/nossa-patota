@@ -3,6 +3,7 @@ import { blobToDataUrl, resizeImage } from '../lib/image'
 import { normalizeUsername } from '../lib/supabase'
 import type {
   Award,
+  AwardType,
   Match,
   MatchEvent,
   PatotaSettings,
@@ -13,6 +14,7 @@ import type {
   Snapshot,
   Team,
 } from '../types'
+import { VOTING_WINDOW_HOURS } from '../types'
 import { createDemoSnapshot } from './demoSeed'
 import type {
   AttendanceInput,
@@ -28,12 +30,13 @@ import type {
 
 // A versão faz parte da chave: quando o formato do snapshot muda, os dados
 // antigos são descartados em vez de carregarem sem os campos novos.
-const STORAGE_KEY = 'nossa-patota:demo:v5'
+const STORAGE_KEY = 'nossa-patota:demo:v6'
 const LEGACY_KEYS = [
   'nossa-patota:demo:v1',
   'nossa-patota:demo:v2',
   'nossa-patota:demo:v3',
   'nossa-patota:demo:v4',
+  'nossa-patota:demo:v5',
 ]
 const SESSION_KEY = 'nossa-patota:demo:session'
 
@@ -105,6 +108,18 @@ function mutate<T>(fn: (snapshot: Snapshot) => T): T {
 
 function notify(user: SessionUser | null): void {
   for (const listener of listeners) listener(user)
+}
+
+/** Recusa o voto depois de a urna fechar, pelo prazo ou pela apuração. */
+function ensureBallotOpen(roundId: string): void {
+  const round = load().rounds.find((item) => item.id === roundId)
+  if (!round || round.status !== 'encerrada' || !round.closed_at) {
+    throw new Error('A votação abre quando a partida é encerrada.')
+  }
+  const deadline = new Date(round.closed_at).getTime() + VOTING_WINDOW_HOURS * 3600_000
+  if (round.awards_settled_at || Date.now() > deadline) {
+    throw new Error('A votação desta partida já foi encerrada.')
+  }
 }
 
 function readSession(): SessionUser | null {
@@ -238,6 +253,7 @@ export const localBackend: Backend = {
       matches: [...snapshot.matches],
       events: [...snapshot.events],
       awards: [...snapshot.awards],
+      votes: [...snapshot.votes],
       settings: { ...snapshot.settings },
     }
   },
@@ -311,6 +327,7 @@ export const localBackend: Backend = {
         status: 'rascunho',
         created_at: new Date().toISOString(),
         closed_at: null,
+        awards_settled_at: null,
       }
       snapshot.rounds.push(round)
       return round
@@ -457,6 +474,15 @@ export const localBackend: Backend = {
     })
   },
 
+  async setPlayerTeam(roundId: string, playerId: string, teamId: string | null) {
+    mutate((snapshot) => {
+      const row = snapshot.roundPlayers.find(
+        (rp) => rp.round_id === roundId && rp.player_id === playerId,
+      )
+      if (row) row.team_id = teamId
+    })
+  },
+
   async createMatch(roundId: string, teamAId: string, teamBId: string) {
     return mutate((snapshot) => {
       const sequence =
@@ -488,12 +514,6 @@ export const localBackend: Backend = {
     })
   },
 
-  async deleteMatch(id: string) {
-    mutate((snapshot) => {
-      snapshot.matches = snapshot.matches.filter((m) => m.id !== id)
-      snapshot.events = snapshot.events.filter((e) => e.match_id !== id)
-    })
-  },
 
   async addEvent(input: EventInput) {
     return mutate((snapshot) => {
@@ -503,9 +523,68 @@ export const localBackend: Backend = {
     })
   },
 
+  async updateEvent(id: string, patch: Partial<Omit<EventInput, 'match_id'>>) {
+    mutate((snapshot) => {
+      const event = snapshot.events.find((row) => row.id === id)
+      if (event) Object.assign(event, patch)
+    })
+  },
+
   async deleteEvent(id: string) {
     mutate((snapshot) => {
       snapshot.events = snapshot.events.filter((e) => e.id !== id)
+    })
+  },
+
+  /**
+   * A urna do modo demonstração segue a mesma regra do servidor: fecham a
+   * votação o prazo e a apuração, e depois de qualquer um dos dois o voto é
+   * recusado. Sem isto o modo demonstração aceitaria voto em rodada apurada
+   * e daria a impressão errada de como o aplicativo funciona.
+   */
+  async castVote(roundId: string, type: AwardType, playerId: string) {
+    const session = readSession()
+    if (!session) throw new Error('Entre na sua conta para votar.')
+    const voter = load().players.find(
+      (player) => player.user_id === session.id || player.username === session.username,
+    )
+    if (!voter) throw new Error('Sua ficha de jogador não foi encontrada.')
+    if (voter.id === playerId) throw new Error('Não dá para votar em você mesmo.')
+    ensureBallotOpen(roundId)
+
+    mutate((snapshot) => {
+      const existing = snapshot.votes.find(
+        (vote) => vote.round_id === roundId && vote.type === type && vote.voter_id === voter.id,
+      )
+      if (existing) {
+        existing.player_id = playerId
+        existing.created_at = new Date().toISOString()
+        return
+      }
+      snapshot.votes.push({
+        id: uid(),
+        round_id: roundId,
+        type,
+        voter_id: voter.id,
+        player_id: playerId,
+        created_at: new Date().toISOString(),
+      })
+    })
+  },
+
+  async clearVote(roundId: string, type: AwardType) {
+    const session = readSession()
+    if (!session) throw new Error('Entre na sua conta para votar.')
+    const voter = load().players.find(
+      (player) => player.user_id === session.id || player.username === session.username,
+    )
+    if (!voter) return
+    ensureBallotOpen(roundId)
+    mutate((snapshot) => {
+      snapshot.votes = snapshot.votes.filter(
+        (vote) =>
+          !(vote.round_id === roundId && vote.type === type && vote.voter_id === voter.id),
+      )
     })
   },
 

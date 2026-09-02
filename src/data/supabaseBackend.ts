@@ -3,6 +3,7 @@ import { resizeImage } from '../lib/image'
 import { emailToUsername, normalizeUsername, supabase, usernameToEmail } from '../lib/supabase'
 import type {
   Award,
+  AwardType,
   Match,
   MatchEvent,
   PatotaSettings,
@@ -10,6 +11,7 @@ import type {
   PlayerPosition,
   Round,
   RoundPlayer,
+  RoundVote,
   SessionUser,
   Snapshot,
   Team,
@@ -166,15 +168,16 @@ export const supabaseBackend: Backend = {
 
   async fetchAll(): Promise<Snapshot> {
     const db = client()
-    const [players, rounds, teams, roundPlayers, matches, events, awards, settings] =
+    const [players, rounds, teams, roundPlayers, matches, events, awards, votes, settings] =
       await Promise.all([
-      db.from('players').select('*').order('full_name'),
-      db.from('rounds').select('*').order('date', { ascending: false }),
-      db.from('teams').select('*').order('position'),
-      db.from('round_players').select('*'),
-      db.from('matches').select('*').order('sequence'),
-      db.from('match_events').select('*').order('created_at'),
-      db.from('round_awards').select('*'),
+        db.from('players').select('*').order('full_name'),
+        db.from('rounds').select('*').order('date', { ascending: false }),
+        db.from('teams').select('*').order('position'),
+        db.from('round_players').select('*'),
+        db.from('matches').select('*').order('sequence'),
+        db.from('match_events').select('*').order('created_at'),
+        db.from('round_awards').select('*'),
+        db.from('round_votes').select('*'),
         db.from('patota_settings').select('*').eq('id', 'default').maybeSingle(),
       ])
 
@@ -186,6 +189,7 @@ export const supabaseBackend: Backend = {
       matches: unwrap<Match[]>(matches),
       events: unwrap<MatchEvent[]>(events),
       awards: unwrap<Award[]>(awards),
+      votes: unwrap<RoundVote[]>(votes),
       settings: (settings.data as PatotaSettings | null) ?? DEFAULT_SETTINGS,
     }
   },
@@ -355,6 +359,16 @@ export const supabaseBackend: Backend = {
     }
   },
 
+  async setPlayerTeam(roundId: string, playerId: string, teamId: string | null) {
+    const db = client()
+    const { error } = await db
+      .from('round_players')
+      .update({ team_id: teamId })
+      .eq('round_id', roundId)
+      .eq('player_id', playerId)
+    if (error) throw new Error(translate(error.message))
+  },
+
   async createMatch(roundId: string, teamAId: string, teamBId: string) {
     const db = client()
     const existing = unwrap<Array<Pick<Match, 'sequence'>>>(
@@ -382,10 +396,6 @@ export const supabaseBackend: Backend = {
     unwrap(await client().from('matches').update(patch).eq('id', id).select())
   },
 
-  async deleteMatch(id: string) {
-    const { error } = await client().from('matches').delete().eq('id', id)
-    if (error) throw new Error(translate(error.message))
-  },
 
   async addEvent(input: EventInput) {
     const created = unwrap<MatchEvent[]>(
@@ -394,8 +404,33 @@ export const supabaseBackend: Backend = {
     return created[0]
   },
 
+  async updateEvent(id: string, patch: Partial<Omit<EventInput, 'match_id'>>) {
+    const db = client()
+    const { error } = await db.from('match_events').update(patch).eq('id', id)
+    if (error) throw new Error(translate(error.message))
+  },
+
   async deleteEvent(id: string) {
     const { error } = await client().from('match_events').delete().eq('id', id)
+    if (error) throw new Error(translate(error.message))
+  },
+
+  async castVote(roundId: string, type: AwardType, playerId: string) {
+    // Quem pode votar, em quem, e até quando são regras do servidor: no
+    // navegador elas seriam só uma sugestão.
+    const { error } = await client().rpc('cast_vote', {
+      p_round_id: roundId,
+      p_type: type,
+      p_player_id: playerId,
+    })
+    if (error) throw new Error(translate(error.message))
+  },
+
+  async clearVote(roundId: string, type: AwardType) {
+    const { error } = await client().rpc('clear_vote', {
+      p_round_id: roundId,
+      p_type: type,
+    })
     if (error) throw new Error(translate(error.message))
   },
 

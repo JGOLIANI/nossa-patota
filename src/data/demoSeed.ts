@@ -78,10 +78,19 @@ export function createDemoSnapshot(): Snapshot {
     matches: [],
     events: [],
     awards: [],
+    votes: [],
     settings: { ...DEFAULT_SETTINGS, weekday: 5, location: 'Quadra do Zé', max_players: 14 },
   }
 
   let eventSeq = 0
+
+  /*
+   * A última rodada do acervo é encerrada "há duas horas", e não na data
+   * dela. É o que deixa a demonstração com uma urna aberta para mexer — as
+   * anteriores já vêm apuradas, como acontece na patota de verdade.
+   */
+  const recentlyClosed = new Date(Date.now() - 2 * 3600_000).toISOString()
+  const lastIndex = ROUND_DATES.length - 1
 
   ROUND_DATES.forEach((date, roundIndex) => {
     const roundId = `demo-round-${roundIndex + 1}`
@@ -108,7 +117,9 @@ export function createDemoSnapshot(): Snapshot {
       max_players: 14,
       status: 'encerrada',
       created_at: `${date}T18:00:00.000Z`,
-      closed_at: `${date}T22:00:00.000Z`,
+      closed_at: roundIndex === lastIndex ? recentlyClosed : `${date}T22:00:00.000Z`,
+      // As rodadas antigas já foram apuradas; a última ainda está em votação.
+      awards_settled_at: roundIndex === lastIndex ? null : `${date}T23:00:00.000Z`,
     })
 
     balance.teams.forEach((team, teamIndex) => {
@@ -217,16 +228,17 @@ export function createDemoSnapshot(): Snapshot {
     // rodada. Sem um objeto novo, a segunda rodada em diante leria o índice
     // congelado na primeira — não enxergaria ninguém em campo e não premiaria
     // ninguém.
+    if (roundIndex === lastIndex) return
+
     const awards = computeRoundAwards({ ...snapshot }, roundId)
-    for (const [type, playerIds] of Object.entries(awards)) {
-      for (const playerId of playerIds) {
-        snapshot.awards.push({
-          id: `${roundId}-award-${type}-${playerId}`,
-          round_id: roundId,
-          type: type as never,
-          player_id: playerId,
-        })
-      }
+    for (const [type, playerId] of Object.entries(awards)) {
+      if (!playerId) continue
+      snapshot.awards.push({
+        id: `${roundId}-award-${type}-${playerId}`,
+        round_id: roundId,
+        type: type as never,
+        player_id: playerId,
+      })
     }
   })
 
@@ -247,6 +259,7 @@ export function createDemoSnapshot(): Snapshot {
     status: 'rascunho',
     created_at: `${nextDate}T08:00:00.000Z`,
     closed_at: null,
+    awards_settled_at: null,
   })
 
   // Nove já confirmaram; o administrador ainda não respondeu, de propósito.

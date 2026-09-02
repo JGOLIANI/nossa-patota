@@ -107,7 +107,7 @@ export function InstallBanner() {
           <div
             role="dialog"
             aria-label="Instalar o Nossa Patota"
-            className="material squircle animate-banner-in pointer-events-auto w-full max-w-lg rounded-[20px] p-3 shadow-raised"
+            className="material squircle animate-banner-in pointer-events-auto w-full max-w-lg rounded-card border-2 border-line p-3.5 shadow-raised"
           >
             <div className="flex items-start gap-3">
               <button
@@ -115,13 +115,15 @@ export function InstallBanner() {
                 onClick={tap}
                 className="flex min-w-0 flex-1 items-start gap-3 text-left transition duration-200 ease-ios active:opacity-60"
               >
-                <img src={appIcon} alt="" className="squircle size-10 shrink-0 rounded-[10px]" />
+                <img
+                  src={appIcon}
+                  alt=""
+                  className="squircle size-12 shrink-0 rounded-2xl border-2 border-line"
+                />
 
                 <span className="min-w-0 flex-1">
-                  <span className="block text-footnote font-semibold text-ink">
-                    Instalar o Nossa Patota
-                  </span>
-                  <span className="mt-0.5 block text-caption text-muted">
+                  <span className="block text-headline text-ink">Instalar o Nossa Patota</span>
+                  <span className="mt-0.5 block text-footnote text-muted">
                     {prompt
                       ? 'Toque para colocar o app na tela de início: ele abre em tela cheia e funciona sem internet.'
                       : manualInstallHint(facts)}
@@ -129,7 +131,7 @@ export function InstallBanner() {
                 </span>
 
                 {!prompt && (
-                  <IconChevronRight className="mt-2.5 size-4 shrink-0 self-start text-faint" />
+                  <IconChevronRight className="mt-3 size-4 shrink-0 self-start text-faint" />
                 )}
               </button>
 
@@ -137,14 +139,14 @@ export function InstallBanner() {
                 type="button"
                 aria-label="Agora não"
                 onClick={() => dismiss('dispensado')}
-                className="-mt-0.5 -mr-0.5 inline-flex size-[30px] shrink-0 items-center justify-center rounded-full bg-fill text-muted transition duration-200 ease-ios active:scale-90"
+                className="-mt-0.5 -mr-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-2xl border-2 border-line bg-card text-muted transition duration-200 ease-ios active:scale-90"
               >
-                <IconClose className="size-4 stroke-[2.6]" />
+                <IconClose className="size-4" />
               </button>
             </div>
 
             {prompt && (
-              <div className="mt-2.5 flex justify-end">
+              <div className="mt-3 flex justify-end">
                 <Button onClick={() => void install(prompt)}>Instalar</Button>
               </div>
             )}
@@ -177,18 +179,22 @@ function InstallGuide({
   return (
     <Modal open={open} title="Instalar na tela de início" onClose={onClose}>
       <div className="flex items-center gap-3 pb-1">
-        <img src={appIcon} alt="" className="squircle size-14 shrink-0 rounded-[14px]" />
+        <img
+          src={appIcon}
+          alt=""
+          className="squircle size-14 shrink-0 rounded-2xl border-2 border-line"
+        />
         <p className="text-footnote text-muted">
           Neste navegador o app não pode se instalar sozinho. O caminho é este:
         </p>
       </div>
 
-      <ol className="list-group mt-4 overflow-hidden rounded-card bg-fill">
+      <ol className="list-group mt-4 overflow-hidden rounded-card border-2 border-line bg-card">
         {steps.map((step, index) => {
           const Icon = step.icon ? STEP_ICONS[step.icon] : null
           return (
             <li key={step.text} className="flex items-center gap-3 px-4 py-3">
-              <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand text-caption font-semibold text-brand-ink">
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-xl bg-brand-fill text-caption text-brand-ink">
                 {index + 1}
               </span>
               <span className="min-w-0 flex-1 text-subhead text-ink">{step.text}</span>

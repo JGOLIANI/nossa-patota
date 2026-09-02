@@ -39,6 +39,15 @@ export interface Round {
   status: RoundStatus
   created_at: string
   closed_at: string | null
+  /**
+   * Quando os prêmios desta rodada foram apurados em definitivo.
+   *
+   * A urna fecha sozinha pelo relógio, mas gravar o resultado é uma escrita,
+   * e escrita precisa de alguém logado com permissão. Esta marca é o que
+   * distingue "ainda não apurei" de "apurei e ninguém se destacou" — sem ela,
+   * uma rodada sem vencedores seria reapurada a cada abertura do aplicativo.
+   */
+  awards_settled_at: string | null
 }
 
 /**
@@ -144,6 +153,43 @@ export interface Award {
   player_id: string
 }
 
+/**
+ * Um voto de um jogador em um prêmio da rodada.
+ *
+ * Cada eleitor tem um voto por prêmio; votar de novo troca o anterior, e é
+ * por isso que a chave única do banco é (rodada, prêmio, eleitor).
+ */
+export interface RoundVote {
+  id: string
+  round_id: string
+  type: AwardType
+  /** Quem votou. */
+  voter_id: string
+  /** Em quem votou. */
+  player_id: string
+  created_at: string
+}
+
+/**
+ * Quanto tempo a urna fica aberta depois que a partida é encerrada.
+ *
+ * Dezesseis horas cobrem a noite inteira e a manhã seguinte: quem jogou na
+ * sexta à noite ainda vota no sábado de manhã, e ninguém precisa votar com o
+ * suor do jogo. Passado o prazo, a apuração é definitiva.
+ */
+export const VOTING_WINDOW_HOURS = 16
+
+/**
+ * Peso do voto e da estatística na nota final de cada candidato.
+ *
+ * A pelada é jogada por pessoas, e quem estava lá viu coisas que o placar não
+ * registra — a defesa na linha, o passe que ninguém converteu. Mas voto
+ * sozinho vira popularidade, então o número continua com uma parte da
+ * decisão. Os dois somam 1.
+ */
+export const VOTE_WEIGHT = 0.7
+export const STAT_WEIGHT = 0.3
+
 /** Conjunto completo de dados carregado do backend. */
 export interface Snapshot {
   players: Player[]
@@ -153,6 +199,7 @@ export interface Snapshot {
   matches: Match[]
   events: MatchEvent[]
   awards: Award[]
+  votes: RoundVote[]
   settings: PatotaSettings
 }
 
@@ -164,6 +211,7 @@ export const EMPTY_SNAPSHOT: Snapshot = {
   matches: [],
   events: [],
   awards: [],
+  votes: [],
   settings: DEFAULT_SETTINGS,
 }
 
@@ -172,16 +220,22 @@ export interface SessionUser {
   username: string
 }
 
+/*
+ * Os nomes que a patota usa. A chave (`pior_jogador` e companhia) é o que
+ * está gravado no banco e não muda com o apelido: trocar o rótulo aqui
+ * renomeia o prêmio em todas as telas, nas imagens e nas mensagens sem tocar
+ * em uma linha do histórico.
+ */
 export const AWARD_LABELS: Record<AwardType, string> = {
   jogador_rodada: 'Craque da Partida',
-  pior_jogador: 'Bola Murcha',
+  pior_jogador: 'Bagre da Rodada',
   goleiro_menos_vazado: 'Paredão',
 }
 
 /** Versão curta, para caber embaixo de um número na ficha do jogador. */
 export const AWARD_SHORT_LABELS: Record<AwardType, string> = {
   jogador_rodada: 'Craque',
-  pior_jogador: 'Bola Murcha',
+  pior_jogador: 'Bagre',
   goleiro_menos_vazado: 'Paredão',
 }
 

@@ -90,32 +90,91 @@ a ser decisão dele.
 Duas imagens são geradas no próprio aparelho, em canvas, sem biblioteca
 nenhuma.
 
-A **escalação** mostra uma quadra de futsal com os cinco titulares de cada time
-nas posições reais — goleiro, fixo, alas e pivô —, cada um com a foto do perfil
-e o nome. Quem passa de cinco vai para o banco de reservas, na lateral da
-quadra. Fotos que o servidor não libera por CORS caem nas iniciais, porque uma
-imagem sem permissão impediria a geração do PNG.
+A régua dos dois cartões é a miniatura do grupo: com uns 200 pixels de largura,
+a imagem precisa dizer a que veio antes de alguém tocar nela.
 
-O **resumo da partida** traz placar, premiações e artilharia.
+A **escalação** traz uma coluna por time e um nome por linha, com a ficha do
+jogador e a marcação de quem foi para o gol. A versão anterior espalhava os
+jogadores por uma quadra de futsal desenhada — bonita e ilegível: catorze
+fichas pequenas viram catorze borrões quando a imagem chega reduzida. Fotos que
+o servidor não libera por CORS caem nas iniciais, porque uma imagem sem
+permissão impediria a geração do PNG.
+
+O **resumo da partida** põe o placar em 116 pixels de altura, porque é a única
+coisa que precisa ser legível na miniatura, e deixa destaques e artilharia
+abaixo, para quem abrir.
+
+A mensagem da **escalação** traz os dois times por extenso, um nome por linha,
+com a marcação de quem ficou no gol. No grupo a imagem chega como miniatura e
+nem todo mundo abre; o nome em texto também é o que se procura com a busca do
+WhatsApp e o que o leitor de tela alcança — a imagem, para os dois, não existe.
+
+A mensagem do **resultado** traz o placar, a artilharia e o pódio.
+
+O resultado só pode ser compartilhado depois que a urna fecha. Mandar antes
+seria anunciar como definitivo um pódio que os votos que faltam ainda podem
+mudar — e ninguém desmente um print. Enquanto a votação corre, a tela diz
+quando o botão aparece.
 
 No celular abre direto o menu de compartilhar; no computador, baixa o arquivo.
 
 ### Premiações da partida
 
-| Prêmio | Critério |
-| --- | --- |
-| Craque da Partida | Mais participações em gols (gols + assistências) no **time vencedor** |
-| Bola Murcha | Menos participações em gols no **time derrotado** |
-| Paredão | Quem sofreu menos gols entre os que jogaram no gol |
+Os prêmios são **votados**. Encerrar a partida não decide nada: abre uma urna
+de **16 horas** para quem foi escalado — quem estava em quadra é quem viu o
+jogo, e ninguém vota em si mesmo. Dezesseis horas cobrem a noite e a manhã
+seguinte, então quem jogou na sexta à noite ainda vota no sábado.
+
+| Prêmio | Quem disputa | Estatística que pesa |
+| --- | --- | --- |
+| Craque da Partida | Linha do **time vencedor** | Mais participações em gols |
+| Bagre da Rodada | Linha do **time derrotado** | Menos participações em gols |
+| Paredão | Quem jogou no gol | Menos gols sofridos |
+
+A nota de cada candidato é **70% da fatia de votos** que recebeu e **30% da
+estatística** do prêmio, normalizada entre os candidatos. Quem estava lá viu
+coisas que o placar não registra — a defesa na linha, o passe que ninguém
+converteu —, mas voto sozinho vira popularidade.
+
+Se ninguém votar, a nota vira só a estatística da partida, que é exatamente o
+critério anterior: a rodada em que ninguém votou continua tendo um resultado justo em
+vez de nenhum. Nesse caso vale também a guarda antiga — quando ninguém do lado
+avaliado participou de gol, o prêmio não sai, porque um prêmio que cabe no time
+inteiro não diz nada sobre nenhum dos premiados. Havendo voto, a patota
+decidiu, e o prêmio sai.
 
 Os dois prêmios de linha são simétricos, cada um preso ao seu lado do placar.
+No empate do **placar** os dois passam a olhar a partida inteira.
 
-No empate não há vencedor nem derrotado, então os dois prêmios passam a olhar
-a partida inteira: o melhor é quem mais participou de gols entre todos, o pior é
-quem menos participou. Empates dentro do prêmio devolvem todos os empatados.
+**Sai um só por categoria.** Quando dois candidatos terminam com a mesma nota,
+a cascata de desempate decide, nesta ordem:
 
-Quando ninguém do lado avaliado participou de gol, o prêmio simplesmente não
-sai — vale para os dois, como manda a simetria. Um 1 a 0 de gol contra não tem
-Craque da Partida, e uma derrota sem nenhum gol do time não tem Bola Murcha:
-se todo mundo ali está em zero, ninguém se destacou, e um prêmio que cabe no
-time inteiro não diz nada sobre nenhum dos premiados.
+1. **mais votos** na contagem bruta;
+2. o **desempate fino da estatística** — gols, depois assistências, na direção
+   do prêmio. É o que a métrica principal esconde: participações não distinguem
+   três gols de um gol com duas assistências, e o pódio distingue;
+3. **quem menos levou aquele prêmio** na história, o que espalha os troféus em
+   vez de concentrar no mesmo de sempre. A própria rodada fica de fora da
+   conta: reapurar uma rodada já gravada leria os prêmios dela como histórico,
+   e o vencedor seria punido pela própria vitória;
+4. um **sorteio semeado** pela rodada e pelo prêmio. Não é justo, mas é
+   decidido e reprodutível — a tela e o banco nunca discordam de quem levou.
+
+Rodadas gravadas antes desta regra podem ter dois nomes na mesma categoria, e
+as telas continuam mostrando os dois: apagar o histórico para caber no formato
+novo seria pior.
+
+Fecham a urna duas coisas. O prazo corre sozinho, e o administrador pode
+**encerrar antes**, pela aba Prêmios — quando todo mundo já votou, o resultado
+fica preso por horas sem motivo, e é logo depois do jogo que a patota quer ver
+o pódio. A confirmação diz quantos já votaram; encerrar é definitivo e o
+servidor passa a recusar voto novo.
+
+Apurar é encerrar: a marca da apuração fecha a votação nos dois casos. Gravar o
+resultado é escrita, e escrita precisa de permissão — então, quando o prazo
+vence sozinho, a apuração acontece na primeira vez que um administrador abre o
+aplicativo. Até lá as telas mostram a mesma apuração calculada na hora, então
+ninguém vê número diferente do que vai ser gravado.
+
+> Quem pode votar, em quem, e até quando são regras do servidor, na função
+> `cast_vote`: no navegador seriam só uma sugestão.

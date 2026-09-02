@@ -203,7 +203,7 @@ export function computeMatchLogs(
   return logs
 }
 
-export function statsFromLogs(playerId: string, entries: MatchLogEntry[]): PlayerStats {
+function statsFromLogs(playerId: string, entries: MatchLogEntry[]): PlayerStats {
   const stats = emptyStats(playerId)
   for (const entry of entries) {
     stats.played += 1

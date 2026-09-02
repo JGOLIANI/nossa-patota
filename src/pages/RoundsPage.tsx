@@ -52,7 +52,7 @@ export function RoundsPage() {
             aria-label="Nova partida"
             className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-brand transition duration-200 ease-ios active:scale-90 active:opacity-50"
           >
-            <IconPlus className="size-6 stroke-[2.2]" />
+            <IconPlus className="size-6" />
           </Link>
         ) : undefined
       }

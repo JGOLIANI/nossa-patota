@@ -130,6 +130,14 @@ export interface Backend {
   updateRound(id: string, patch: Partial<Round>): Promise<void>
   deleteRound(id: string): Promise<void>
   setRoundTeams(roundId: string, teams: TeamInput[]): Promise<void>
+  /**
+   * Move um jogador entre os times já montados da rodada.
+   *
+   * Existe separado de `setRoundTeams` porque aquele refaz os times do zero,
+   * e refazer apaga a partida e os gols junto. Para trocar alguém de lado no
+   * meio da pelada é esta a operação: mexe numa linha só.
+   */
+  setPlayerTeam(roundId: string, playerId: string, teamId: string | null): Promise<void>
 
   /**
    * Resposta do próprio jogador. No Supabase é uma função no servidor, porque
@@ -149,10 +157,24 @@ export interface Backend {
 
   createMatch(roundId: string, teamAId: string, teamBId: string): Promise<Match>
   updateMatch(id: string, patch: Partial<Match>): Promise<void>
-  deleteMatch(id: string): Promise<void>
 
   addEvent(input: EventInput): Promise<MatchEvent>
+  /**
+   * Corrige um gol já registrado — autor, assistência, gol contra ou o time
+   * que pontuou. Existe porque no calor da pelada o gol entra no nome errado,
+   * e apagar e lançar de novo perde a ordem em que as coisas aconteceram.
+   */
+  updateEvent(id: string, patch: Partial<Omit<EventInput, 'match_id'>>): Promise<void>
   deleteEvent(id: string): Promise<void>
 
   setAwards(roundId: string, awards: AwardInput[]): Promise<Award[]>
+
+  /**
+   * Voto do próprio jogador num prêmio da rodada. Votar de novo troca o voto
+   * anterior. No Supabase é uma função no servidor: quem pode votar, em quem,
+   * e até quando são regras que não cabem no navegador.
+   */
+  castVote(roundId: string, type: AwardType, playerId: string): Promise<void>
+  /** Desfaz o próprio voto naquele prêmio. */
+  clearVote(roundId: string, type: AwardType): Promise<void>
 }

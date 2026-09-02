@@ -34,7 +34,7 @@ export const supabase: SupabaseClient | null = hasSupabaseConfig
  * e-mail, então mapeamos para um endereço em domínio reservado (`.local`),
  * que nunca é roteável e não envia mensagens a terceiros.
  */
-export const USERNAME_DOMAIN = 'patota.local'
+const USERNAME_DOMAIN = 'patota.local'
 
 export function usernameToEmail(username: string): string {
   return `${normalizeUsername(username)}@${USERNAME_DOMAIN}`

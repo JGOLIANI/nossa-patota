@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { backend, isDemoMode } from '../data'
 import type { AwardInput, EventInput, PlayerInput, RoundInput } from '../data/types'
 import { confirmedPlayers, rebalanceWaitlist } from '../domain/attendance'
-import { computeRoundAwards } from '../domain/awards'
+import { computeRoundAwards, votingState } from '../domain/awards'
 import { generateTeams, seedFromString } from '../domain/balance'
 import { missingRoundDates, roundTitle, staleRoundIds } from '../domain/schedule'
 import { scoreFromEvents } from '../domain/score'
@@ -18,6 +18,24 @@ import type {
 } from '../types'
 import { EMPTY_SNAPSHOT, TEAM_PRESETS } from '../types'
 import { AppContext, type AppActions, type AppValue } from './context'
+
+/**
+ * Apura uma rodada: grava os vencedores e marca a apuração.
+ *
+ * É o mesmo ato quando o prazo vence sozinho e quando o administrador
+ * encerra antes — e `awards_settled_at` é o que fecha a urna nos dois casos,
+ * além de impedir a repetição: uma rodada em que ninguém se destacou é
+ * apurada com zero prêmios, e sem a marca ela seria reapurada para sempre.
+ */
+async function settleRound(snapshot: Snapshot, roundId: string): Promise<void> {
+  const awards = computeRoundAwards(snapshot, roundId)
+  // Um eleito por categoria, e `null` quando o prêmio não sai.
+  const rows: AwardInput[] = Object.entries(awards).flatMap(([type, playerId]) =>
+    playerId ? [{ type: type as AwardInput['type'], player_id: playerId }] : [],
+  )
+  await backend.setAwards(roundId, rows)
+  await backend.updateRound(roundId, { awards_settled_at: new Date().toISOString() })
+}
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<SessionUser | null>(null)
@@ -129,6 +147,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return dates.length
   }, [])
 
+  /**
+   * Grava o resultado das rodadas cuja urna já fechou.
+   *
+   * A votação termina pelo relógio, sozinha, mas o resultado precisa virar
+   * linha no banco para entrar no histórico do jogador — e escrever exige
+   * permissão. Então a apuração acontece na primeira vez que um
+   * administrador abre o aplicativo depois do prazo. Até lá as telas mostram
+   * a mesma apuração calculada na hora, então ninguém vê número diferente do
+   * que vai ser gravado.
+   *
+   * `awards_settled_at` é o que impede a repetição: uma rodada em que
+   * ninguém se destacou é apurada com zero prêmios, e sem a marca ela seria
+   * reapurada para sempre.
+   */
+  const settleDueRounds = useCallback(async () => {
+    const current = snapshotRef.current
+    const due = current.rounds.filter(
+      (round) => !round.awards_settled_at && votingState(round) === 'encerrada',
+    )
+    for (const round of due) await settleRound(current, round.id)
+    return due.length
+  }, [])
+
   const actions = useMemo<AppActions>(
     () => ({
       createPlayer: (input: PlayerInput) => run(() => backend.createPlayer(input)),
@@ -165,13 +206,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           return { created: await createMissingRounds(), removed: stale.length }
         }),
 
-      ensureUpcomingRounds: () =>
-        run(async () => {
-          await createMissingRounds()
-        }),
-
       createRound: (input: RoundInput) => run(() => backend.createRound(input)),
-      updateRound: (id, patch) => run(() => backend.updateRound(id, patch)),
       deleteRound: (id) => run(() => backend.deleteRound(id)),
 
       respond: (roundId: string, _playerId: string, wants: 'confirmado' | 'fora') =>
@@ -254,9 +289,86 @@ export function AppProvider({ children }: { children: ReactNode }) {
           await backend.updateRound(roundId, { team_count: 2, status: 'em_andamento' })
         }),
 
-      startRound: (roundId) =>
-        run(() => backend.updateRound(roundId, { status: 'em_andamento' })),
+      /**
+       * Monta os times na mão.
+       *
+       * O sorteio resolve o caso comum, mas nem toda pelada quer o time que o
+       * histórico sugere: às vezes os quatro que vieram juntos querem jogar
+       * juntos. Aqui quem decide é o administrador.
+       *
+       * Os dois caminhos são bem diferentes. Sem times ainda, isto faz o
+       * mesmo que o sorteio, só que com as listas escolhidas: cria os times,
+       * fixa a posição de cada um e abre o placar. Com os times já montados,
+       * move apenas quem trocou de lado — passar por `setRoundTeams` aqui
+       * refaria os times do zero e levaria a partida e os gols junto.
+       */
+      setManualTeams: (roundId, assignments) =>
+        run(async () => {
+          const current = snapshotRef.current
+          const existing = current.teams
+            .filter((team) => team.round_id === roundId)
+            .sort((a, b) => a.position - b.position)
 
+          if (existing.length >= 2) {
+            for (const rp of current.roundPlayers) {
+              if (rp.round_id !== roundId) continue
+              const index = assignments[rp.player_id]
+              const teamId =
+                index === null || index === undefined ? null : (existing[index]?.id ?? null)
+              if (teamId !== rp.team_id) {
+                await backend.setPlayerTeam(roundId, rp.player_id, teamId)
+              }
+            }
+            return
+          }
+
+          const lists: string[][] = [[], []]
+          for (const [playerId, index] of Object.entries(assignments)) {
+            if (index === null || index === undefined) continue
+            if (index < 0 || index >= lists.length) continue
+            lists[index].push(playerId)
+          }
+          if (lists.some((list) => list.length === 0)) {
+            throw new Error('Cada time precisa de pelo menos um jogador.')
+          }
+
+          await backend.setRoundTeams(
+            roundId,
+            lists.map((playerIds, index) => ({
+              name: TEAM_PRESETS[index % TEAM_PRESETS.length].name,
+              color: TEAM_PRESETS[index % TEAM_PRESETS.length].color,
+              playerIds,
+            })),
+          )
+
+          // Recarrega para conhecer os ids dos times recém-criados.
+          const fresh = await backend.fetchAll()
+          const teams = fresh.teams
+            .filter((team) => team.round_id === roundId)
+            .sort((a, b) => a.position - b.position)
+          const byId = new Map(fresh.players.map((player) => [player.id, player]))
+
+          // A posição da rodada começa igual à do cadastro; o administrador
+          // ajusta quando o goleiro decide jogar na linha.
+          for (const playerId of lists.flat()) {
+            const player = byId.get(playerId)
+            if (player) await backend.setRoundPosition(roundId, playerId, player.position)
+          }
+
+          if (teams.length === 2) {
+            await backend.createMatch(roundId, teams[0].id, teams[1].id)
+          }
+          await backend.updateRound(roundId, { team_count: 2, status: 'em_andamento' })
+        }),
+
+      /**
+       * Encerra a partida e abre a urna.
+       *
+       * Os prêmios não saem mais daqui. Quem jogou tem 16 horas para votar, e
+       * só depois disso a apuração vira definitiva — é `settleDueRounds` que
+       * grava o resultado quando o prazo vence. O `closed_at` gravado aqui é
+       * o que dá partida nesse relógio.
+       */
       closeRound: (roundId) =>
         run(async () => {
           const current = snapshotRef.current
@@ -270,24 +382,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
             })
           }
 
-          // Recarrega para calcular os prêmios com todas as partidas encerradas.
-          const fresh = await backend.fetchAll()
-          const awards = computeRoundAwards(fresh, roundId)
-          const rows: AwardInput[] = Object.entries(awards).flatMap(([type, playerIds]) =>
-            (playerIds as string[]).map((playerId) => ({
-              type: type as AwardInput['type'],
-              player_id: playerId,
-            })),
-          )
-          await backend.setAwards(roundId, rows)
+          // Prêmios de um encerramento anterior não valem mais: a urna
+          // recomeça, e o resultado antigo seria apurado sobre outro placar.
+          await backend.setAwards(roundId, [])
           await backend.updateRound(roundId, {
             status: 'encerrada',
             closed_at: new Date().toISOString(),
+            // A urna recomeça, então a apuração anterior não vale mais. Sem
+            // zerar esta marca a rodada reencerrada nunca seria reapurada, e
+            // ficaria para sempre com os prêmios vazios que acabaram de sair.
+            awards_settled_at: null,
           })
         }),
 
-      createMatch: (roundId, teamAId, teamBId) =>
-        run(() => backend.createMatch(roundId, teamAId, teamBId)),
       /**
        * Reabre a partida e, se a rodada já estava encerrada, reabre a rodada
        * junto.
@@ -305,14 +412,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const round = match && current.rounds.find((item) => item.id === match.round_id)
           if (round?.status !== 'encerrada') return
           await backend.setAwards(round.id, [])
-          await backend.updateRound(round.id, { status: 'em_andamento', closed_at: null })
+          await backend.updateRound(round.id, {
+            status: 'em_andamento',
+            closed_at: null,
+            awards_settled_at: null,
+          })
         }),
-      deleteMatch: (matchId) => run(() => backend.deleteMatch(matchId)),
 
       addGoal: (match: Match, input: Omit<EventInput, 'match_id'>) =>
         run(async () => {
           const event = await backend.addEvent({ ...input, match_id: match.id })
           const events = [...snapshotRef.current.events, event]
+          await backend.updateMatch(match.id, scoreFromEvents(match, events))
+        }),
+
+      editGoal: (match: Match, eventId: string, input: Omit<EventInput, 'match_id'>) =>
+        run(async () => {
+          await backend.updateEvent(eventId, input)
+          const events = snapshotRef.current.events.map((event) =>
+            event.id === eventId ? { ...event, ...input } : event,
+          )
           await backend.updateMatch(match.id, scoreFromEvents(match, events))
         }),
 
@@ -323,10 +442,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
           await backend.updateMatch(match.id, scoreFromEvents(match, events))
         }),
 
-      setAwards: (roundId, awards) =>
-        run(async () => {
-          await backend.setAwards(roundId, awards)
-        }),
+      /**
+       * Apura antes do prazo.
+       *
+       * O relógio resolve o caso comum, mas quando todo mundo já votou o
+       * resultado fica preso por horas sem motivo — e é justo no fim do jogo
+       * que a patota quer ver o pódio. Encerrar é definitivo: apura na hora,
+       * libera o compartilhamento e o servidor passa a recusar voto novo.
+       */
+      closeVoting: (roundId) =>
+        run(() => settleRound(snapshotRef.current, roundId)),
+
+      castVote: (roundId, type, playerId) =>
+        run(() => backend.castVote(roundId, type, playerId)),
+      clearVote: (roundId, type) => run(() => backend.clearVote(roundId, type)),
+
     }),
     [run, createMissingRounds],
   )
@@ -352,6 +482,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     ensuredRef.current = true
     void createMissingRounds().then(refresh)
   }, [isAdmin, snapshot.settings, snapshot.rounds, snapshot.players.length, createMissingRounds, refresh])
+
+  // Mesma ideia da agenda: quem tem permissão de escrita é quem fecha as
+  // urnas vencidas ao abrir o aplicativo.
+  const settledRef = useRef(false)
+  useEffect(() => {
+    if (!isAdmin || settledRef.current || snapshot.players.length === 0) return
+    const due = snapshot.rounds.some(
+      (round) => !round.awards_settled_at && votingState(round) === 'encerrada',
+    )
+    if (!due) return
+    settledRef.current = true
+    void settleDueRounds().then(refresh)
+  }, [isAdmin, snapshot.rounds, snapshot.players.length, settleDueRounds, refresh])
 
   const stats = useMemo(() => computeStats(snapshot), [snapshot])
 

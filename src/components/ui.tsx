@@ -16,19 +16,23 @@ import { IconChevronDown, IconChevronRight, IconClose, IconSearch } from './icon
 type Variant = 'primary' | 'secondary' | 'quiet'
 
 /**
- * Os três botões do iOS: o preenchido da ação principal, o cinza da ação
- * secundária e o de texto puro, que no sistema aparece sempre na cor de
- * destaque.
+ * Os três botões: o preenchido da ação principal, o claro da ação secundária
+ * e o de texto puro.
+ *
+ * Os dois primeiros se apoiam num degrau sólido — uma faixa da própria cor,
+ * mais escura, embaixo — e ao toque descem até encostar nele. O texto sobre o
+ * verde vivo é escuro, e não branco: branco ali não passa de 2,2:1, e a cor
+ * de ação não vale uma legibilidade pior.
  */
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-brand text-brand-ink',
-  secondary: 'bg-fill text-ink',
+  primary: 'bg-brand-fill text-brand-ink shadow-[0_4px_0_0_var(--color-lift-brand)]',
+  secondary: 'bg-card text-ink border-2 border-line shadow-[0_4px_0_0_var(--color-lift-line)]',
   quiet: 'text-brand',
 }
 
 const DESTRUCTIVE: Record<Variant, string> = {
-  primary: 'bg-loss text-white',
-  secondary: 'bg-loss-soft text-loss',
+  primary: 'bg-loss text-white shadow-[0_4px_0_0_rgb(0_0_0/0.28)]',
+  secondary: 'bg-loss-soft text-loss border-2 border-loss/25 shadow-[0_4px_0_0_rgb(0_0_0/0.12)]',
   quiet: 'text-loss',
 }
 
@@ -49,14 +53,14 @@ export function Button({
   className,
   ...props
 }: ButtonProps) {
-  // O botão de texto puro não tem caixa, então também não tem a altura nem o
-  // peso dos preenchidos: ele é só o rótulo, em 17px, como no iOS.
+  // O botão de texto puro não tem caixa, então também não tem a altura, o
+  // degrau nem a caixa alta dos preenchidos: ele é só o rótulo.
   const shape =
     variant === 'quiet'
-      ? 'h-11 rounded-control px-4 text-body'
+      ? 'h-12 rounded-control px-4 text-body font-bold'
       : size === 'lg'
-        ? 'h-[50px] rounded-[14px] px-5 text-headline'
-        : 'h-11 rounded-control px-4 text-subhead font-semibold'
+        ? 'h-14 rounded-control px-6 text-headline tracking-[0.04em] uppercase'
+        : 'h-12 rounded-control px-4 text-subhead font-bold'
 
   return (
     <button
@@ -65,10 +69,10 @@ export function Button({
         // de largura total dividirem a mesma linha sem estourar a tela; só o
         // ícone é que não pode encolher.
         'inline-flex min-w-0 items-center justify-center gap-2 [&>svg]:shrink-0',
-        'whitespace-nowrap select-none disabled:pointer-events-none disabled:opacity-35',
-        // O afundamento ao toque é o retorno tátil do iOS: encolhe um pouco
-        // enquanto o dedo está em cima e volta com a curva do sistema.
-        'transition duration-200 ease-ios active:scale-[0.97] active:opacity-80',
+        'whitespace-nowrap select-none disabled:pointer-events-none disabled:opacity-40',
+        // `lift` faz a superfície descer até o degrau enquanto o dedo está em
+        // cima; o botão de texto puro não tem degrau, então só apaga.
+        variant === 'quiet' ? 'transition duration-200 ease-ios active:opacity-40' : 'lift',
         shape,
         destructive ? DESTRUCTIVE[variant] : VARIANTS[variant],
         block && 'w-full',
@@ -95,7 +99,7 @@ export function IconButton({
       aria-label={label}
       title={label}
       className={cn(
-        'inline-flex size-11 shrink-0 items-center justify-center rounded-full',
+        'inline-flex size-11 shrink-0 items-center justify-center rounded-2xl',
         'transition duration-200 ease-ios active:scale-90 active:opacity-60 disabled:opacity-35',
         tone === 'tint' && 'text-brand',
         tone === 'destructive' && 'text-loss',
@@ -110,8 +114,8 @@ export function IconButton({
 /* ---------------------------------------------------------------- Card ---- */
 
 /**
- * Cartão agrupado. Sem borda: o que o separa do fundo é o contraste entre o
- * branco do cartão e o cinza da tela, exatamente como nas listas do iOS.
+ * Cartão agrupado. Borda cheia e degrau sólido embaixo: no padrão novo o
+ * cartão tem espessura, em vez de flutuar sobre uma sombra difusa.
  */
 export function Card({
   className,
@@ -119,7 +123,10 @@ export function Card({
   ...props
 }: HTMLAttributes<HTMLDivElement> & { children: ReactNode }) {
   return (
-    <div className={cn('rounded-card bg-card shadow-card', className)} {...props}>
+    <div
+      className={cn('rounded-card border-2 border-line bg-card shadow-card', className)}
+      {...props}
+    >
       {children}
     </div>
   )
@@ -133,8 +140,10 @@ export function SectionHeader({
   action?: ReactNode
 }) {
   return (
-    <div className="mb-2.5 flex items-baseline justify-between gap-3 px-1">
-      <h2 className="text-title3 text-ink">{title}</h2>
+    // O rótulo de seção é pequeno, pesado e verde: ele separa blocos sem
+    // disputar atenção com os títulos de dentro deles.
+    <div className="mb-2.5 flex items-center justify-between gap-3 px-1.5">
+      <h2 className="text-caption2 text-brand uppercase">{title}</h2>
       {action}
     </div>
   )
@@ -203,7 +212,7 @@ export function ListRow({
     <>
       {leading}
       <span className="min-w-0 flex-1 text-left">
-        <span className="block truncate text-body text-ink">{title}</span>
+        <span className="block truncate text-headline text-ink">{title}</span>
         {subtitle && (
           <span className="mt-0.5 block truncate text-footnote text-muted">{subtitle}</span>
         )}
@@ -219,13 +228,15 @@ export function ListRow({
   )
 
   const main = cn(
-    'flex min-h-11 min-w-0 flex-1 items-center gap-3 px-4 py-2.5 text-left transition-colors',
+    'flex min-h-14 min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left transition-colors',
     (to || onClick) && 'active:bg-fill',
   )
 
   const edge = (
     <>
       {trailing && <span className="shrink-0 pr-3">{trailing}</span>}
+      {/* 14 pixels: abaixo disso o traço da base ainda some, e é por isso
+          que este e o "limpar" da busca são os dois únicos que o ajustam. */}
       {chevron && <IconChevronRight className="mr-4 size-3.5 shrink-0 stroke-[3] text-faint" />}
     </>
   )
@@ -287,7 +298,12 @@ export function ListGroup({
   className?: string
 }) {
   return (
-    <div className={cn('list-group overflow-hidden rounded-card bg-card shadow-card', className)}>
+    <div
+      className={cn(
+        'list-group overflow-hidden rounded-card border-2 border-line bg-card shadow-card',
+        className,
+      )}
+    >
       {children}
     </div>
   )
@@ -309,7 +325,7 @@ export function Tabs<T extends string>({
   onChange: (value: T) => void
 }) {
   return (
-    <div role="tablist" className="flex rounded-[10px] bg-fill p-[2px]">
+    <div role="tablist" className="flex rounded-control bg-fill p-1">
       {options.map((option) => {
         const active = option.value === value
         return (
@@ -320,9 +336,9 @@ export function Tabs<T extends string>({
             type="button"
             onClick={() => onChange(option.value)}
             className={cn(
-              'min-w-0 flex-1 rounded-[8px] px-2 py-1.5 text-footnote font-semibold',
+              'min-w-0 flex-1 rounded-[0.75rem] px-2 py-2 text-footnote',
               'transition duration-200 ease-ios active:scale-[0.96]',
-              active ? 'bg-elevated text-ink shadow-knob' : 'text-ink/75',
+              active ? 'bg-card text-ink shadow-knob' : 'text-muted',
             )}
           >
             <span className="block truncate">{option.label}</span>
@@ -353,9 +369,9 @@ export function ChipBar<T extends string>({
             type="button"
             onClick={() => onChange(option.value)}
             className={cn(
-              'shrink-0 rounded-full px-3.5 py-1.5 text-subhead font-medium',
+              'shrink-0 rounded-full px-4 py-2 text-subhead font-bold',
               'transition duration-200 ease-ios active:scale-[0.96]',
-              active ? 'bg-brand text-brand-ink' : 'bg-fill text-ink',
+              active ? 'bg-brand-fill text-brand-ink' : 'bg-card border-2 border-line text-muted',
             )}
           >
             {option.label}
@@ -368,10 +384,14 @@ export function ChipBar<T extends string>({
 
 /* -------------------------------------------------------------- Campos ---- */
 
-/** Campo do iOS: preenchimento cinza, sem borda, com o texto em 17px. */
+/**
+ * Campo: fundo do cartão e borda cheia, como as outras superfícies do padrão.
+ * A borda troca de cor no foco — quem está preenchendo enxerga em qual campo
+ * está sem precisar do cursor.
+ */
 const CONTROL =
-  'w-full rounded-control bg-fill px-3.5 py-3 text-body text-ink ' +
-  'placeholder:text-faint disabled:opacity-40'
+  'w-full rounded-control border-2 border-line bg-card px-4 py-3 text-body text-ink ' +
+  'placeholder:text-faint disabled:opacity-40 focus:border-brand'
 
 export function Field({
   label,
@@ -384,9 +404,9 @@ export function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block px-1 text-footnote font-medium text-muted">{label}</span>
+      <span className="mb-1.5 block px-1.5 text-caption2 text-muted uppercase">{label}</span>
       {children}
-      {hint && <span className="mt-1.5 block px-1 text-caption text-faint">{hint}</span>}
+      {hint && <span className="mt-1.5 block px-1.5 text-caption text-faint">{hint}</span>}
     </label>
   )
 }
@@ -413,21 +433,21 @@ export function SearchField({
     <div className="relative">
       <IconSearch
         aria-hidden="true"
-        className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 stroke-[2.2] text-faint"
+        className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-faint"
       />
       <input
         type="search"
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="h-9 w-full rounded-[10px] bg-fill pr-9 pl-9 text-callout text-ink placeholder:text-faint [&::-webkit-search-cancel-button]:hidden"
+        className="h-11 w-full rounded-control border-2 border-line bg-card pr-10 pl-10 text-callout text-ink placeholder:text-faint focus:border-brand [&::-webkit-search-cancel-button]:hidden"
       />
       {value && (
         <button
           type="button"
           aria-label="Limpar busca"
           onClick={() => onChange('')}
-          className="absolute top-1/2 right-2 inline-flex size-6 -translate-y-1/2 items-center justify-center rounded-full bg-faint text-card"
+          className="absolute top-1/2 right-2.5 inline-flex size-6 -translate-y-1/2 items-center justify-center rounded-full bg-faint text-card"
         >
           <IconClose className="size-3 stroke-[3.4]" />
         </button>
@@ -447,7 +467,7 @@ export function Select({ className, ...props }: SelectHTMLAttributes<HTMLSelectE
       <select className={cn(CONTROL, 'appearance-none pr-10', className)} {...props} />
       <IconChevronDown
         aria-hidden="true"
-        className="pointer-events-none absolute top-1/2 right-3.5 size-4 -translate-y-1/2 stroke-[2.4] text-faint"
+        className="pointer-events-none absolute top-1/2 right-3.5 size-4 -translate-y-1/2 text-faint"
       />
     </span>
   )
@@ -464,7 +484,7 @@ export function Switch({
   onChange: (checked: boolean) => void
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-control bg-fill px-4 py-3">
+    <div className="flex items-center justify-between gap-3 rounded-control border-2 border-line bg-card px-4 py-3">
       <span className="text-body text-ink">{label}</span>
       <button
         type="button"
@@ -474,7 +494,7 @@ export function Switch({
         onClick={() => onChange(!checked)}
         className={cn(
           'relative h-[31px] w-[51px] shrink-0 rounded-full transition-colors duration-300 ease-ios',
-          checked ? 'bg-brand' : 'bg-fill-strong',
+          checked ? 'bg-brand-fill' : 'bg-fill-strong',
         )}
       >
         <span
@@ -503,13 +523,13 @@ export function Tag({
 }) {
   const tones = {
     neutral: 'bg-fill text-muted',
-    live: 'bg-brand text-brand-ink',
+    live: 'bg-brand-fill text-brand-ink',
     done: 'bg-fill text-muted',
   }
   return (
     <span
       className={cn(
-        'inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-caption2 font-semibold',
+        'inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-caption2 uppercase',
         tones[tone],
       )}
     >
@@ -535,14 +555,14 @@ export function Note({
 }) {
   if (!children) return null
   const tones = {
-    info: 'bg-fill text-muted',
-    warn: 'bg-warn-soft text-warn',
-    error: 'bg-loss-soft text-loss',
+    info: 'border-line bg-fill text-muted',
+    warn: 'border-warn/25 bg-warn-soft text-warn',
+    error: 'border-loss/25 bg-loss-soft text-loss',
   }
   return (
     <p
       role={tone === 'error' ? 'alert' : undefined}
-      className={cn('rounded-control px-4 py-3 text-footnote', tones[tone])}
+      className={cn('rounded-control border-2 px-4 py-3 text-footnote', tones[tone])}
     >
       {children}
     </p>
@@ -560,7 +580,7 @@ export function EmptyState({
 }) {
   return (
     <div className="px-6 py-12 text-center">
-      <p className="text-headline text-ink">{title}</p>
+      <p className="text-title3 text-ink">{title}</p>
       {description && (
         <p className="mx-auto mt-1.5 max-w-xs text-subhead text-muted">{description}</p>
       )}
@@ -625,7 +645,7 @@ export function Stat({
     <div className="min-w-0 flex-1 text-center">
       <p
         className={cn(
-          'font-rounded text-title2 tabular-nums',
+          'text-title1 tabular-nums',
           tone === 'brand' && 'text-brand',
           tone === 'win' && 'text-win',
           tone === 'loss' && 'text-loss',
@@ -634,7 +654,7 @@ export function Stat({
       >
         {value}
       </p>
-      <p className="mt-0.5 truncate text-caption text-muted">{label}</p>
+      <p className="mt-0.5 truncate text-caption2 text-muted uppercase">{label}</p>
     </div>
   )
 }
