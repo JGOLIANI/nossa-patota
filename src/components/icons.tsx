@@ -173,6 +173,13 @@ export const IconInstall = (props: IconProps) => (
   </Base>
 )
 
+export const IconPin = (props: IconProps) => (
+  <Base {...props}>
+    <path d="M12 21c4.5-4.6 6.8-8.2 6.8-11a6.8 6.8 0 0 0-13.6 0c0 2.8 2.3 6.4 6.8 11Z" />
+    <circle cx="12" cy="10" r="2.4" />
+  </Base>
+)
+
 export const IconGlove = (props: IconProps) => (
   <Base {...props}>
     <path d="M6 21V9.5a1.8 1.8 0 0 1 3.6 0V11V5.2a1.8 1.8 0 0 1 3.6 0V11V6.6a1.8 1.8 0 0 1 3.6 0V13c0 4-1.6 8-4.4 8H6Z" />

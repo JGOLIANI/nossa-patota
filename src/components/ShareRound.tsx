@@ -9,11 +9,13 @@ import {
   teamPlayers,
 } from '../domain/selectors'
 import { computeStats } from '../domain/stats'
+import { teamEmoji } from '../lib/color'
 import { formatDate, formatWeekday, plural } from '../lib/format'
+import { mapsUrl } from '../lib/maps'
 import {
-  drawLineupCard,
   drawRoundCard,
   shareImage,
+  shareText,
   type AwardLine,
   type MatchLine,
 } from '../lib/shareCard'
@@ -23,12 +25,12 @@ import { IconShare } from './icons'
 import { Button, Note } from './ui'
 
 /**
- * Gera a imagem da rodada e chama o compartilhamento do aparelho — no
- * celular cai direto no WhatsApp; no desktop, baixa o arquivo.
+ * Chama o compartilhamento do aparelho — no celular cai direto no WhatsApp.
  *
- * A mensagem que vai junto não repete a imagem: ela traz o que se lê sem
- * abrir nada (o placar, o horário) e diz o que fazer em seguida — confirmar
- * presença, ou votar antes de a urna fechar.
+ * A escalação vai só como mensagem. Ela é uma lista de nomes, e lista de
+ * nomes se lê, se responde e se procura no texto; virada imagem, chegava no
+ * grupo como uma miniatura que ninguém abre. O resultado continua com o
+ * cartão: ali o que interessa é o placar, e ele é para ser visto de longe.
  */
 export function ShareRound({ round, kind }: { round: Round; kind: 'escalacao' | 'resultado' }) {
   const { snapshot } = useApp()
@@ -36,32 +38,42 @@ export function ShareRound({ round, kind }: { round: Round; kind: 'escalacao' | 
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
-  const when = [
-    `${formatWeekday(round.date)}, ${formatDate(round.date)}`,
-    round.start_time,
-    round.location,
-  ]
+  const when = [`${formatWeekday(round.date)}, ${formatDate(round.date)}`, round.start_time]
     .filter(Boolean)
     .join(' · ')
 
-  const header = { title: round.title, subtitle: when }
+  // No cartão de imagem o local é escrito por extenso: link ali não é
+  // clicável, seria só uma linha comprida de texto.
+  const header = {
+    title: round.title,
+    subtitle: [when, round.location].filter(Boolean).join(' · '),
+  }
+  // Na mensagem ele é o endereço, e só ele: o nome escrito ao lado do link
+  // seria o mesmo lugar dito duas vezes — e é do link que o WhatsApp tira o
+  // cartão de prévia, com o nome do lugar dentro.
+  const map = mapsUrl(round.location, round.location_url)
 
   async function share() {
     setBusy(true)
     setError('')
     setMessage('')
     try {
-      const built = kind === 'escalacao' ? await buildLineup() : await buildResult()
+      if (kind === 'escalacao') {
+        const result = await shareText(lineupText())
+        if (result === 'copied') setMessage('Mensagem copiada. É só colar no grupo.')
+        return
+      }
+      const built = await buildResult()
       const result = await shareImage(built.blob, `${kind}-${round.date}.png`, built.text)
       if (result === 'downloaded') setMessage('Imagem baixada. É só enviar no grupo.')
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Não foi possível gerar a imagem.')
+      setError(cause instanceof Error ? cause.message : 'Não foi possível compartilhar.')
     } finally {
       setBusy(false)
     }
   }
 
-  async function buildLineup() {
+  function lineupText() {
     const teams = roundTeams(snapshot, round.id).map((team) => ({
       name: team.name,
       color: team.color,
@@ -69,7 +81,6 @@ export function ShareRound({ round, kind }: { round: Round; kind: 'escalacao' | 
         .map((player) => ({
           name: player.full_name,
           position: positionInRound(snapshot, round.id, player.id),
-          photoUrl: player.photo_url,
         }))
         // Quem abre a lista é quem ficou no gol nesta partida, e não quem é
         // goleiro no cadastro: era o goleiro de carteirinha que vinha em
@@ -83,31 +94,25 @@ export function ShareRound({ round, kind }: { round: Round; kind: 'escalacao' | 
 
     const total = teams.reduce((sum, team) => sum + team.players.length, 0)
 
-    /*
-     * Os nomes vão na mensagem, e não só na imagem.
-     *
-     * No grupo a imagem chega como miniatura e nem todo mundo abre. O nome em
-     * texto também é o que se procura com a busca do WhatsApp e o que o leitor
-     * de tela alcança — a imagem, para os dois, não existe.
-     */
+    // A bolinha ao lado do nome é o colete: na tela os times se distinguem
+    // pela cor, e no texto puro "Preto" e "Branco" ficariam iguais.
     const lineup = teams.flatMap((team) => [
       '',
-      `*${team.name}*`,
+      `*${team.name}* ${teamEmoji(team.color)}`.trimEnd(),
       ...team.players.map((player) =>
         player.position === 'goleiro' ? `${player.name} (goleiro)` : player.name,
       ),
     ])
 
-    const text = [
+    return [
       `⚽ *Nossa Patota* — ${round.title}`,
       `🗓 ${when}`,
+      ...(map ? [`📍 ${map}`] : []),
       `👥 ${plural(total, 'jogador', 'jogadores')} em quadra`,
       ...lineup,
       '',
       'Quem não puder ir, avisa no grupo.',
     ].join('\n')
-
-    return { blob: await drawLineupCard(header, teams), text }
   }
 
   async function buildResult() {
@@ -186,10 +191,12 @@ export function ShareRound({ round, kind }: { round: Round; kind: 'escalacao' | 
     <div className="space-y-2">
       <Button variant="secondary" block onClick={share} disabled={busy}>
         <IconShare className="size-5" />
-        {busy
-          ? 'Gerando imagem…'
-          : kind === 'escalacao'
-            ? 'Compartilhar escalações'
+        {kind === 'escalacao'
+          ? busy
+            ? 'Compartilhando…'
+            : 'Compartilhar escalações'
+          : busy
+            ? 'Gerando imagem…'
             : 'Compartilhar resultado'}
       </Button>
       {message && <Note>{message}</Note>}

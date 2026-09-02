@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { LocationField } from '../components/LocationField'
 import { Page } from '../components/Page'
 import { ActionBar, Button, Card, Field, Input, ListGroup, Note, Select } from '../components/ui'
 import { nextOccurrences } from '../domain/schedule'
@@ -19,6 +20,7 @@ export function SettingsPage() {
   const [weekday, setWeekday] = useState(String(settings.weekday))
   const [startTime, setStartTime] = useState(settings.start_time)
   const [location, setLocation] = useState(settings.location)
+  const [locationUrl, setLocationUrl] = useState(settings.location_url)
   const [maxPlayers, setMaxPlayers] = useState(String(settings.max_players))
   const [weeksAhead, setWeeksAhead] = useState(String(settings.weeks_ahead))
   const [error, setError] = useState('')
@@ -36,6 +38,7 @@ export function SettingsPage() {
         weekday: Number(weekday),
         start_time: startTime,
         location: location.trim(),
+        location_url: locationUrl.trim(),
         max_players: Number(maxPlayers) || 0,
         weeks_ahead: Number(weeksAhead),
       }
@@ -89,13 +92,13 @@ export function SettingsPage() {
             </Field>
           </div>
 
-          <Field label="Local">
-            <Input
-              value={location}
-              onChange={(event) => setLocation(event.target.value)}
-              placeholder="Quadra do Zé, rua das Flores 120"
-            />
-          </Field>
+          <LocationField
+            location={location}
+            locationUrl={locationUrl}
+            onLocationChange={setLocation}
+            onLocationUrlChange={setLocationUrl}
+            placeholder="Quadra do Zé"
+          />
 
           <Field
             label="Criar com quanta antecedência"

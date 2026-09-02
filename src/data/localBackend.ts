@@ -322,6 +322,7 @@ export const localBackend: Backend = {
         title: input.title,
         start_time: input.start_time,
         location: input.location,
+        location_url: input.location_url,
         team_count: input.team_count,
         max_players: input.max_players,
         status: 'rascunho',
@@ -344,6 +345,17 @@ export const localBackend: Backend = {
     mutate((snapshot) => {
       const round = snapshot.rounds.find((r) => r.id === id)
       if (!round) throw new Error('Rodada não encontrada.')
+      // Mesma regra do banco, e ela também vale para remarcar: sem a
+      // conferência aqui, o modo demonstração deixaria passar duas partidas
+      // no mesmo dia e o Supabase recusaria a mesma ação.
+      if (
+        patch.date &&
+        snapshot.rounds.some(
+          (r) => r.id !== id && r.date.slice(0, 10) === patch.date!.slice(0, 10),
+        )
+      ) {
+        throw new Error('Já existe uma partida marcada para esta data.')
+      }
       Object.assign(round, patch)
     })
   },

@@ -34,6 +34,16 @@ export interface AppActions {
   updateSettings(patch: Partial<PatotaSettings>): Promise<{ created: number; removed: number }>
 
   createRound(input: RoundInput): Promise<Round>
+  /**
+   * Remarca uma partida que ainda não começou: data, horário, local e vagas.
+   *
+   * Faz duas coisas junto com a gravação, e é por isso que existe em vez de
+   * a tela chamar o backend direto. O título acompanha a data, porque ele é
+   * derivado dela — remarcado para outro dia, "Partida de 04/09" viraria uma
+   * mentira no topo da tela. E a fila é reavaliada, porque abrir vagas sem
+   * promover quem está na espera é deixar lugar vazio com gente esperando.
+   */
+  updateRound(id: string, patch: Partial<Round>): Promise<void>
   deleteRound(id: string): Promise<void>
 
   /** Resposta do próprio jogador ao convite, com lista de espera. */

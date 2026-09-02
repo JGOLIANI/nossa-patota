@@ -36,6 +36,7 @@ export interface RoundInput {
   title: string
   start_time: string
   location: string
+  location_url: string
   team_count: number
   max_players: number
 }

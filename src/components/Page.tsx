@@ -13,10 +13,11 @@ import { useApp } from '../store/useApp'
  * sair sem precisar procurar.
  *
  * O título aparece duas vezes de propósito: grande no corpo, como abertura da
- * tela, e pequeno na barra fixa. Ao rolar, o grande passa por baixo da barra
- * e o pequeno acende junto com o vidro e a linha divisória. É o movimento do
- * título grande do iOS, e ele existe para que você nunca perca de vista em
- * que tela está.
+ * tela, e pequeno na barra fixa. Ao rolar, a barra ganha fundo no instante em
+ * que o título grande a encosta — é ela que o esconde — e o título pequeno
+ * acende depois, quando o grande acabou de passar. É o movimento do título
+ * grande do iOS, e ele existe para que você nunca perca de vista em que tela
+ * está.
  */
 export function Page({
   title,
@@ -39,11 +40,13 @@ export function Page({
 
   const bar = useRef<HTMLElement>(null)
   const heading = useRef<HTMLDivElement>(null)
+  const [scrolled, setScrolled] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
 
   // Medir os dois elementos evita depender de qualquer número mágico: a barra
   // muda de altura com o recorte da tela, e o título grande muda com a
-  // legenda. O recolhimento acontece exatamente quando um cruza o outro.
+  // legenda. As duas medidas cruzam a mesma borda — a base da barra — em
+  // momentos diferentes, e é essa diferença que faz o movimento.
   useEffect(() => {
     const barNode = bar.current
     const headingNode = heading.current
@@ -52,9 +55,16 @@ export function Page({
     let frame = 0
     const measure = () => {
       frame = 0
-      setCollapsed(
-        headingNode.getBoundingClientRect().bottom <= barNode.getBoundingClientRect().bottom,
-      )
+      const barBottom = barNode.getBoundingClientRect().bottom
+      const headingBox = headingNode.getBoundingClientRect()
+      // O fundo acende no primeiro instante em que o título grande encosta na
+      // barra. Esperar ele passar inteiro deixava a barra transparente
+      // justamente enquanto o título cruzava o botão de voltar — e um ficava
+      // por cima do outro. Opaca desde o começo, a barra o esconde.
+      setScrolled(headingBox.top < barBottom)
+      // O título pequeno, esse sim, só acende quando o grande terminou de
+      // passar: os dois juntos seriam o mesmo nome escrito duas vezes.
+      setCollapsed(headingBox.bottom <= barBottom)
     }
     const schedule = () => {
       if (!frame) frame = requestAnimationFrame(measure)
@@ -85,7 +95,7 @@ export function Page({
           'sticky top-0 z-20 transition-colors duration-200',
           // Em demonstração a faixa de aviso já ocupa a área segura do topo.
           !demoMode && 'pt-safe',
-          collapsed && 'material hairline',
+          scrolled && 'material hairline',
         )}
       >
         <div className="relative flex items-center px-2" style={{ height: 'var(--bar-height)' }}>

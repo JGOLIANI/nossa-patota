@@ -78,6 +78,7 @@ export function makeSnapshot(scale: BenchScale, seed = 7): Snapshot {
       title: `Rodada ${index + 1}`,
       start_time: '20:00',
       location: 'Quadra',
+      location_url: '',
       team_count: 2,
       max_players: scale.perRound,
       status: 'encerrada',

@@ -5,9 +5,18 @@ import { AwardsCard } from '../components/AwardsCard'
 import { ConfirmDialog, Modal } from '../components/Modal'
 import { Page } from '../components/Page'
 import { PlayerRow } from '../components/PlayerRow'
+import { RoundEditModal } from '../components/RoundEditModal'
 import { ShareRound } from '../components/ShareRound'
 import { TeamBuilder } from '../components/TeamBuilder'
-import { IconBall, IconClose, IconGlove, IconPlus, IconShuffle, IconUsers } from '../components/icons'
+import {
+  IconBall,
+  IconClose,
+  IconEdit,
+  IconGlove,
+  IconPlus,
+  IconShuffle,
+  IconUsers,
+} from '../components/icons'
 import {
   ActionBar,
   Button,
@@ -35,6 +44,7 @@ import {
 } from '../domain/selectors'
 import { computeStats } from '../domain/stats'
 import { formatDate, formatWeekday, timeLeft } from '../lib/format'
+import { mapsUrl } from '../lib/maps'
 import { playerCaption } from '../lib/player'
 import { useApp } from '../store/useApp'
 import type { Player } from '../types'
@@ -62,6 +72,7 @@ export function RoundDetailPage() {
   )
   const [addPlayer, setAddPlayer] = useState(false)
   const [building, setBuilding] = useState(false)
+  const [editing, setEditing] = useState(false)
 
   if (!round) {
     return (
@@ -72,6 +83,10 @@ export function RoundDetailPage() {
   }
 
   const closed = round.status === 'encerrada'
+  // Enquanto os times não saem, a partida é só um combinado: dá para remarcar
+  // sem contradizer nada. Sorteados, existe placar aberto — e mudar a data por
+  // baixo dele não seria corrigir um combinado, seria reescrever a partida.
+  const draft = round.status === 'rascunho'
   const voting = votingState(round)
   const deadline = votingDeadline(round)
   const turnout = voterTurnout(snapshot, roundId)
@@ -134,14 +149,37 @@ export function RoundDetailPage() {
       subtitle={
         <>
           {formatWeekday(round.date)}, {formatDate(round.date)} às {round.start_time}
-          {round.location && ` · ${round.location}`}
+          {/* O local abre o mapa: quem nunca foi à quadra precisa da
+              navegação, não do nome dela. */}
+          {round.location && (
+            <>
+              {' · '}
+              <a
+                href={mapsUrl(round.location, round.location_url)}
+                target="_blank"
+                rel="noreferrer"
+                className="text-brand underline decoration-brand/40 underline-offset-2"
+              >
+                {round.location}
+              </a>
+            </>
+          )}
         </>
       }
       back
       action={
-        <Tag tone={closed ? 'done' : round.status === 'em_andamento' ? 'live' : 'neutral'}>
-          {closed ? 'Encerrada' : round.status === 'em_andamento' ? 'Ao vivo' : 'Aberta'}
-        </Tag>
+        <>
+          {/* O lápis fica ao lado do que ele edita: data, horário e local são
+              o que está escrito logo abaixo, no subtítulo. */}
+          {isAdmin && draft && (
+            <IconButton label="Editar partida" tone="tint" onClick={() => setEditing(true)}>
+              <IconEdit className="size-5" />
+            </IconButton>
+          )}
+          <Tag tone={closed ? 'done' : round.status === 'em_andamento' ? 'live' : 'neutral'}>
+            {closed ? 'Encerrada' : round.status === 'em_andamento' ? 'Ao vivo' : 'Aberta'}
+          </Tag>
+        </>
       }
     >
       <Tabs
@@ -396,6 +434,8 @@ export function RoundDetailPage() {
       )}
 
       <TeamBuilder round={round} open={building} onClose={() => setBuilding(false)} />
+
+      <RoundEditModal round={round} open={editing} onClose={() => setEditing(false)} />
 
       <Modal open={addPlayer} title="Confirmar jogador" onClose={() => setAddPlayer(false)}>
         <p className="mb-3 px-1 text-footnote text-muted">

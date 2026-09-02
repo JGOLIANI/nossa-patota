@@ -38,6 +38,7 @@ export function makeRound(id: string, overrides: Partial<Round> = {}): Round {
     title: 'Rodada',
     start_time: '20:00',
     location: 'Quadra da vila',
+    location_url: '',
     team_count: 2,
     max_players: 0,
     status: 'encerrada',

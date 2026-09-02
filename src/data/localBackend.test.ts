@@ -154,10 +154,33 @@ describe('uma partida por data', () => {
         title: 'Amistoso',
         start_time: '20:00',
         location: '',
+        location_url: '',
         team_count: 2,
         max_players: 0,
       }),
     ).rejects.toThrow(/já existe uma partida/i)
+  })
+
+  it('recusa remarcar uma partida para o dia de outra', async () => {
+    const rounds = (await backend.fetchAll()).rounds
+    await expect(backend.updateRound(rounds[0].id, { date: rounds[1].date })).rejects.toThrow(
+      /já existe uma partida/i,
+    )
+  })
+
+  it('deixa remarcar para um dia livre', async () => {
+    const round = (await backend.fetchAll()).rounds[0]
+    await backend.updateRound(round.id, { date: '2027-03-14', start_time: '19:30' })
+    const saved = (await backend.fetchAll()).rounds.find((r) => r.id === round.id)
+    expect(saved?.date).toBe('2027-03-14')
+    expect(saved?.start_time).toBe('19:30')
+  })
+
+  it('deixa salvar sem mexer na data', async () => {
+    const round = (await backend.fetchAll()).rounds[0]
+    await backend.updateRound(round.id, { date: round.date, location: 'Quadra nova' })
+    const saved = (await backend.fetchAll()).rounds.find((r) => r.id === round.id)
+    expect(saved?.location).toBe('Quadra nova')
   })
 })
 
