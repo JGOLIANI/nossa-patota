@@ -17,25 +17,17 @@ import { useApp } from '../store/useApp'
 import type { AwardType, Snapshot } from '../types'
 import { AWARD_LABELS } from '../types'
 import { Avatar } from './Avatar'
-import { IconCatfish, IconGlove, IconGoldenBall } from './icons'
+import { AwardCatfish, AwardGlove, AwardGoldenBall } from './awardArt'
 import { Card, EmptyState, ListGroup, Note, SectionHeader } from './ui'
 
-const STYLES: Record<AwardType, { tone: string; Icon: typeof IconGlove; ask: string }> = {
-  jogador_rodada: {
-    tone: 'text-gold',
-    Icon: IconGoldenBall,
-    ask: 'Quem foi o craque?',
-  },
-  goleiro_menos_vazado: {
-    tone: 'text-brand',
-    Icon: IconGlove,
-    ask: 'Quem fechou o gol?',
-  },
-  pior_jogador: {
-    tone: 'text-muted',
-    Icon: IconCatfish,
-    ask: 'Quem foi o Bagre da Rodada?',
-  },
+/*
+ * Cada prêmio tem a sua figura e a sua pergunta. As figuras trazem cor
+ * própria — não há tom a aplicar aqui, ao contrário dos ícones de comando.
+ */
+const STYLES: Record<AwardType, { Art: typeof AwardGlove; ask: string }> = {
+  jogador_rodada: { Art: AwardGoldenBall, ask: 'Quem foi o craque?' },
+  goleiro_menos_vazado: { Art: AwardGlove, ask: 'Quem fechou o gol?' },
+  pior_jogador: { Art: AwardCatfish, ask: 'Quem foi o Bagre da Rodada?' },
 }
 
 /**
@@ -158,10 +150,10 @@ export function AwardsCard({
     return (
       <ListGroup>
         {decided.map(({ type, names }) => {
-          const { tone, Icon } = STYLES[type]
+          const { Art } = STYLES[type]
           return (
             <div key={type} className="flex items-center gap-3 px-4 py-3">
-              <Icon className={cn('size-6 shrink-0', tone)} />
+              <Art className="size-7 shrink-0" />
               <div className="min-w-0 flex-1">
                 <p className="text-caption2 text-muted uppercase">{AWARD_LABELS[type]}</p>
                 <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1.5">
@@ -223,7 +215,7 @@ export function AwardsCard({
       {error && <Note tone="error">{error}</Note>}
 
       {AWARD_TYPES.map((type) => {
-        const { tone, Icon, ask } = STYLES[type]
+        const { Art, ask } = STYLES[type]
         const tally = tallyAward(snapshot, roundId, type)
         const pool = candidates[type]
         const winners = winnersOf(type)
@@ -233,7 +225,7 @@ export function AwardsCard({
             <SectionHeader title={AWARD_LABELS[type]} />
             <Card className="overflow-hidden">
               <div className="flex items-center gap-3 px-4 py-3">
-                <Icon className={cn('size-7 shrink-0', tone)} />
+                <Art className="size-9 shrink-0" />
                 <p className="text-subhead text-muted">
                   {open && eligible ? ask : plural(tally.totalVotes, 'voto')}
                 </p>

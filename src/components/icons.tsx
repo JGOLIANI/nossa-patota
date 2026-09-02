@@ -137,45 +137,7 @@ export const IconShuffle = (props: IconProps) => (
 )
 
 
-/**
- * Bola de ouro: a esfera sobre o pedestal, como o troféu da France Football.
- *
- * A esfera é lisa. Ela divide o quadro com o pedestal, então não passa de
- * 5,6 de raio — e nesse tamanho não cabe um pentágono que tenha miolo e
- * ainda fique longe da borda. O que identifica o prêmio aqui é a silhueta
- * bola-sobre-pedestal, não o gomo.
- */
-export const IconGoldenBall = (props: IconProps) => (
-  <Base {...props}>
-    <circle cx="12" cy="7.8" r="5.6" />
-    <path d="M12 13.4v3.1" />
-    <path d="M8.2 21h7.6l-1.15-4.5H9.35L8.2 21Z" />
-  </Base>
-)
 
-/**
- * O bagre do prêmio de mesmo nome, visto de frente.
- *
- * De frente ele é inconfundível: a cabeça triangular, o espinho dorsal em pé e
- * os dois barbilhões subindo em arco pelos lados. De perfil seria um peixe
- * qualquer com um risco embaixo — foi o que a primeira tentativa virou.
- *
- * O espaço para os barbilhões vem dos cantos de cima, que a cabeça triangular
- * deixa vazios. Ao lado dela não caberia: num quadro de 24 unidades com traço
- * de 2,4, duas formas precisam de umas 4 unidades entre si para continuarem
- * sendo duas, e uma cabeça larga o bastante para ter cara não deixa isso
- * sobrar na horizontal.
- */
-export const IconCatfish = (props: IconProps) => (
-  <Base {...props}>
-    <path d="M12 6.6C13.9 6.6 19.4 13.4 19.4 16.2 19.4 18 16.1 18.8 12 18.8 7.9 18.8 4.6 18 4.6 16.2 4.6 13.4 10.1 6.6 12 6.6Z" />
-    <path d="M12 6.6V3.2" />
-    <path d="M5.9 17.7C2.9 16.9 1.6 11.6 3 6.2" />
-    <path d="M18.1 17.7C21.1 16.9 22.4 11.6 21 6.2" />
-    <circle cx="9.7" cy="14.2" r="1" fill="currentColor" stroke="none" />
-    <circle cx="14.3" cy="14.2" r="1" fill="currentColor" stroke="none" />
-  </Base>
-)
 
 export const IconSearch = (props: IconProps) => (
   <Base {...props}>
