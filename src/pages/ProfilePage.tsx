@@ -103,7 +103,7 @@ export function ProfilePage() {
               onClick={() => fileInput.current?.click()}
               disabled={busy}
               aria-label="Alterar foto"
-              className="absolute right-0 bottom-0 inline-flex size-9 items-center justify-center rounded-full bg-brand text-brand-ink ring-4 ring-canvas transition duration-200 ease-ios active:scale-90"
+              className="absolute right-0 bottom-0 inline-flex size-9 items-center justify-center rounded-full bg-brand-fill text-brand-ink ring-4 ring-canvas transition duration-200 ease-ios active:scale-90"
             >
               <IconCamera className="size-4" />
             </button>

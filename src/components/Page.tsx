@@ -108,7 +108,7 @@ export function Page({
               onClick={() => navigate(-1)}
               className="-ml-1 inline-flex h-11 items-center pr-3 text-body text-brand transition duration-200 ease-ios active:opacity-40"
             >
-              <IconChevronLeft className="size-6 stroke-[2.6]" />
+              <IconChevronLeft className="size-6" />
               Voltar
             </button>
           )}

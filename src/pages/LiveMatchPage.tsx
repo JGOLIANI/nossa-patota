@@ -44,7 +44,7 @@ function PlayerPicker({
         <button
           type="button"
           onClick={() => onChange(null)}
-          className={cn(cell, value === null ? 'bg-brand text-brand-ink' : 'bg-fill text-muted')}
+          className={cn(cell, value === null ? 'bg-brand-fill text-brand-ink' : 'bg-fill text-muted')}
         >
           <span className="text-title3">—</span>
           <span className="text-caption font-medium">Ninguém</span>
@@ -57,7 +57,7 @@ function PlayerPicker({
           onClick={() => onChange(player.id)}
           className={cn(
             cell,
-            value === player.id ? 'bg-brand text-brand-ink' : 'bg-fill text-ink',
+            value === player.id ? 'bg-brand-fill text-brand-ink' : 'bg-fill text-ink',
           )}
         >
           <Avatar player={player} size="sm" />

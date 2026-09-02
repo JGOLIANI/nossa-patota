@@ -129,14 +129,14 @@ export function LoginPage() {
         onClick={() => setView('boas-vindas')}
         className="-ml-1 mb-4 inline-flex h-11 items-center self-start pr-3 text-body text-brand transition duration-200 ease-ios active:opacity-40"
       >
-        <IconChevronLeft className="size-6 stroke-[2.6]" />
+        <IconChevronLeft className="size-6" />
         Voltar
       </button>
 
       <div className="mb-9 text-center">
         {/* O ícone do aplicativo, no mesmo formato do que fica na tela de
             início do iPhone: quadrado de cantos contínuos. */}
-        <span className="squircle inline-flex size-[72px] items-center justify-center rounded-[22px] bg-brand text-brand-ink shadow-raised">
+        <span className="squircle inline-flex size-[72px] items-center justify-center rounded-[22px] bg-brand-fill text-brand-ink shadow-raised">
           <IconBall className="size-10" />
         </span>
         <h1 className="mt-5 text-title1 text-ink">Nossa Patota</h1>

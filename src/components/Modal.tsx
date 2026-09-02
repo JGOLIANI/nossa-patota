@@ -66,7 +66,7 @@ export function Modal({
             onClick={onClose}
             className="absolute right-3 inline-flex size-[30px] items-center justify-center rounded-full bg-fill text-muted transition duration-200 ease-ios active:scale-90"
           >
-            <IconClose className="size-4 stroke-[2.6]" />
+            <IconClose className="size-4" />
           </button>
         </header>
 

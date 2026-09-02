@@ -235,6 +235,8 @@ export function ListRow({
   const edge = (
     <>
       {trailing && <span className="shrink-0 pr-3">{trailing}</span>}
+      {/* 14 pixels: abaixo disso o traço da base ainda some, e é por isso
+          que este e o "limpar" da busca são os dois únicos que o ajustam. */}
       {chevron && <IconChevronRight className="mr-4 size-3.5 shrink-0 stroke-[3] text-faint" />}
     </>
   )
@@ -431,7 +433,7 @@ export function SearchField({
     <div className="relative">
       <IconSearch
         aria-hidden="true"
-        className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 stroke-[2.6] text-faint"
+        className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-faint"
       />
       <input
         type="search"
@@ -465,7 +467,7 @@ export function Select({ className, ...props }: SelectHTMLAttributes<HTMLSelectE
       <select className={cn(CONTROL, 'appearance-none pr-10', className)} {...props} />
       <IconChevronDown
         aria-hidden="true"
-        className="pointer-events-none absolute top-1/2 right-3.5 size-4 -translate-y-1/2 stroke-[2.4] text-faint"
+        className="pointer-events-none absolute top-1/2 right-3.5 size-4 -translate-y-1/2 text-faint"
       />
     </span>
   )

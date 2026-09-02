@@ -2,13 +2,22 @@ import type { SVGProps } from 'react'
 
 type IconProps = SVGProps<SVGSVGElement>
 
+/**
+ * Traço grosso e pontas arredondadas.
+ *
+ * O peso não é gosto: ele acompanha a tipografia. Ao lado da Nunito Black e
+ * das bordas de 2 pixels, o traço fino de antes lia como de outro conjunto —
+ * o ícone parecia apagado ao lado do próprio rótulo. Como o desenho engrossou,
+ * os ícones densos foram redesenhados com menos linhas: o que cabia em 1,8
+ * vira mancha em 2,4.
+ */
 function Base({ children, ...props }: IconProps) {
   return (
     <svg
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.8}
+      strokeWidth={2.4}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -56,11 +65,21 @@ export const IconPlus = (props: IconProps) => (
   </Base>
 )
 
+/**
+ * A bola do aplicativo: a circunferência e o pentágono do meio.
+ *
+ * Os cinco gomos que saíam do pentágono até a borda ficaram pelo caminho, e
+ * é aritmética: num quadro de 24 unidades, um traço de 2,4 precisa de umas 4
+ * unidades livres entre uma forma e a de dentro dela para as duas
+ * continuarem sendo duas. Com o pentágono grande o bastante para ter miolo,
+ * não sobrava esse espaço para os gomos — eles encostavam nos dois lados e a
+ * bola virava um disco preto. O ícone do aplicativo mantém os gomos porque
+ * ali ele é desenhado muito maior.
+ */
 export const IconBall = (props: IconProps) => (
   <Base {...props}>
     <circle cx="12" cy="12" r="9" />
-    <path d="m12 7.5 3.6 2.6-1.4 4.2H9.8L8.4 10.1 12 7.5Z" />
-    <path d="M12 3v4.5M3.6 9.6l4.8.5M20.4 9.6l-4.8.5M6.5 19.4l3.3-4.9M17.5 19.4l-3.3-4.9" />
+    <path d="M12 7.8 15.99 10.7 14.47 15.4H9.53L8.01 10.7 12 7.8Z" />
   </Base>
 )
 
@@ -118,25 +137,33 @@ export const IconShuffle = (props: IconProps) => (
 )
 
 
-/** Bola de ouro: a esfera sobre o pedestal, como o troféu da France Football. */
+/**
+ * Bola de ouro: a esfera sobre o pedestal, como o troféu da France Football.
+ *
+ * A esfera é lisa. Ela divide o quadro com o pedestal, então não passa de
+ * 5,6 de raio — e nesse tamanho não cabe um pentágono que tenha miolo e
+ * ainda fique longe da borda. O que identifica o prêmio aqui é a silhueta
+ * bola-sobre-pedestal, não o gomo.
+ */
 export const IconGoldenBall = (props: IconProps) => (
   <Base {...props}>
-    <circle cx="12" cy="8" r="5.4" />
-    <path d="m12 4.4 3.2 2.3-1.2 3.8h-4L8.8 6.7 12 4.4Z" />
-    <path d="M12 3v1.4M15.2 6.7l2.1-.7M14 10.5l1.3 1.8M10 10.5l-1.3 1.8M8.8 6.7l-2.1-.7" />
+    <circle cx="12" cy="7.8" r="5.6" />
     <path d="M12 13.4v3.1" />
-    <path d="M8.6 21h6.8l-1-4.5H9.6L8.6 21Z" />
+    <path d="M8.2 21h7.6l-1.15-4.5H9.35L8.2 21Z" />
   </Base>
 )
 
-/** Bola furada: o rasgo no couro e o ar escapando por ele. */
+/**
+ * Bola furada: o rasgo no couro e o ar escapando por ele. Como na bola de
+ * ouro, ficou só o pentágono — o que precisa se ler aqui é o furo, e ele
+ * some no meio dos gomos.
+ */
 export const IconPuncturedBall = (props: IconProps) => (
   <Base {...props}>
-    <circle cx="11" cy="14" r="7.5" />
-    <path d="m11 10.2 3 2.2-1.1 3.5H9.1L8 12.4l3-2.2Z" />
-    <path d="M11 6.5v3.7M14 12.4l3.2-1M12.9 15.9l1.9 2.6M9.1 15.9l-1.9 2.6M8 12.4l-3.2-1" />
-    <path d="m13.4 8.6 1.9-1.9" />
-    <path d="M17.2 6.6c.6-.6 1.6-.6 2.2 0M20.4 4.6c.6-.6.6-1.6 0-2.2" />
+    <circle cx="10.5" cy="13.5" r="6.8" />
+    <path d="M10.5 10.7 13.16 12.64 12.15 15.77H8.85L7.84 12.64 10.5 10.7Z" />
+    <path d="m15.1 9 2.1-2.1" />
+    <path d="M18.9 5.2c.7-.7 1.8-.7 2.5 0M21.5 2.6c.7-.7.7-1.8 0-2.5" />
   </Base>
 )
 
