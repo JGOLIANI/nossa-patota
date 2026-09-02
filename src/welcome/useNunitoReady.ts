@@ -8,8 +8,8 @@ import '@fontsource/nunito/latin-900.css'
  * sistema e a marca "pula" de largura no meio do movimento — justo no
  * momento em que a atenção está toda nela.
  *
- * Nada além das fontes precisa ser pré-carregado: a mascote e a marca são
- * desenhadas em SVG, então já chegam junto com o pacote da aplicação.
+ * Nada além das fontes precisa ser pré-carregado: o ícone é desenhado em SVG
+ * e a marca é texto, então os dois já chegam junto com o pacote da aplicação.
  */
 const FACES = ['400 64px Nunito', '900 64px Nunito'] as const
 

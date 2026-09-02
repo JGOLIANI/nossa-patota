@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, type CSSProperties } from 'react'
-import { Mascot } from './Mascot'
+import { AppIcon } from './AppIcon'
 import { ReferenceCanvas } from './ReferenceCanvas'
 import { WelcomePressable } from './WelcomePressable'
 import { resolveActionPress } from './actions'
@@ -14,18 +14,16 @@ import { useWelcomeTimeline, type TimelineMode } from './useWelcomeTimeline'
  * Marcações da abertura, em milissegundos, na mesma leitura do clipe de
  * referência a 30 quadros por segundo:
  *
- *   0.400–0.567  primeira piscada
- *   0.900–1.033  a bola do splash encolhe, acelerando
+ *   0.900–1.033  o ícone do splash encolhe, acelerando
  *   1.133–1.233  a tela pronta se abre por dentro de um círculo
- *   2.467–2.600  segunda piscada, já na tela pronta
  *
  * Elas são a tela: mexer num número aqui muda o movimento, e nada mais.
- */
-const DURATION_MS = 2667
-/**
- * O instante em que o círculo acaba de abrir. É a fronteira da tela: antes
- * dela o verde está na frente e não há botão para tocar; depois, a tela
- * pronta cobre o plano inteiro.
+ *
+ * O clipe de referência seguia até 2.667 porque a mascote dele piscava em
+ * 0.400–0.567 e de novo em 2.467–2.600. O ícone do aplicativo não tem olhos,
+ * então essas duas marcações não têm o que animar: a abertura termina onde o
+ * círculo termina de abrir, e o relógio para junto em vez de correr em
+ * branco por mais um segundo e meio.
  */
 const REVEAL_END_MS = 1233
 
@@ -40,7 +38,7 @@ const styles = {
     ...box([0, 0, 640, 1385]),
     backgroundColor: PITCH,
   },
-  splashMascot: {
+  splashIcon: {
     ...box([190, 540, 260, 260]),
     transformOrigin: 'center center',
   },
@@ -54,16 +52,11 @@ const styles = {
     lineHeight: '70px',
     textAlign: 'center',
   },
-  lids: {
-    position: 'absolute',
-    inset: 0,
-    pointerEvents: 'none',
-  },
   finalScreen: {
     ...box([0, 0, 640, 1385]),
     backgroundColor: 'var(--color-card)',
   },
-  mascot: {
+  icon: {
     ...box([220, 370, 200, 200]),
   },
   wordmark: {
@@ -167,10 +160,8 @@ export function PatotaWelcome({
   useSplashThemeColor(!interactionsReady)
 
   const splash = useRef<HTMLDivElement>(null)
-  const splashMascot = useRef<HTMLDivElement>(null)
-  const splashLids = useRef<HTMLDivElement>(null)
+  const splashIcon = useRef<HTMLDivElement>(null)
   const reveal = useRef<HTMLDivElement>(null)
-  const finalLids = useRef<HTMLDivElement>(null)
 
   const onFrame = useCallback((time: number) => {
     if (splash.current) {
@@ -181,32 +172,19 @@ export function PatotaWelcome({
       // aparece nessa sobra.
       splash.current.style.visibility = time >= REVEAL_END_MS ? 'hidden' : 'visible'
     }
-    if (splashMascot.current) {
+    if (splashIcon.current) {
       const shrink = easeInCubic(segment(time, 900, 1033))
-      splashMascot.current.style.transform = `scale(${mix(shrink, [0, 1], [1, 0.36])})`
-      splashMascot.current.style.opacity = String(1 - segment(time, 1133, 1233))
-    }
-    if (splashLids.current) {
-      // A bola fecha os olhos duas vezes no splash: a piscada solta e, de
-      // novo, no susto de encolher.
-      const close = segment(time, 400, 417)
-      const open = 1 - segment(time, 500, 567)
-      const shrinkClose = segment(time, 900, 1000)
-      splashLids.current.style.opacity = String(Math.max(Math.min(close, open), shrinkClose))
+      splashIcon.current.style.transform = `scale(${mix(shrink, [0, 1], [1, 0.36])})`
+      splashIcon.current.style.opacity = String(1 - segment(time, 1133, 1233))
     }
     if (reveal.current) {
       const scale = mix(segment(time, 1133, 1233), [0, 0.34, 0.67, 1], [0, 2.6, 7.5, 10])
       const radius = REVEAL_RADIUS * scale
       reveal.current.style.clipPath = `circle(${radius}px at ${REVEAL_CENTER.x}px ${REVEAL_CENTER.y}px)`
     }
-    if (finalLids.current) {
-      const close = segment(time, 2467, 2500)
-      const open = 1 - segment(time, 2533, 2600)
-      finalLids.current.style.opacity = String(Math.min(close, open))
-    }
   }, [])
 
-  useWelcomeTimeline(DURATION_MS, mode, replayKey, onFrame)
+  useWelcomeTimeline(REVEAL_END_MS, mode, replayKey, onFrame)
 
   const getStarted = resolveActionPress('patota.get-started', onActionPress, onPrimaryPress)
   const logIn = resolveActionPress('patota.log-in', onActionPress, onSecondaryPress)
@@ -221,22 +199,16 @@ export function PatotaWelcome({
       data-testid="welcome-patota"
     >
       <div ref={splash} style={styles.splash} aria-hidden="true">
-        <div ref={splashMascot} style={styles.splashMascot}>
-          <Mascot />
-          <div ref={splashLids} style={styles.lids}>
-            <Mascot closed />
-          </div>
+        <div ref={splashIcon} style={styles.splashIcon}>
+          <AppIcon />
         </div>
         <div style={styles.splashWordmark}>Nossa Patota</div>
       </div>
 
       <div ref={reveal} style={{ position: 'absolute', inset: 0 }}>
         <div style={styles.finalScreen}>
-          <div style={styles.mascot} aria-hidden="true">
-            <Mascot />
-            <div ref={finalLids} style={styles.lids}>
-              <Mascot closed />
-            </div>
+          <div style={styles.icon} aria-hidden="true">
+            <AppIcon />
           </div>
           <h1 style={styles.wordmark}>Nossa Patota</h1>
           <p style={styles.tagline}>A sua patota, sempre organizada.</p>
