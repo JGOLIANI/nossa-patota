@@ -1,5 +1,4 @@
 import { planResponse } from '../domain/attendance'
-import { BALLOT_TYPES } from '../domain/awards'
 import { blobToDataUrl, resizeImage } from '../lib/image'
 import { normalizeUsername } from '../lib/supabase'
 import type {
@@ -563,7 +562,6 @@ export const localBackend: Backend = {
     )
     if (!voter) throw new Error('Sua ficha de jogador não foi encontrada.')
     if (voter.id === playerId) throw new Error('Não dá para votar em você mesmo.')
-    if (!BALLOT_TYPES.includes(type)) throw new Error('Este prêmio não vai à votação.')
     ensureBallotOpen(roundId)
 
     mutate((snapshot) => {

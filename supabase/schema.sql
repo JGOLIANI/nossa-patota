@@ -478,10 +478,7 @@ declare
   me uuid;
   round_row public.rounds%rowtype;
 begin
-  -- O Paredão saiu da cédula: gol sofrido é número, não opinião. Ele continua
-  -- sendo apurado, pela estatística da partida. A coluna `type` ainda aceita o
-  -- valor porque as rodadas antigas guardam votos nele.
-  if p_type not in ('jogador_rodada', 'pior_jogador') then
+  if p_type not in ('jogador_rodada', 'pior_jogador', 'goleiro_menos_vazado') then
     raise exception 'Prêmio inválido: %', p_type;
   end if;
 

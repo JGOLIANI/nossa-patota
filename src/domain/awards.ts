@@ -26,16 +26,6 @@ export const AWARD_TYPES: AwardType[] = [
   'pior_jogador',
 ]
 
-/**
- * Os prêmios que vão à urna.
- *
- * O Paredão ficou de fora: gol sofrido é número, não opinião. Quem foi menos
- * vazado está no placar, e pôr isso em votação só acrescentaria popularidade
- * a um dado que já se mede sozinho. Ele continua saindo em toda partida —
- * apurado pela estatística, como sempre foi quando ninguém votava.
- */
-export const BALLOT_TYPES: AwardType[] = ['jogador_rodada', 'pior_jogador']
-
 /* ------------------------------------------------------------- a urna ----- */
 
 export type VotingState = 'nao-comecou' | 'aberta' | 'encerrada'
@@ -276,18 +266,10 @@ export function tallyAward(snapshot: Snapshot, roundId: string, type: AwardType)
   if (pool.length === 0) return { entries: [], totalVotes: 0, winner: null }
 
   const eligible = new Set(pool.map((entry) => entry.playerId))
-  /*
-   * Prêmio fora da cédula não tem voto a contar. A checagem não é só zelo com
-   * o futuro: rodadas encerradas antes de o Paredão sair da urna guardam
-   * votos nele, e contá-los agora seria decidir o prêmio por uma eleição que
-   * ninguém mais pode disputar nem desfazer.
-   */
-  const counted = BALLOT_TYPES.includes(type)
-    ? snapshot.votes.filter(
-        (vote) =>
-          vote.round_id === roundId && vote.type === type && eligible.has(vote.player_id),
-      )
-    : []
+  const counted = snapshot.votes.filter(
+    (vote) =>
+      vote.round_id === roundId && vote.type === type && eligible.has(vote.player_id),
+  )
 
   const votesFor = new Map<string, number>()
   for (const vote of counted) {
@@ -358,7 +340,7 @@ export function tallyAward(snapshot: Snapshot, roundId: string, type: AwardType)
    */
   const decidedByStatsAlone = counted.length === 0
   const noneStood =
-    BALLOT_TYPES.includes(type) && Math.max(...pool.map((stats) => stats.participations)) === 0
+    type !== 'goleiro_menos_vazado' && Math.max(...pool.map((stats) => stats.participations)) === 0
   if (decidedByStatsAlone && noneStood) {
     return { entries, totalVotes: 0, winner: null }
   }

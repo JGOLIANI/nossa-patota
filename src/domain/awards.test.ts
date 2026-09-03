@@ -308,16 +308,22 @@ describe('votação dos prêmios', () => {
     expect(tally.winner).toBe('p1')
   })
 
-  it('não conta voto em prêmio que saiu da cédula', () => {
+  it('a patota também elege o goleiro, contra a estatística', () => {
     const snapshot = closedScenario()
-    // Votos gravados enquanto o Paredão ainda ia à urna. Ele passou a sair
-    // pela estatística, e gk1 (1 gol sofrido contra os 3 de gk2) leva.
+    // gk1 sofreu 1 gol e gk2 sofreu 3, mas quem viu o jogo escolheu gk2 —
+    // defesa não aparece no número de gols sofridos.
     snapshot.votes = [
       makeVote('r1', 'goleiro_menos_vazado', 'p1', 'gk2'),
       makeVote('r1', 'goleiro_menos_vazado', 'p2', 'gk2'),
       makeVote('r1', 'goleiro_menos_vazado', 'p3', 'gk2'),
     ]
     const tally = tallyAward(snapshot, 'r1', 'goleiro_menos_vazado')
+    expect(tally.totalVotes).toBe(3)
+    expect(tally.winner).toBe('gk2')
+  })
+
+  it('sem voto, o goleiro continua saindo pela estatística', () => {
+    const tally = tallyAward(closedScenario(), 'r1', 'goleiro_menos_vazado')
     expect(tally.totalVotes).toBe(0)
     expect(tally.winner).toBe('gk1')
   })
