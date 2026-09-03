@@ -10,7 +10,7 @@ import {
   votingDeadline,
   votingState,
 } from '../domain/awards'
-import { findRound, playerMap, roundAwards } from '../domain/selectors'
+import { findRound, playerMap, roundAwards, roundEntries, roundTeams } from '../domain/selectors'
 import { cn } from '../lib/cn'
 import { plural, timeLeft } from '../lib/format'
 import { useApp } from '../store/useApp'
@@ -19,7 +19,7 @@ import { AWARD_LABELS } from '../types'
 import { Avatar } from './Avatar'
 import { AwardCatfish, AwardGlove, AwardGoldenBall } from './awardArt'
 import { IconChevronRight } from './icons'
-import { Card, EmptyState, ListGroup, Note, SectionHeader } from './ui'
+import { Card, EmptyState, ListGroup, Note, SectionHeader, TeamDot } from './ui'
 
 /*
  * Cada prêmio tem a sua figura e a sua pergunta. As figuras trazem cor
@@ -35,10 +35,15 @@ const STYLES: Record<AwardType, { Art: typeof AwardGlove; ask: string }> = {
  * Os prêmios da rodada: a cédula enquanto a urna está aberta, o resultado
  * depois dela.
  *
- * Quem decide é a patota, mas não só ela: a nota de cada candidato mistura a
- * fatia de votos com a estatística da rodada. Por isso o cartão mostra as
- * duas coisas — o número de votos que a pessoa recebeu e o que ela fez em
- * quadra —, para que o resultado nunca pareça ter saído do nada.
+ * Debaixo de cada nome vai o time e o que a pessoa fez nesta partida, na urna
+ * aberta e no resultado. É o que se precisa saber para votar, e é o que
+ * faltava: a linha antes trazia a contagem de votos de cada candidato, que com
+ * a urna aberta é "0 votos" em todo mundo — a mesma frase catorze vezes, sem
+ * dizer nada de ninguém.
+ *
+ * Quantos votos o prêmio recebeu continua no alto do cartão, ao lado do
+ * troféu. É o tamanho da eleição, dito uma vez; quem levou quantos votos é
+ * conta que a patota não precisa ver de cada um.
  */
 export function AwardsCard({
   snapshot,
@@ -188,6 +193,29 @@ export function AwardsCard({
     )
   }
 
+  /*
+   * O que cada candidato fez nesta partida, e por qual time.
+   *
+   * É o que a cédula precisa mostrar embaixo do nome: a contagem de votos
+   * dizia "0 votos" em todo mundo enquanto a urna corria — a linha inteira
+   * repetida catorze vezes, sem dizer nada de ninguém. Quem vota quer lembrar
+   * quem fez o quê e de que lado estava.
+   *
+   * Os mapas saem dos três grupos de candidatos, e não de uma passada nova
+   * pelo histórico: `awardCandidates` já calculou a rodada e guardou o
+   * resultado, e ninguém entra na cédula sem estar em algum deles.
+   */
+  const teamById = new Map(roundTeams(snapshot, roundId).map((team) => [team.id, team]))
+  const teamOf = new Map(
+    roundEntries(snapshot, roundId).map((entry) => [
+      entry.player_id,
+      entry.team_id ? teamById.get(entry.team_id) : undefined,
+    ]),
+  )
+  const statsOf = new Map(
+    AWARD_TYPES.flatMap((type) => candidates[type]).map((stats) => [stats.playerId, stats]),
+  )
+
   /**
    * O voto vai ao servidor, e o servidor pode recusar: a urna fechou entre a
    * tela carregar e o dedo tocar, o jogador saiu da escalação. Sem isto o
@@ -267,9 +295,22 @@ export function AwardsCard({
                      */
                     const self = currentPlayer?.id === entry.playerId
                     const canPick = open && eligible && !self && !busy
-                    const detail = `${plural(entry.votes, 'voto')}${
-                      !open ? ` · nota ${Math.round(entry.score * 100)}` : ''
-                    }`
+
+                    const stats = statsOf.get(entry.playerId)
+                    const team = teamOf.get(entry.playerId)
+                    /*
+                     * Quem passou a partida no gol é lido pela estatística da
+                     * rodada, não pelo cadastro: o goleiro que foi para a
+                     * linha fez gol, e é o gol dele que interessa aqui.
+                     *
+                     * As palavras são as mesmas da escalação, na aba Times,
+                     * para as duas telas contarem a partida do mesmo jeito.
+                     */
+                    const played =
+                      (stats?.keeperMatches ?? 0) > 0
+                        ? `no gol · ${plural(stats?.goalsAgainst ?? 0, 'sofrido')}`
+                        : `${plural(stats?.goals ?? 0, 'gol')} · ${stats?.assists ?? 0} assist.`
+                    const detail = [team?.name, played].filter(Boolean).join(' · ')
 
                     const body = (
                       <>
@@ -279,7 +320,10 @@ export function AwardsCard({
                             {player.full_name}
                             {won && <span className="ml-2 text-caption2 text-brand">VENCEU</span>}
                           </span>
-                          <span className="block truncate text-footnote text-muted">{detail}</span>
+                          <span className="flex items-center gap-1.5 text-footnote text-muted">
+                            {team && <TeamDot color={team.color} className="size-2" />}
+                            <span className="truncate">{detail}</span>
+                          </span>
                         </span>
                         {mine && (
                           <span className="shrink-0 text-caption2 text-brand uppercase">

@@ -131,3 +131,38 @@ export function roundTitle(dateISO: string): string {
   const [, month, day] = dateISO.slice(0, 10).split('-')
   return `Partida de ${day}/${month}`
 }
+
+/** Ordem em que a lista de partidas é lida. */
+export type RoundOrder = 'recentes' | 'antigas'
+
+/**
+ * Separa o que já aconteceu do que ainda não aconteceu.
+ *
+ * Numa lista só, o rascunho da semana que vem e o jogo de dois meses atrás
+ * pedem coisas diferentes: um espera confirmação de presença, o outro é
+ * histórico — e o rascunho, por ser sempre o de data mais alta, ficava no
+ * topo empurrando o resultado mais recente para baixo.
+ *
+ * `encerrada` é o único estado que diz "aconteceu": a rodada antiga que
+ * ninguém tocou continua em aberto, e é assim que ela deve aparecer.
+ *
+ * A ordem escolhida vale para os dois grupos — a lista tem uma direção só.
+ */
+export function splitRounds<T extends Pick<Round, 'date' | 'status'>>(
+  rounds: readonly T[],
+  order: RoundOrder,
+): { pending: T[]; played: T[] } {
+  const pending: T[] = []
+  const played: T[] = []
+  for (const round of rounds) {
+    if (round.status === 'encerrada') played.push(round)
+    else pending.push(round)
+  }
+
+  const direction = order === 'antigas' ? 1 : -1
+  const byDate = (a: T, b: T): number => direction * a.date.localeCompare(b.date)
+  pending.sort(byDate)
+  played.sort(byDate)
+
+  return { pending, played }
+}

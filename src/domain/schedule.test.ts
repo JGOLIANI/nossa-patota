@@ -4,6 +4,7 @@ import {
   missingRoundDates,
   nextOccurrences,
   roundTitle,
+  splitRounds,
   staleRoundIds,
   upcomingRound,
 } from './schedule'
@@ -164,5 +165,46 @@ describe('liveRound', () => {
 
   it('devolve nulo sem nenhuma partida em andamento', () => {
     expect(liveRound([makeRound('r1', { status: 'encerrada' })], '2026-08-08')).toBeNull()
+  })
+})
+
+describe('splitRounds', () => {
+  const rounds = [
+    makeRound('agosto', { date: '2026-08-26', status: 'encerrada' }),
+    makeRound('rascunho-novo', { date: '2026-09-09', status: 'rascunho' }),
+    makeRound('setembro', { date: '2026-09-02', status: 'encerrada' }),
+    makeRound('ao-vivo', { date: '2026-09-16', status: 'em_andamento' }),
+    makeRound('rascunho-esquecido', { date: '2026-07-15', status: 'rascunho' }),
+  ]
+
+  it('separa as encerradas das que ainda não aconteceram', () => {
+    const { pending, played } = splitRounds(rounds, 'recentes')
+    expect(played.map((round) => round.id)).toEqual(['setembro', 'agosto'])
+    // O rascunho de julho passou da data e ninguém jogou: continua em aberto.
+    expect(pending.map((round) => round.id)).toEqual([
+      'ao-vivo',
+      'rascunho-novo',
+      'rascunho-esquecido',
+    ])
+  })
+
+  it('inverte os dois grupos ao pedir as mais antigas', () => {
+    const { pending, played } = splitRounds(rounds, 'antigas')
+    expect(played.map((round) => round.id)).toEqual(['agosto', 'setembro'])
+    expect(pending.map((round) => round.id)).toEqual([
+      'rascunho-esquecido',
+      'rascunho-novo',
+      'ao-vivo',
+    ])
+  })
+
+  it('não mexe na lista recebida', () => {
+    const original = [...rounds]
+    splitRounds(rounds, 'antigas')
+    expect(rounds).toEqual(original)
+  })
+
+  it('devolve grupos vazios sem nenhuma rodada', () => {
+    expect(splitRounds([], 'recentes')).toEqual({ pending: [], played: [] })
   })
 })
