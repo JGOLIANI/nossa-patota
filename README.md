@@ -132,31 +132,48 @@ No celular abre direto o menu de compartilhar; no computador, baixa o arquivo.
 
 ### Premiações da partida
 
-Os prêmios são **votados**. Encerrar a partida não decide nada: abre uma urna
-de **16 horas** para quem foi escalado — quem estava em quadra é quem viu o
-jogo, e ninguém vota em si mesmo. Dezesseis horas cobrem a noite e a manhã
-seguinte, então quem jogou na sexta à noite ainda vota no sábado.
+Craque e Bagre são **votados**. Encerrar a partida não decide nada: abre uma
+urna de **16 horas** para quem foi escalado — quem estava em quadra é quem viu
+o jogo, e ninguém vota em si mesmo. Dezesseis horas cobrem a noite e a manhã
+seguinte, então quem jogou na sexta à noite ainda vota no sábado. Enquanto a
+urna está aberta, o cartão de Destaques da tela de início é o botão que leva
+direto à cédula.
 
-| Prêmio | Quem disputa | Estatística que pesa |
-| --- | --- | --- |
-| Craque da Partida | Linha do **time vencedor** | Mais participações em gols |
-| Bagre da Rodada | Linha do **time derrotado** | Menos participações em gols |
-| Paredão | Quem jogou no gol | Menos gols sofridos |
+| Prêmio | Quem disputa | Como sai | Estatística que pesa |
+| --- | --- | --- | --- |
+| Craque da Partida | **Quem jogou a partida** | Votação | Mais participações em gols |
+| Bagre da Rodada | **Quem jogou a partida** | Votação | Menos participações em gols |
+| Paredão | Quem jogou no gol | Estatística | Menos gols sofridos |
 
-A nota de cada candidato é **70% da fatia de votos** que recebeu e **30% da
-estatística** do prêmio, normalizada entre os candidatos. Quem estava lá viu
+Os dois prêmios votados concorrem entre todos que entraram em quadra, dos dois
+times e das duas posições. Antes cada um ficava preso a um lado do placar — o
+Craque só entre os vencedores, o Bagre só entre os derrotados —, e isso já
+decidia metade do prêmio antes de a patota abrir a boca: quem carregou o time e
+perdeu não podia ser craque, e quem passou a partida escondido no time que
+ganhou não podia ser bagre. Quem viu o jogo sabe distinguir as duas coisas.
+
+O **Paredão não vai à urna**: gol sofrido é número, não opinião. Quem foi menos
+vazado está no placar, e votar nisso só acrescentaria popularidade a um dado
+que já se mede sozinho. Ele continua saindo em toda partida, apurado pela
+estatística.
+
+A nota de cada candidato votado é **70% da fatia de votos** que recebeu e **30%
+da estatística** do prêmio, normalizada entre os candidatos. Quem estava lá viu
 coisas que o placar não registra — a defesa na linha, o passe que ninguém
 converteu —, mas voto sozinho vira popularidade.
 
+Gol e assistência não medem quem passou a partida no gol, então para o goleiro
+a parte estatística fica **neutra** nos dois prêmios de linha: sem isso, o zero
+natural de quem defende o colocaria em último no Craque e em primeiro no Bagre
+toda semana, por fazer exatamente o que se espera dele. Sobra o voto — que é
+quem sabe se o goleiro salvou ou entregou a partida.
+
 Se ninguém votar, a nota vira só a estatística da partida, que é exatamente o
 critério anterior: a rodada em que ninguém votou continua tendo um resultado justo em
-vez de nenhum. Nesse caso vale também a guarda antiga — quando ninguém do lado
-avaliado participou de gol, o prêmio não sai, porque um prêmio que cabe no time
-inteiro não diz nada sobre nenhum dos premiados. Havendo voto, a patota
-decidiu, e o prêmio sai.
-
-Os dois prêmios de linha são simétricos, cada um preso ao seu lado do placar.
-No empate do **placar** os dois passam a olhar a partida inteira.
+vez de nenhum. Nesse caso vale também a guarda antiga — quando ninguém na
+partida participou de gol, o prêmio não sai, porque premiar um 0 a 0 seria
+sortear um nome, e prêmio sorteado não diz nada de quem o levou. Havendo voto,
+a patota decidiu, e o prêmio sai.
 
 **Sai um só por categoria.** Quando dois candidatos terminam com a mesma nota,
 a cascata de desempate decide, nesta ordem:

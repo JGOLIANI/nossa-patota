@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   AWARD_TYPES,
+  BALLOT_TYPES,
   awardCandidates,
   canVote,
   tallyAward,
@@ -18,15 +19,20 @@ import type { AwardType, Snapshot } from '../types'
 import { AWARD_LABELS } from '../types'
 import { Avatar } from './Avatar'
 import { AwardCatfish, AwardGlove, AwardGoldenBall } from './awardArt'
+import { IconChevronRight } from './icons'
 import { Card, EmptyState, ListGroup, Note, SectionHeader } from './ui'
 
 /*
- * Cada prêmio tem a sua figura e a sua pergunta. As figuras trazem cor
+ * Cada prêmio tem a sua figura e a sua chamada. As figuras trazem cor
  * própria — não há tom a aplicar aqui, ao contrário dos ícones de comando.
+ *
+ * Os dois da cédula perguntam; o Paredão, que não se vota, explica de onde
+ * sai — senão a tela mostraria uma lista de nomes sem dizer por que ninguém
+ * pode tocar nela.
  */
 const STYLES: Record<AwardType, { Art: typeof AwardGlove; ask: string }> = {
   jogador_rodada: { Art: AwardGoldenBall, ask: 'Quem foi o craque?' },
-  goleiro_menos_vazado: { Art: AwardGlove, ask: 'Quem fechou o gol?' },
+  goleiro_menos_vazado: { Art: AwardGlove, ask: 'Sem votação: leva quem sofreu menos gols.' },
   pior_jogador: { Art: AwardCatfish, ask: 'Quem foi o Bagre da Rodada?' },
 }
 
@@ -108,30 +114,41 @@ export function AwardsCard({
     return winner ? [winner] : []
   }
 
-  /**
-   * O voto vai ao servidor, e o servidor pode recusar: a urna fechou entre a
-   * tela carregar e o dedo tocar, o jogador saiu da escalação. Sem isto o
-   * toque não fazia nada e ninguém ficava sabendo por quê.
-   */
   if (compact) {
+    /*
+     * Com a urna aberta o cartão inteiro é o botão da votação, e ele abre a
+     * partida já na aba Prêmios. Antes ele só avisava e mandava "abrir a
+     * partida": quem lia na tela de início tinha de sair dali, achar a
+     * partida certa e trocar de aba para fazer o que o aviso pedia — três
+     * toques de distância entre a chamada e a cédula.
+     */
     if (open) {
-      const mine = AWARD_TYPES.filter((type) => myVotes[type]).length
+      const mine = BALLOT_TYPES.filter((type) => myVotes[type]).length
       return (
         <ListGroup>
-          <div className="px-4 py-3.5">
-            <p className="text-headline text-ink">
-              Votação aberta · encerra em {deadline ? timeLeft(deadline) : '—'}
-            </p>
-            <p className="mt-0.5 text-footnote text-muted">
-              {!eligible
-                ? `${turnout.voted} de ${turnout.total} já ${turnout.voted === 1 ? 'votou' : 'votaram'}.`
-                : mine === 0
-                  ? 'Você ainda não votou. Abra a partida para escolher.'
-                  : mine === AWARD_TYPES.length
-                    ? 'Você já votou nos três prêmios.'
-                    : `Você votou em ${mine} de ${AWARD_TYPES.length}. Abra a partida para completar.`}
-            </p>
-          </div>
+          <Link
+            to={`/rodadas/${roundId}`}
+            state={{ tab: 'premios' }}
+            className="flex items-center gap-3 px-4 py-3.5 transition-colors active:bg-fill"
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block text-headline text-ink">
+                Votação aberta · encerra em {deadline ? timeLeft(deadline) : '—'}
+              </span>
+              <span className="mt-0.5 block text-footnote text-muted">
+                {!eligible
+                  ? `${turnout.voted} de ${turnout.total} já ${turnout.voted === 1 ? 'votou' : 'votaram'}. Toque para acompanhar.`
+                  : mine === 0
+                    ? 'Você ainda não votou. Toque para escolher.'
+                    : mine === BALLOT_TYPES.length
+                      ? 'Você já votou. Toque para rever ou trocar.'
+                      : `Você votou em ${mine} de ${BALLOT_TYPES.length}. Toque para completar.`}
+              </span>
+            </span>
+            {/* 14 pixels, como no chevron das listas: abaixo disso o traço
+                da base some. */}
+            <IconChevronRight className="size-3.5 shrink-0 stroke-[3] text-faint" />
+          </Link>
         </ListGroup>
       )
     }
@@ -176,6 +193,11 @@ export function AwardsCard({
     )
   }
 
+  /**
+   * O voto vai ao servidor, e o servidor pode recusar: a urna fechou entre a
+   * tela carregar e o dedo tocar, o jogador saiu da escalação. Sem isto o
+   * toque não fazia nada e ninguém ficava sabendo por quê.
+   */
   async function vote(type: AwardType, playerId: string) {
     if (busy) return
     setBusy(true)
@@ -196,8 +218,8 @@ export function AwardsCard({
         <Note>
           <strong>Votação aberta</strong> — encerra em {deadline ? timeLeft(deadline) : '—'}.{' '}
           {turnout.voted} de {turnout.total} já
-          {turnout.voted === 1 ? ' votou' : ' votaram'}. A nota final junta os votos com o que
-          cada um fez em quadra.
+          {turnout.voted === 1 ? ' votou' : ' votaram'}. Concorre quem jogou a partida, e
+          ninguém vota em si mesmo. A nota final junta os votos com o que cada um fez em quadra.
         </Note>
       ) : (
         <Note>
@@ -219,6 +241,9 @@ export function AwardsCard({
         const tally = tallyAward(snapshot, roundId, type)
         const pool = candidates[type]
         const winners = winnersOf(type)
+        // O Paredão continua aparecendo — só não se vota nele.
+        const votable = BALLOT_TYPES.includes(type)
+        const statsById = new Map(pool.map((stats) => [stats.playerId, stats]))
 
         return (
           <section key={type}>
@@ -227,7 +252,7 @@ export function AwardsCard({
               <div className="flex items-center gap-3 px-4 py-3">
                 <Art className="size-9 shrink-0" />
                 <p className="text-subhead text-muted">
-                  {open && eligible ? ask : plural(tally.totalVotes, 'voto')}
+                  {!votable || (open && eligible) ? ask : plural(tally.totalVotes, 'voto')}
                 </p>
               </div>
 
@@ -242,8 +267,21 @@ export function AwardsCard({
                     if (!player) return null
                     const mine = myVotes[type] === entry.playerId
                     const won = !open && winners.includes(entry.playerId)
+                    /*
+                     * Ninguém vota em si mesmo. O servidor recusa de qualquer
+                     * jeito, mas o próprio nome agora está na cédula — todo
+                     * mundo que jogou está —, então a linha diz "você" em vez
+                     * de simplesmente não responder ao toque.
+                     */
                     const self = currentPlayer?.id === entry.playerId
-                    const canPick = open && eligible && !self && !busy
+                    const canPick = open && eligible && votable && !self && !busy
+                    const detail = votable
+                      ? `${plural(entry.votes, 'voto')}${!open ? ` · nota ${Math.round(entry.score * 100)}` : ''}`
+                      : plural(
+                          statsById.get(entry.playerId)?.goalsAgainst ?? 0,
+                          'gol sofrido',
+                          'gols sofridos',
+                        )
 
                     const body = (
                       <>
@@ -253,15 +291,15 @@ export function AwardsCard({
                             {player.full_name}
                             {won && <span className="ml-2 text-caption2 text-brand">VENCEU</span>}
                           </span>
-                          <span className="block truncate text-footnote text-muted">
-                            {plural(entry.votes, 'voto')}
-                            {!open && ` · nota ${Math.round(entry.score * 100)}`}
-                          </span>
+                          <span className="block truncate text-footnote text-muted">{detail}</span>
                         </span>
                         {mine && (
                           <span className="shrink-0 text-caption2 text-brand uppercase">
                             Meu voto
                           </span>
+                        )}
+                        {self && open && eligible && votable && (
+                          <span className="shrink-0 text-caption2 text-faint uppercase">Você</span>
                         )}
                       </>
                     )

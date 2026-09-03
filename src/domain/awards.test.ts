@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import {
   canVote,
   computeRoundAwards,
-  roundOutcome,
   tallyAward,
   votesByVoter,
   voterTurnout,
@@ -14,15 +13,15 @@ import { baseScenario, makeEvent, makePlayer, makeRoundPlayer, makeVote } from '
 
 /**
  * No cenário base o Time A (p1, p2, gk1) vence o Time B (p3, p4, gk2) por
- * 3 a 1. Os prêmios de linha são simétricos: o melhor sai de quem venceu, o
- * pior de quem perdeu.
+ * 3 a 1. Craque e Bagre concorrem entre todos os que jogaram — o placar não
+ * decide mais quem pode levar cada um.
  */
 describe('computeRoundAwards', () => {
-  it('elege o melhor entre os vencedores', () => {
+  it('elege quem mais participou de gols', () => {
     expect(computeRoundAwards(baseScenario(), 'r1').jogador_rodada).toBe('p1')
   })
 
-  it('elege o pior entre os derrotados', () => {
+  it('elege quem menos participou de gols', () => {
     expect(computeRoundAwards(baseScenario(), 'r1').pior_jogador).toBe('p4')
   })
 
@@ -30,16 +29,43 @@ describe('computeRoundAwards', () => {
     expect(computeRoundAwards(baseScenario(), 'r1').goleiro_menos_vazado).toBe('gk1')
   })
 
-  it('não deixa o time perdedor levar o prêmio de melhor', () => {
+  it('deixa o craque sair do time derrotado', () => {
     const snapshot = baseScenario()
-    // p3 marca duas vezes e passa p1 em participações, mas perdeu o jogo.
+    // p3 marca mais dois e passa p1: o Time B perdeu de 4 a 3, mas quem
+    // carregou a partida foi ele.
     snapshot.events.push(makeEvent('m1', 'tB', 'p3'), makeEvent('m1', 'tB', 'p3'))
     snapshot.matches[0].score_b = 3
     snapshot.matches[0].score_a = 4
 
-    const awards = computeRoundAwards(snapshot, 'r1')
-    expect(awards.jogador_rodada).toBe('p1')
-    expect(awards.pior_jogador).toBe('p4')
+    expect(computeRoundAwards(snapshot, 'r1').jogador_rodada).toBe('p3')
+  })
+
+  it('deixa o bagre sair do time vencedor', () => {
+    const snapshot = baseScenario()
+    // p1 faz os três sozinho e o Time B ainda marca com p3 e p4: quem passou
+    // a partida sem tocar em nada foi p2, do time que venceu.
+    snapshot.events = [
+      makeEvent('m1', 'tA', 'p1'),
+      makeEvent('m1', 'tA', 'p1'),
+      makeEvent('m1', 'tA', 'p1'),
+      makeEvent('m1', 'tB', 'p3', 'p4'),
+    ]
+
+    expect(computeRoundAwards(snapshot, 'r1').pior_jogador).toBe('p2')
+  })
+
+  it('deixa o goleiro fora da conta de participações dos prêmios de linha', () => {
+    const snapshot = baseScenario()
+    // gk1 e gk2 terminam zerados em gols e assistências, como todo goleiro:
+    // a estatística não fala deles, e o Bagre continua saindo na linha.
+    const bagre = tallyAward(snapshot, 'r1', 'pior_jogador')
+    expect(bagre.winner).toBe('p4')
+    expect(bagre.entries.find((entry) => entry.playerId === 'gk1')!.statScore).toBe(0.5)
+    expect(
+      tallyAward(snapshot, 'r1', 'jogador_rodada').entries.find(
+        (entry) => entry.playerId === 'gk1',
+      )!.statScore,
+    ).toBe(0.5)
   })
 
   it('não elege melhor jogador quando o vencedor não participou de gols', () => {
@@ -82,22 +108,10 @@ describe('computeRoundAwards', () => {
 
 describe('sem participação em gol não há o que premiar', () => {
   /**
-   * A guarda é a mesma dos dois lados do placar. Sem ela a Bagre da Rodada ia
-   * para o time perdedor inteiro numa derrota sem gols — um prêmio que cabe
-   * em todo mundo não diz nada sobre ninguém.
+   * A guarda olha a partida inteira: premiar uma pelada em que ninguém tocou
+   * em gol seria sortear um nome, e prêmio sorteado não diz nada de quem o
+   * levou.
    */
-  it('derrota sem nenhum gol do time não elege bola murcha', () => {
-    const snapshot = baseScenario()
-    // Só o Time A marca: p3 e p4 terminam a partida em zero participações.
-    snapshot.events = snapshot.events.filter((event) => event.team_id === 'tA')
-    snapshot.matches[0].score_b = 0
-
-    const awards = computeRoundAwards(snapshot, 'r1')
-    expect(awards.pior_jogador).toBeNull()
-    // O outro lado marcou, então o craque continua saindo normalmente.
-    expect(awards.jogador_rodada).toBe('p1')
-  })
-
   it('empate em que ninguém participou de gol não elege nenhum dos dois', () => {
     const snapshot = baseScenario()
     // 1 a 1, os dois gols contra: ninguém pontua de nenhum lado.
@@ -116,15 +130,22 @@ describe('sem participação em gol não há o que premiar', () => {
     expect(['gk1', 'gk2']).toContain(awards.goleiro_menos_vazado)
   })
 
-  it('basta um do lado ter participado para o prêmio voltar a existir', () => {
-    const snapshot = baseScenario()
-    // Time B perde de 3 a 1, e o gol dele foi de p3: p4 fica isolado no zero.
-    expect(computeRoundAwards(snapshot, 'r1').pior_jogador).toBe('p4')
+  it('basta alguém ter participado para os prêmios voltarem a existir', () => {
+    // No cenário base p1 lidera com três participações e p4 fica isolado no
+    // zero: os dois prêmios saem.
+    const awards = computeRoundAwards(baseScenario(), 'r1')
+    expect(awards.jogador_rodada).toBe('p1')
+    expect(awards.pior_jogador).toBe('p4')
   })
 })
 
-describe('empate — os dois prêmios olham a rodada inteira', () => {
-  function drawn() {
+describe('empate no placar', () => {
+  /**
+   * O placar não separa mais nada: Craque e Bagre já olham a partida inteira
+   * em qualquer resultado. O que o empate ainda decide é a disputa do
+   * Paredão, e ela sai com um nome só.
+   */
+  it('elege um goleiro só quando ambos sofreram o mesmo', () => {
     const snapshot = baseScenario()
     // 2 a 2: p1 marca os dois do Time A, p3 os dois do Time B.
     snapshot.events = [
@@ -135,19 +156,8 @@ describe('empate — os dois prêmios olham a rodada inteira', () => {
     ]
     snapshot.matches[0].score_a = 2
     snapshot.matches[0].score_b = 2
-    return snapshot
-  }
 
-  it('busca o melhor nos dois times', () => {
-    expect(['p1', 'p3']).toContain(computeRoundAwards(drawn(), 'r1').jogador_rodada)
-  })
-
-  it('busca o pior nos dois times', () => {
-    expect(['p2', 'p4']).toContain(computeRoundAwards(drawn(), 'r1').pior_jogador)
-  })
-
-  it('elege um goleiro só quando ambos sofreram o mesmo', () => {
-    expect(['gk1', 'gk2']).toContain(computeRoundAwards(drawn(), 'r1').goleiro_menos_vazado)
+    expect(['gk1', 'gk2']).toContain(computeRoundAwards(snapshot, 'r1').goleiro_menos_vazado)
   })
 })
 
@@ -178,29 +188,6 @@ describe('goleiro que joga na linha', () => {
     // O Time A sofreu 1 gol e o Time B sofreu 3: p2 leva.
     expect(awards.goleiro_menos_vazado).toBe('p2')
     expect(awards.jogador_rodada).not.toContain('p2')
-  })
-})
-
-describe('roundOutcome', () => {
-  it('aponta vencedor e derrotado', () => {
-    expect(roundOutcome(baseScenario(), 'r1')).toEqual({
-      winner: 'tA',
-      loser: 'tB',
-      draw: false,
-    })
-  })
-
-  it('marca empate quando os times terminam iguais', () => {
-    const snapshot = baseScenario()
-    snapshot.matches[0].score_b = 3
-    expect(roundOutcome(snapshot, 'r1')).toEqual({ winner: null, loser: null, draw: true })
-  })
-
-  it('ignora partidas ainda em andamento', () => {
-    const snapshot = baseScenario()
-    snapshot.matches[0].status = 'em_andamento'
-    expect(roundOutcome(snapshot, 'r1').draw).toBe(false)
-    expect(roundOutcome(snapshot, 'r1').winner).toBeNull()
   })
 })
 
@@ -291,31 +278,48 @@ describe('votação dos prêmios', () => {
 
   it('mistura voto e estatística nos pesos combinados', () => {
     const snapshot = closedScenario()
-    snapshot.votes = [makeVote('r1', 'jogador_rodada', 'p3', 'p2')]
+    snapshot.votes = [makeVote('r1', 'jogador_rodada', 'p3', 'p4')]
     const entries = tallyAward(snapshot, 'r1', 'jogador_rodada').entries
     const p1 = entries.find((entry) => entry.playerId === 'p1')!
-    const p2 = entries.find((entry) => entry.playerId === 'p2')!
+    const p4 = entries.find((entry) => entry.playerId === 'p4')!
 
-    // p1: nenhum voto, melhor estatística. p2: todo o voto, pior estatística.
+    // p1: nenhum voto, melhor estatística. p4: todo o voto, pior estatística.
     expect(p1.voteShare).toBe(0)
     expect(p1.statScore).toBe(1)
     expect(p1.score).toBeCloseTo(STAT_WEIGHT, 10)
-    expect(p2.voteShare).toBe(1)
-    expect(p2.statScore).toBe(0)
-    expect(p2.score).toBeCloseTo(VOTE_WEIGHT, 10)
-    expect(p2.score).toBeGreaterThan(p1.score)
+    expect(p4.voteShare).toBe(1)
+    expect(p4.statScore).toBe(0)
+    expect(p4.score).toBeCloseTo(VOTE_WEIGHT, 10)
+    expect(p4.score).toBeGreaterThan(p1.score)
   })
 
   it('descarta voto em quem não disputa aquele prêmio', () => {
     const snapshot = closedScenario()
-    // p3 é do time perdedor: não concorre a Craque, e o voto nele não conta.
+    // "fora" confirmou presença mas não entrou em nenhum time: não concorre
+    // a nada, e o voto nele não conta.
+    snapshot.players.push(makePlayer('fora'))
+    snapshot.roundPlayers.push(makeRoundPlayer('r1', 'fora', null))
     snapshot.votes = [
-      makeVote('r1', 'jogador_rodada', 'p1', 'p3'),
-      makeVote('r1', 'jogador_rodada', 'p2', 'p3'),
+      makeVote('r1', 'jogador_rodada', 'p1', 'fora'),
+      makeVote('r1', 'jogador_rodada', 'p2', 'fora'),
     ]
     const tally = tallyAward(snapshot, 'r1', 'jogador_rodada')
     expect(tally.totalVotes).toBe(0)
     expect(tally.winner).toBe('p1')
+  })
+
+  it('não conta voto em prêmio que saiu da cédula', () => {
+    const snapshot = closedScenario()
+    // Votos gravados enquanto o Paredão ainda ia à urna. Ele passou a sair
+    // pela estatística, e gk1 (1 gol sofrido contra os 3 de gk2) leva.
+    snapshot.votes = [
+      makeVote('r1', 'goleiro_menos_vazado', 'p1', 'gk2'),
+      makeVote('r1', 'goleiro_menos_vazado', 'p2', 'gk2'),
+      makeVote('r1', 'goleiro_menos_vazado', 'p3', 'gk2'),
+    ]
+    const tally = tallyAward(snapshot, 'r1', 'goleiro_menos_vazado')
+    expect(tally.totalVotes).toBe(0)
+    expect(tally.winner).toBe('gk1')
   })
 
   it('havendo voto, o prêmio sai mesmo sem ninguém ter participado de gol', () => {

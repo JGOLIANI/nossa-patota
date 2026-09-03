@@ -175,6 +175,14 @@ create table if not exists public.round_votes (
 
 create index if not exists round_votes_round_idx on public.round_votes (round_id);
 
+-- Ninguém vota em si mesmo, e a tabela é quem garante. `cast_vote` já recusa,
+-- mas o administrador escreve direto nas tabelas e passaria por cima dela.
+-- A limpeza vem antes porque a restrição não entra com linha que a viole.
+delete from public.round_votes where voter_id = player_id;
+alter table public.round_votes drop constraint if exists round_votes_no_self;
+alter table public.round_votes
+  add constraint round_votes_no_self check (voter_id <> player_id);
+
 create index if not exists round_players_round_idx on public.round_players (round_id);
 create index if not exists round_players_team_idx on public.round_players (team_id);
 create index if not exists matches_round_idx on public.matches (round_id);
@@ -470,7 +478,10 @@ declare
   me uuid;
   round_row public.rounds%rowtype;
 begin
-  if p_type not in ('jogador_rodada', 'pior_jogador', 'goleiro_menos_vazado') then
+  -- O Paredão saiu da cédula: gol sofrido é número, não opinião. Ele continua
+  -- sendo apurado, pela estatística da partida. A coluna `type` ainda aceita o
+  -- valor porque as rodadas antigas guardam votos nele.
+  if p_type not in ('jogador_rodada', 'pior_jogador') then
     raise exception 'Prêmio inválido: %', p_type;
   end if;
 
