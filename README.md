@@ -157,11 +157,13 @@ inteira — não só os goleiros. Gol sofrido conta a metade fácil da história
 defesa que salvou a partida e o frango que ninguém esquece não aparecem no
 número, e quem estava lá viu os dois.
 
-Na cédula, debaixo de cada nome vão **o time e o que a pessoa fez na partida**
-— gols e assistências, ou gols sofridos de quem estava no gol. É o que se
-precisa lembrar para votar. A contagem de votos de cada candidato só aparece
-depois que a urna fecha: enquanto ela corre, seria "0 votos" repetido em todo
-mundo, e o pouco que dissesse seria a caminho de puxar voto para quem já tem.
+Debaixo de cada nome, na cédula e no resultado, vão **o time e o que a pessoa
+fez na partida** — gols e assistências, ou gols sofridos de quem estava no gol.
+É o que se precisa lembrar para votar, e o que explica o pódio depois. Quantos
+votos cada candidato recebeu não aparece em lugar nenhum: com a urna aberta
+seria "0 votos" repetido em todo mundo, e o pouco que dissesse seria a caminho
+de puxar voto para quem já tem. No alto do cartão fica só o tamanho da
+eleição — quantos votos aquele prêmio recebeu ao todo.
 
 A nota de cada candidato é **70% da fatia de votos** que recebeu e **30% da
 estatística** do prêmio, normalizada entre os candidatos. Quem estava lá viu

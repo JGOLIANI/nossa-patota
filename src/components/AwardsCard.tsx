@@ -35,15 +35,15 @@ const STYLES: Record<AwardType, { Art: typeof AwardGlove; ask: string }> = {
  * Os prêmios da rodada: a cédula enquanto a urna está aberta, o resultado
  * depois dela.
  *
- * Debaixo de cada nome vai o time e o que a pessoa fez nesta partida. É o que
- * se precisa saber para votar, e é o que faltava: a linha antes trazia a
- * contagem de votos, que com a urna aberta é "0 votos" em todo mundo — a
- * mesma frase catorze vezes, sem dizer nada de ninguém.
+ * Debaixo de cada nome vai o time e o que a pessoa fez nesta partida, na urna
+ * aberta e no resultado. É o que se precisa saber para votar, e é o que
+ * faltava: a linha antes trazia a contagem de votos de cada candidato, que com
+ * a urna aberta é "0 votos" em todo mundo — a mesma frase catorze vezes, sem
+ * dizer nada de ninguém.
  *
- * Fechada a urna, os votos entram na linha: ali eles já são o resultado, e
- * quem decidiu não foi só a patota — a nota mistura a fatia de votos com a
- * estatística da rodada, e o cartão mostra as duas para que o pódio nunca
- * pareça ter saído do nada.
+ * Quantos votos o prêmio recebeu continua no alto do cartão, ao lado do
+ * troféu. É o tamanho da eleição, dito uma vez; quem levou quantos votos é
+ * conta que a patota não precisa ver de cada um.
  */
 export function AwardsCard({
   snapshot,
@@ -310,11 +310,7 @@ export function AwardsCard({
                       (stats?.keeperMatches ?? 0) > 0
                         ? `no gol · ${plural(stats?.goalsAgainst ?? 0, 'sofrido')}`
                         : `${plural(stats?.goals ?? 0, 'gol')} · ${stats?.assists ?? 0} assist.`
-                    // Com a urna aberta o voto de cada um é assunto de quem
-                    // votou. Fechada, ele é o resultado, e aí volta à linha.
-                    const detail = [team?.name, played, !open && plural(entry.votes, 'voto')]
-                      .filter(Boolean)
-                      .join(' · ')
+                    const detail = [team?.name, played].filter(Boolean).join(' · ')
 
                     const body = (
                       <>
