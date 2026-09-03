@@ -200,6 +200,55 @@ describe('código de entrada da patota', () => {
   })
 })
 
+describe('a urna do modo demonstração', () => {
+  /** A partida encerrada mais recente, e alguém que jogou nela. */
+  async function ballot() {
+    const snapshot = await backend.fetchAll()
+    const round = snapshot.rounds.find((item) => votingState(item) === 'aberta')!
+    const played = snapshot.roundPlayers.filter(
+      (entry) => entry.round_id === round.id && entry.team_id,
+    )
+    const voter = snapshot.players.find((player) => player.id === played[0].player_id)!
+    const other = snapshot.players.find((player) => player.id === played[1].player_id)!
+    return { round, voter, other }
+  }
+
+  it('recusa o voto em si mesmo', async () => {
+    const { round, voter } = await ballot()
+    await backend.signIn(voter.username, '')
+
+    await expect(backend.castVote(round.id, 'jogador_rodada', voter.id)).rejects.toThrow(
+      'Não dá para votar em você mesmo.',
+    )
+    expect((await backend.fetchAll()).votes.some((vote) => vote.voter_id === voter.id)).toBe(false)
+  })
+
+  it('recusa o voto no prêmio que saiu da cédula', async () => {
+    const { round, voter, other } = await ballot()
+    await backend.signIn(voter.username, '')
+
+    await expect(
+      backend.castVote(round.id, 'goleiro_menos_vazado', other.id),
+    ).rejects.toThrow('Este prêmio não vai à votação.')
+  })
+
+  it('aceita o voto em quem jogou, e a recusa não derruba o que já estava lá', async () => {
+    const { round, voter, other } = await ballot()
+    await backend.signIn(voter.username, '')
+    await backend.castVote(round.id, 'jogador_rodada', other.id)
+
+    const mine = async () =>
+      (await backend.fetchAll()).votes.filter(
+        (vote) => vote.round_id === round.id && vote.voter_id === voter.id,
+      )
+    expect(await mine()).toHaveLength(1)
+
+    // A guarda corre antes da escrita: o voto recusado não apaga o anterior.
+    await expect(backend.castVote(round.id, 'jogador_rodada', voter.id)).rejects.toThrow()
+    expect((await mine())[0].player_id).toBe(other.id)
+  })
+})
+
 describe('patota fictícia', () => {
   it('toda partida já apurada tem premiação', async () => {
     const snapshot = await backend.fetchAll()

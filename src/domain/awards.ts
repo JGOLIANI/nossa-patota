@@ -26,6 +26,16 @@ export const AWARD_TYPES: AwardType[] = [
   'pior_jogador',
 ]
 
+/**
+ * Os prêmios que vão à urna.
+ *
+ * O Paredão ficou de fora: gol sofrido é número, não opinião. Quem foi menos
+ * vazado está no placar, e pôr isso em votação só acrescentaria popularidade
+ * a um dado que já se mede sozinho. Ele continua saindo em toda partida —
+ * apurado pela estatística, como sempre foi quando ninguém votava.
+ */
+export const BALLOT_TYPES: AwardType[] = ['jogador_rodada', 'pior_jogador']
+
 /* ------------------------------------------------------------- a urna ----- */
 
 export type VotingState = 'nao-comecou' | 'aberta' | 'encerrada'
@@ -72,60 +82,6 @@ export function canVote(snapshot: Snapshot, roundId: string, playerId: string): 
   )
 }
 
-/* -------------------------------------------------------- o resultado ----- */
-
-export interface RoundOutcome {
-  winner: string | null
-  loser: string | null
-  /** Verdadeiro quando não houve vencedor nem perdedor. */
-  draw: boolean
-}
-
-/**
- * Como a rodada terminou.
- *
- * Com uma partida por rodada isso é apenas quem ganhou e quem perdeu. A
- * função também aguenta rodadas antigas com várias partidas, somando pontos
- * no critério 3-1-0; empate na ponta ou na lanterna equivale a empate.
- */
-export function roundOutcome(snapshot: Snapshot, roundId: string): RoundOutcome {
-  const matches = snapshot.matches.filter(
-    (match) => match.round_id === roundId && match.status === 'encerrada',
-  )
-  if (matches.length === 0) return { winner: null, loser: null, draw: false }
-
-  const points = new Map<string, number>()
-  const add = (teamId: string, value: number) =>
-    points.set(teamId, (points.get(teamId) ?? 0) + value)
-
-  for (const match of matches) {
-    add(match.team_a_id, 0)
-    add(match.team_b_id, 0)
-    if (match.score_a > match.score_b) add(match.team_a_id, 3)
-    else if (match.score_b > match.score_a) add(match.team_b_id, 3)
-    else {
-      add(match.team_a_id, 1)
-      add(match.team_b_id, 1)
-    }
-  }
-
-  const ranked = [...points.entries()].sort((a, b) => b[1] - a[1])
-  if (ranked.length < 2) return { winner: null, loser: null, draw: false }
-
-  const first = ranked[0]
-  const last = ranked[ranked.length - 1]
-  if (first[1] === last[1]) return { winner: null, loser: null, draw: true }
-
-  const tiedOnTop = ranked[1][1] === first[1]
-  const tiedOnBottom = ranked[ranked.length - 2][1] === last[1]
-
-  return {
-    winner: tiedOnTop ? null : first[0],
-    loser: tiedOnBottom ? null : last[0],
-    draw: false,
-  }
-}
-
 /* ---------------------------------------------------------- candidatos ---- */
 
 /**
@@ -143,13 +99,17 @@ const candidateCache = new WeakMap<Snapshot, Map<string, Record<AwardType, Playe
 /**
  * Quem disputa cada prêmio.
  *
- * Os dois prêmios de linha são simétricos: o Craque sai de quem venceu e a
- * Bagre da Rodada de quem perdeu. No empate não há de onde separar, então os dois
- * olham a rodada inteira.
+ * Craque e Bagre concorrem entre **todos os que jogaram a partida**, dos dois
+ * times e das duas posições. Antes cada um ficava preso a um lado do placar —
+ * o Craque só entre os vencedores, o Bagre só entre os derrotados —, e isso
+ * decidia metade do prêmio antes de a patota abrir a boca: quem carregou o
+ * time e perdeu não podia ser craque, quem passou a partida escondido no time
+ * que ganhou não podia ser bagre. Quem viu o jogo sabe distinguir as duas
+ * coisas, e é a votação que existe para isso.
  *
- * A posição considerada é a da rodada, não a do cadastro: o goleiro que foi
- * para a linha disputa os prêmios de linha, e quem assumiu o gol disputa o de
- * goleiro menos vazado.
+ * O Paredão continua sendo de quem esteve no gol, e a posição considerada é a
+ * da rodada, não a do cadastro: quem assumiu as traves na noite disputa o
+ * prêmio de goleiro, e o goleiro que foi para a linha, não.
  */
 export function awardCandidates(
   snapshot: Snapshot,
@@ -176,7 +136,6 @@ function buildCandidates(
   const registered = new Map(snapshot.players.map((player) => [player.id, player.position]))
   const rows = roundEntries(snapshot, roundId).filter((entry) => entry.team_id)
 
-  const teamOf = new Map(rows.map((entry) => [entry.player_id, entry.team_id]))
   const positionOf = new Map<string, PlayerPosition>(
     rows.map((entry) => [
       entry.player_id,
@@ -188,16 +147,11 @@ function buildCandidates(
     .map((entry) => stats.get(entry.player_id))
     .filter((entry): entry is PlayerStats => entry !== undefined && entry.played > 0)
 
-  const line = participants.filter((entry) => positionOf.get(entry.playerId) === 'linha')
   const keepers = participants.filter((entry) => positionOf.get(entry.playerId) === 'goleiro')
 
-  const outcome = roundOutcome(snapshot, roundId)
-  const fromTeam = (teamId: string | null) =>
-    teamId ? line.filter((entry) => teamOf.get(entry.playerId) === teamId) : []
-
   return {
-    jogador_rodada: outcome.draw ? line : fromTeam(outcome.winner),
-    pior_jogador: outcome.draw ? line : fromTeam(outcome.loser),
+    jogador_rodada: participants,
+    pior_jogador: participants,
     goleiro_menos_vazado: keepers,
   }
 }
@@ -212,6 +166,13 @@ function buildCandidates(
  * distinguem três gols de um gol com duas assistências, e o pódio distingue.
  * Em `tiebreak`, maior é sempre melhor para aquele prêmio — a direção já vem
  * embutida, para o comparador não precisar saber de qual prêmio se trata.
+ *
+ * `measures` diz de quem aquela estatística fala. Gol e assistência não medem
+ * quem passou a partida no gol: com o goleiro na mesma lista dos jogadores de
+ * linha, o seu zero de participações o deixaria em último no Craque e em
+ * primeiro no Bagre, todas as vezes, por fazer exatamente o que se espera de
+ * um goleiro. Para quem a estatística não alcança ela fica neutra, e sobra o
+ * voto — que é quem sabe se o goleiro salvou ou entregou a partida.
  */
 const METRIC: Record<
   AwardType,
@@ -219,17 +180,20 @@ const METRIC: Record<
     value: (stats: PlayerStats) => number
     higherIsBetter: boolean
     tiebreak: (stats: PlayerStats) => number
+    measures: (stats: PlayerStats) => boolean
   }
 > = {
   jogador_rodada: {
     value: (stats) => stats.participations,
     higherIsBetter: true,
     tiebreak: (stats) => stats.goals * 100 + stats.assists,
+    measures: (stats) => stats.keeperMatches === 0,
   },
   pior_jogador: {
     value: (stats) => stats.participations,
     higherIsBetter: false,
     tiebreak: (stats) => -(stats.goals * 100 + stats.assists),
+    measures: (stats) => stats.keeperMatches === 0,
   },
   goleiro_menos_vazado: {
     value: (stats) => stats.goalsAgainst,
@@ -237,6 +201,7 @@ const METRIC: Record<
     // Entre dois goleiros igualmente intransponíveis, leva quem ainda ajudou
     // do outro lado.
     tiebreak: (stats) => stats.participations,
+    measures: () => true,
   },
 }
 
@@ -311,10 +276,18 @@ export function tallyAward(snapshot: Snapshot, roundId: string, type: AwardType)
   if (pool.length === 0) return { entries: [], totalVotes: 0, winner: null }
 
   const eligible = new Set(pool.map((entry) => entry.playerId))
-  const counted = snapshot.votes.filter(
-    (vote) =>
-      vote.round_id === roundId && vote.type === type && eligible.has(vote.player_id),
-  )
+  /*
+   * Prêmio fora da cédula não tem voto a contar. A checagem não é só zelo com
+   * o futuro: rodadas encerradas antes de o Paredão sair da urna guardam
+   * votos nele, e contá-los agora seria decidir o prêmio por uma eleição que
+   * ninguém mais pode disputar nem desfazer.
+   */
+  const counted = BALLOT_TYPES.includes(type)
+    ? snapshot.votes.filter(
+        (vote) =>
+          vote.round_id === roundId && vote.type === type && eligible.has(vote.player_id),
+      )
+    : []
 
   const votesFor = new Map<string, number>()
   for (const vote of counted) {
@@ -322,13 +295,19 @@ export function tallyAward(snapshot: Snapshot, roundId: string, type: AwardType)
   }
 
   const metric = METRIC[type]
-  const scale = normalizer(pool.map(metric.value))
+  // A régua sai só de quem a estatística mede: o zero do goleiro no Craque
+  // esticaria a escala e rebaixaria todo o resto do time.
+  const scale = normalizer(pool.filter(metric.measures).map(metric.value))
 
   const entries: AwardTallyEntry[] = pool.map((stats) => {
     const votes = votesFor.get(stats.playerId) ?? 0
     const voteShare = counted.length > 0 ? votes / counted.length : 0
     const normalized = scale(metric.value(stats))
-    const statScore = metric.higherIsBetter ? normalized : 1 - normalized
+    const statScore = metric.measures(stats)
+      ? metric.higherIsBetter
+        ? normalized
+        : 1 - normalized
+      : 0.5
     return {
       playerId: stats.playerId,
       votes,
@@ -369,15 +348,17 @@ export function tallyAward(snapshot: Snapshot, roundId: string, type: AwardType)
   )
 
   /*
-   * Sem voto nenhum, e com todo mundo zerado na estatística, ninguém se
-   * destacou — nem para bem nem para mal. Sem esta guarda a Bagre da Rodada ia
-   * para o time perdedor inteiro numa derrota sem gols, e um prêmio que cabe
-   * em sete dos dez jogadores não diz nada sobre nenhum deles. Havendo voto,
-   * a patota decidiu, e o prêmio sai.
+   * Sem voto nenhum, e com a partida inteira zerada na estatística, ninguém se
+   * destacou — nem para bem nem para mal. É a partida 0 a 0, ou a decidida no
+   * gol contra: premiar ali seria sortear um nome, e um prêmio sorteado não
+   * diz nada de quem o levou. Havendo voto, a patota decidiu, e o prêmio sai.
+   *
+   * O Paredão fica de fora da guarda porque não depende de gol marcado: o
+   * goleiro que não sofreu nenhum é justamente o que se quer premiar.
    */
   const decidedByStatsAlone = counted.length === 0
   const noneStood =
-    type !== 'goleiro_menos_vazado' && Math.max(...pool.map((stats) => stats.participations)) === 0
+    BALLOT_TYPES.includes(type) && Math.max(...pool.map((stats) => stats.participations)) === 0
   if (decidedByStatsAlone && noneStood) {
     return { entries, totalVotes: 0, winner: null }
   }
