@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   AWARD_TYPES,
-  BALLOT_TYPES,
   awardCandidates,
   canVote,
   tallyAward,
@@ -23,16 +22,12 @@ import { IconChevronRight } from './icons'
 import { Card, EmptyState, ListGroup, Note, SectionHeader } from './ui'
 
 /*
- * Cada prêmio tem a sua figura e a sua chamada. As figuras trazem cor
+ * Cada prêmio tem a sua figura e a sua pergunta. As figuras trazem cor
  * própria — não há tom a aplicar aqui, ao contrário dos ícones de comando.
- *
- * Os dois da cédula perguntam; o Paredão, que não se vota, explica de onde
- * sai — senão a tela mostraria uma lista de nomes sem dizer por que ninguém
- * pode tocar nela.
  */
 const STYLES: Record<AwardType, { Art: typeof AwardGlove; ask: string }> = {
   jogador_rodada: { Art: AwardGoldenBall, ask: 'Quem foi o craque?' },
-  goleiro_menos_vazado: { Art: AwardGlove, ask: 'Sem votação: leva quem sofreu menos gols.' },
+  goleiro_menos_vazado: { Art: AwardGlove, ask: 'Quem fechou o gol?' },
   pior_jogador: { Art: AwardCatfish, ask: 'Quem foi o Bagre da Rodada?' },
 }
 
@@ -123,7 +118,7 @@ export function AwardsCard({
      * toques de distância entre a chamada e a cédula.
      */
     if (open) {
-      const mine = BALLOT_TYPES.filter((type) => myVotes[type]).length
+      const mine = AWARD_TYPES.filter((type) => myVotes[type]).length
       return (
         <ListGroup>
           <Link
@@ -140,9 +135,9 @@ export function AwardsCard({
                   ? `${turnout.voted} de ${turnout.total} já ${turnout.voted === 1 ? 'votou' : 'votaram'}. Toque para acompanhar.`
                   : mine === 0
                     ? 'Você ainda não votou. Toque para escolher.'
-                    : mine === BALLOT_TYPES.length
+                    : mine === AWARD_TYPES.length
                       ? 'Você já votou. Toque para rever ou trocar.'
-                      : `Você votou em ${mine} de ${BALLOT_TYPES.length}. Toque para completar.`}
+                      : `Você votou em ${mine} de ${AWARD_TYPES.length}. Toque para completar.`}
               </span>
             </span>
             {/* 14 pixels, como no chevron das listas: abaixo disso o traço
@@ -241,9 +236,6 @@ export function AwardsCard({
         const tally = tallyAward(snapshot, roundId, type)
         const pool = candidates[type]
         const winners = winnersOf(type)
-        // O Paredão continua aparecendo — só não se vota nele.
-        const votable = BALLOT_TYPES.includes(type)
-        const statsById = new Map(pool.map((stats) => [stats.playerId, stats]))
 
         return (
           <section key={type}>
@@ -252,7 +244,7 @@ export function AwardsCard({
               <div className="flex items-center gap-3 px-4 py-3">
                 <Art className="size-9 shrink-0" />
                 <p className="text-subhead text-muted">
-                  {!votable || (open && eligible) ? ask : plural(tally.totalVotes, 'voto')}
+                  {open && eligible ? ask : plural(tally.totalVotes, 'voto')}
                 </p>
               </div>
 
@@ -274,14 +266,10 @@ export function AwardsCard({
                      * de simplesmente não responder ao toque.
                      */
                     const self = currentPlayer?.id === entry.playerId
-                    const canPick = open && eligible && votable && !self && !busy
-                    const detail = votable
-                      ? `${plural(entry.votes, 'voto')}${!open ? ` · nota ${Math.round(entry.score * 100)}` : ''}`
-                      : plural(
-                          statsById.get(entry.playerId)?.goalsAgainst ?? 0,
-                          'gol sofrido',
-                          'gols sofridos',
-                        )
+                    const canPick = open && eligible && !self && !busy
+                    const detail = `${plural(entry.votes, 'voto')}${
+                      !open ? ` · nota ${Math.round(entry.score * 100)}` : ''
+                    }`
 
                     const body = (
                       <>
@@ -298,7 +286,7 @@ export function AwardsCard({
                             Meu voto
                           </span>
                         )}
-                        {self && open && eligible && votable && (
+                        {self && open && eligible && (
                           <span className="shrink-0 text-caption2 text-faint uppercase">Você</span>
                         )}
                       </>

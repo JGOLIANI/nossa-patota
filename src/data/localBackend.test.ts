@@ -223,14 +223,6 @@ describe('a urna do modo demonstração', () => {
     expect((await backend.fetchAll()).votes.some((vote) => vote.voter_id === voter.id)).toBe(false)
   })
 
-  it('recusa o voto no prêmio que saiu da cédula', async () => {
-    const { round, voter, other } = await ballot()
-    await backend.signIn(voter.username, '')
-
-    await expect(
-      backend.castVote(round.id, 'goleiro_menos_vazado', other.id),
-    ).rejects.toThrow('Este prêmio não vai à votação.')
-  })
 
   it('aceita o voto em quem jogou, e a recusa não derruba o que já estava lá', async () => {
     const { round, voter, other } = await ballot()

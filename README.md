@@ -132,33 +132,33 @@ No celular abre direto o menu de compartilhar; no computador, baixa o arquivo.
 
 ### Premiações da partida
 
-Craque e Bagre são **votados**. Encerrar a partida não decide nada: abre uma
+Os **três** prêmios são votados. Encerrar a partida não decide nada: abre uma
 urna de **16 horas** para quem foi escalado — quem estava em quadra é quem viu
 o jogo, e ninguém vota em si mesmo. Dezesseis horas cobrem a noite e a manhã
 seguinte, então quem jogou na sexta à noite ainda vota no sábado. Enquanto a
 urna está aberta, o cartão de Destaques da tela de início é o botão que leva
 direto à cédula.
 
-| Prêmio | Quem disputa | Como sai | Estatística que pesa |
-| --- | --- | --- | --- |
-| Craque da Partida | **Quem jogou a partida** | Votação | Mais participações em gols |
-| Bagre da Rodada | **Quem jogou a partida** | Votação | Menos participações em gols |
-| Paredão | Quem jogou no gol | Estatística | Menos gols sofridos |
+| Prêmio | Quem disputa | Estatística que pesa |
+| --- | --- | --- |
+| Craque da Partida | **Quem jogou a partida** | Mais participações em gols |
+| Bagre da Rodada | **Quem jogou a partida** | Menos participações em gols |
+| Paredão | Quem jogou no gol | Menos gols sofridos |
 
-Os dois prêmios votados concorrem entre todos que entraram em quadra, dos dois
-times e das duas posições. Antes cada um ficava preso a um lado do placar — o
-Craque só entre os vencedores, o Bagre só entre os derrotados —, e isso já
-decidia metade do prêmio antes de a patota abrir a boca: quem carregou o time e
-perdeu não podia ser craque, e quem passou a partida escondido no time que
-ganhou não podia ser bagre. Quem viu o jogo sabe distinguir as duas coisas.
+Craque e Bagre concorrem entre todos que entraram em quadra, dos dois times e
+das duas posições. Antes cada um ficava preso a um lado do placar — o Craque só
+entre os vencedores, o Bagre só entre os derrotados —, e isso já decidia metade
+do prêmio antes de a patota abrir a boca: quem carregou o time e perdeu não
+podia ser craque, e quem passou a partida escondido no time que ganhou não podia
+ser bagre. Quem viu o jogo sabe distinguir as duas coisas.
 
-O **Paredão não vai à urna**: gol sofrido é número, não opinião. Quem foi menos
-vazado está no placar, e votar nisso só acrescentaria popularidade a um dado
-que já se mede sozinho. Ele continua saindo em toda partida, apurado pela
-estatística.
+O **Paredão** disputa entre quem esteve no gol, mas quem vota é a patota
+inteira — não só os goleiros. Gol sofrido conta a metade fácil da história: a
+defesa que salvou a partida e o frango que ninguém esquece não aparecem no
+número, e quem estava lá viu os dois.
 
-A nota de cada candidato votado é **70% da fatia de votos** que recebeu e **30%
-da estatística** do prêmio, normalizada entre os candidatos. Quem estava lá viu
+A nota de cada candidato é **70% da fatia de votos** que recebeu e **30% da
+estatística** do prêmio, normalizada entre os candidatos. Quem estava lá viu
 coisas que o placar não registra — a defesa na linha, o passe que ninguém
 converteu —, mas voto sozinho vira popularidade.
 
