@@ -43,7 +43,7 @@ import {
   teamPlayers,
 } from '../domain/selectors'
 import { computeStats } from '../domain/stats'
-import { formatDate, formatWeekday, timeLeft } from '../lib/format'
+import { formatDate, formatWeekday, plural, timeLeft } from '../lib/format'
 import { mapsUrl } from '../lib/maps'
 import { playerCaption } from '../lib/player'
 import { useApp } from '../store/useApp'
@@ -313,8 +313,8 @@ export function RoundDetailPage() {
                             to={`/jogadores/${player.id}`}
                             subtitle={
                               playing === 'goleiro'
-                                ? `No gol · ${entry?.goalsAgainst ?? 0} sofridos`
-                                : `Na linha · ${entry?.goals ?? 0} gols · ${entry?.assists ?? 0} assist.`
+                                ? `No gol · ${plural(entry?.goalsAgainst ?? 0, 'sofrido')}`
+                                : `Na linha · ${plural(entry?.goals ?? 0, 'gol')} · ${entry?.assists ?? 0} assist.`
                             }
                             trailing={
                               isAdmin && !closed ? (
