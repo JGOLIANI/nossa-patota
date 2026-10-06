@@ -1,28 +1,65 @@
-name: CI
-
+name: Flutter CI
 on:
   push:
     branches-ignore: [main]
   pull_request:
-
 jobs:
   verificar:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.6'
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: dart format --output=none --set-exit-if-changed lib test tool
+      - run: flutter analyze
+      - run: flutter test
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: npm
-
-      - run: npm ci
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Testes
-        run: npm test
-
-      - name: Build
-        run: npm run build
+          node-version: '22'
+      - run: npm ci --prefix tool/db --ignore-scripts
+      - run: npm test --prefix tool/db
+      - run: dart run tool/verify_web_parity.dart
+      - run: flutter build web --release --no-web-resources-cdn
+      - run: dart run tool/prepare_web.dart
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flutter-web
+          path: build/web
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.6'
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter build apk --debug --dart-define=APP_ENV=dev
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-demo-debug
+          path: build/app/outputs/flutter-apk/app-debug.apk
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.6'
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter build ios --simulator --debug --dart-define=APP_ENV=dev
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-demo-simulator
+          path: build/ios/iphonesimulator/Runner.app

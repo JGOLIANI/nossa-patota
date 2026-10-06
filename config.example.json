@@ -1,0 +1,6 @@
+{
+  "APP_ENV": "homolog",
+  "SUPABASE_URL": "https://SEU-PROJETO-HOMOLOG.supabase.co",
+  "SUPABASE_PUBLISHABLE_KEY": "SUA-CHAVE-PUBLICA",
+  "AUTH_REDIRECT_URL": "br.com.nossapatota://auth-callback/"
+}

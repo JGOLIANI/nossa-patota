@@ -1,8 +1,8 @@
 -- =============================================================================
 -- Nossa Patota — schema completo do Supabase
 -- =============================================================================
--- REFERÊNCIA LEGADA. Não executar no backend novo nem após as migrações mobile.
--- Instalação e upgrade usam supabase/migrations e docs/fases-0-2.md.
+-- Cole este arquivo inteiro no SQL Editor do seu projeto Supabase e execute.
+-- Pode ser executado novamente sem problemas: tudo é idempotente.
 --
 -- Depois de rodar, faça o primeiro acesso no aplicativo com o usuário "admin"
 -- (a linha é criada no final deste arquivo) escolhendo a senha que quiser.

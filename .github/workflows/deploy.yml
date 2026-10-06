@@ -1,64 +1,48 @@
-name: Deploy
-
-# Publica o PWA no GitHub Pages a cada push na branch principal.
-# Habilite antes: Settings → Pages → Source: "GitHub Actions".
+name: Deploy Flutter Web
 on:
   push:
     branches: [main]
   workflow_dispatch:
-
 permissions:
   contents: read
   pages: write
   id-token: write
-
-# Um deploy por vez; não cancela o que já está no ar.
 concurrency:
   group: pages
   cancel-in-progress: false
-
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - uses: subosito/flutter-action@v2
         with:
-          node-version: 22
-          cache: npm
-
-      - run: npm ci
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Testes
-        run: npm test
-
-      # Sem credenciais o build termina bem e publica um aplicativo em modo
-      # demonstração — falha silenciosa que só aparece para quem abre o site.
-      - name: Conferir credenciais
+          flutter-version: '3.47.6'
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      - run: dart run tool/verify_web_parity.dart
+      - name: Conferir configuração e compilar
         env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY }}
           ALLOW_DEMO_BUILD: ${{ vars.ALLOW_DEMO_BUILD }}
-        run: node scripts/check-credentials.mjs
-
-      - name: Build
-        env:
-          # Em GitHub Pages o site fica em /<nome-do-repositorio>/.
-          VITE_BASE: /${{ github.event.repository.name }}/
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-        run: npm run build
-
+        shell: bash
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            if [ "$ALLOW_DEMO_BUILD" != "true" ] || [ -n "$SUPABASE_URL$SUPABASE_ANON_KEY" ]; then
+              echo 'Configure SUPABASE_URL e SUPABASE_ANON_KEY (os secrets VITE anteriores também são aceitos).'
+              exit 1
+            fi
+          fi
+          flutter build web --release --no-web-resources-cdn --base-href "/${{ github.event.repository.name }}/" --dart-define="SUPABASE_URL=$SUPABASE_URL" --dart-define="SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY"
+          dart run tool/prepare_web.dart
       - uses: actions/configure-pages@v5
-
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
-
+          path: build/web
   deploy:
     needs: build
     runs-on: ubuntu-latest
