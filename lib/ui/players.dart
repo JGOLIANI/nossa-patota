@@ -41,13 +41,13 @@ class _PlayersState extends State<PlayersPage> {
             .toList()
           ..sort((a, b) => a.name.compareTo(b.name));
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(PatotaSpace.lg),
       children: [
         CupertinoSearchTextField(
           placeholder: 'Buscar jogador',
           onChanged: (v) => setState(() => query = v),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: PatotaSpace.md),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
@@ -60,7 +60,7 @@ class _PlayersState extends State<PlayersPage> {
                 'inativos': 'Inativos',
               }.entries)
                 Padding(
-                  padding: const EdgeInsets.only(right: 6),
+                  padding: const EdgeInsets.only(right: PatotaSpace.sm),
                   child: ChoiceChip(
                     label: Text(filter.value),
                     selected: status == filter.key,
@@ -71,9 +71,24 @@ class _PlayersState extends State<PlayersPage> {
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: PatotaSpace.lg),
         if (players.isEmpty)
-          const Panel(child: Text('Nenhum jogador encontrado.')),
+          AppEmptyState(
+            icon: Icons.groups_rounded,
+            title: query.isEmpty
+                ? 'O elenco começa aqui'
+                : 'Quem você procura?',
+            message: query.isEmpty
+                ? 'Adicione os jogadores da turma para preparar a próxima partida.'
+                : 'Tente outro nome ou selecione um filtro diferente.',
+            action: query.isEmpty && s.isAdmin
+                ? PrimaryButton(
+                    label: 'Adicionar jogador',
+                    icon: Icons.person_add_rounded,
+                    onPressed: () => openPage(context, PlayerForm(s)),
+                  )
+                : null,
+          ),
         if (players.isNotEmpty)
           Card(
             clipBehavior: Clip.antiAlias,
@@ -81,14 +96,21 @@ class _PlayersState extends State<PlayersPage> {
               children: [
                 for (final p in players) ...[
                   ListTile(
-                    leading: PlayerAvatar(p),
-                    title: Text(p.name),
+                    leading: SizedBox(
+                      width: 48,
+                      height: 48,
+                      child: PlayerAvatar(p),
+                    ),
+                    title: Text(
+                      p.name,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
                     subtitle: Text(
                       (s.stats[p.id]?.played ?? 0) > 0
                           ? '${s.stats[p.id]!.played} jogos · ${s.stats[p.id]!.goals} gols · ${s.stats[p.id]!.assists} assist.'
                           : '${p.position} · ${p.type} · sem partidas',
                     ),
-                    trailing: const Icon(Icons.chevron_right),
+                    trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () => openPage(context, PlayerDetail(s, p.id)),
                   ),
                   if (p != players.last) const Divider(indent: 72),
@@ -147,14 +169,16 @@ class _PlayerFormState extends State<PlayerForm> {
       return Form(
         key: form,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(PatotaSpace.lg),
           children: [
+            const Heading('Quem é o jogador?'),
             field('Nome completo', name),
             field('Nome de usuário', username),
             choice('Tipo', type, [
               'mensalista',
               'visitante',
             ], (v) => setState(() => type = v)),
+            const Heading('Como joga?'),
             choice('Posição', position, [
               'linha',
               'goleiro',
@@ -178,10 +202,13 @@ class _PlayerFormState extends State<PlayerForm> {
               onChanged: (v) => setState(() => level = v.round()),
             ),
             const Text(
-              'O jogador cria o próprio acesso usando este nome de usuário.',
+              'O nível informado ajuda a equilibrar os times. Ele não altera as estatísticas das partidas.',
             ),
-            const SizedBox(height: 16),
-            FilledButton(
+            const SizedBox(height: PatotaSpace.lg),
+            PrimaryButton(
+              label: 'Salvar jogador',
+              icon: Icons.check_rounded,
+              loading: busy,
               onPressed: busy
                   ? null
                   : () async {
@@ -226,13 +253,13 @@ class _PlayerFormState extends State<PlayerForm> {
                             );
                           }
                         }, admin: true),
+                        successMessage: 'Jogador salvo',
                       );
                       if (mounted) {
                         setState(() => busy = false);
                         if (ok && context.mounted) Navigator.pop(context);
                       }
                     },
-              child: const Text('Salvar jogador'),
             ),
           ],
         ),
@@ -243,48 +270,120 @@ class _PlayerFormState extends State<PlayerForm> {
 
 Widget statistics(BuildContext context, AppStore store, Player p) {
   final stats = store.stats[p.id] ?? PlayerStats(p.id, []);
-  final metrics = <String, String>{
-    'Partidas': '${stats.played}',
-    'Gols': '${stats.goals}',
-    'Assistências': '${stats.assists}',
-    'Vitórias': '${stats.wins}',
-    'Empates': '${stats.draws}',
-    'Derrotas': '${stats.losses}',
-    'Aproveitamento': '${stats.pointsPct.toStringAsFixed(1)}%',
+  final metrics = <({String label, String value, IconData icon, Color color})>[
+    (
+      label: 'Partidas',
+      value: '${stats.played}',
+      icon: Icons.sports_soccer_rounded,
+      color: PatotaColors.primary,
+    ),
+    (
+      label: 'Gols',
+      value: '${stats.goals}',
+      icon: Icons.sports_soccer_rounded,
+      color: PatotaColors.primary,
+    ),
+    (
+      label: 'Assistências',
+      value: '${stats.assists}',
+      icon: Icons.assistant_rounded,
+      color: PatotaColors.info,
+    ),
+    (
+      label: 'Vitórias',
+      value: '${stats.wins}',
+      icon: Icons.emoji_events_rounded,
+      color: PatotaColors.primary,
+    ),
+    (
+      label: 'Empates',
+      value: '${stats.draws}',
+      icon: Icons.balance_rounded,
+      color: PatotaColors.info,
+    ),
+    (
+      label: 'Derrotas',
+      value: '${stats.losses}',
+      icon: Icons.flag_rounded,
+      color: PatotaColors.error,
+    ),
     if (stats.keeperMatches > 0)
-      'Gols sofridos / jogo': stats.goalsAgainstPerMatch.toStringAsFixed(2),
-  };
-  return Wrap(
-    spacing: 12,
-    runSpacing: 12,
-    children: metrics.entries
-        .map(
-          (e) => SizedBox(
-            width: 140,
-            child: Panel(
-              child: Column(
-                children: [
-                  Text(
-                    e.value,
-                    style: const TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w700,
-                    ),
+      (
+        label: 'Gols sofridos / jogo',
+        value: stats.goalsAgainstPerMatch.toStringAsFixed(2),
+        icon: Icons.sports_handball_rounded,
+        color: PatotaColors.info,
+      ),
+  ];
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      const Heading('História em números'),
+      LayoutBuilder(
+        builder: (context, constraints) {
+          final columns = constraints.maxWidth >= 460 ? 3 : 2;
+          final width =
+              (constraints.maxWidth - PatotaSpace.md * (columns - 1)) / columns;
+          return Wrap(
+            spacing: PatotaSpace.md,
+            runSpacing: PatotaSpace.md,
+            children: [
+              for (final metric in metrics)
+                SizedBox(
+                  width: width,
+                  child: StatCard(
+                    label: metric.label,
+                    value: metric.value,
+                    icon: metric.icon,
+                    color: metric.color,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    e.key,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        )
-        .toList(),
+                ),
+            ],
+          );
+        },
+      ),
+      const SizedBox(height: PatotaSpace.lg),
+      Panel(
+        child: ProgressTrack(
+          value: stats.pointsPct / 100,
+          label: 'Aproveitamento: ${stats.pointsPct.toStringAsFixed(1)}%',
+          detail: stats.played == 0
+              ? 'Sua evolução aparece depois da primeira partida encerrada.'
+              : '${stats.points} de ${stats.played * 3} pontos possíveis · ${stats.played} partidas',
+        ),
+      ),
+    ],
   );
 }
+
+Widget playerHero(BuildContext context, Player p) => Panel(
+  child: Column(
+    children: [
+      SizedBox(width: 80, height: 80, child: PlayerAvatar(p)),
+      const SizedBox(height: PatotaSpace.md),
+      Text(
+        p.name,
+        textAlign: TextAlign.center,
+        style: Theme.of(context).textTheme.headlineSmall,
+      ),
+      const SizedBox(height: PatotaSpace.xs),
+      Text('@${p.username}', style: Theme.of(context).textTheme.bodySmall),
+      const SizedBox(height: PatotaSpace.md),
+      Wrap(
+        alignment: WrapAlignment.center,
+        spacing: PatotaSpace.sm,
+        runSpacing: PatotaSpace.sm,
+        children: [
+          IosBadge(p.position == 'goleiro' ? 'Goleiro' : 'Jogador de linha'),
+          IosBadge('Pé ${p.foot}'),
+          IosBadge(p.type == 'mensalista' ? 'Mensalista' : 'Visitante'),
+          if (p.status == 'inativo')
+            IosBadge('Inativo', color: PatotaColors.error),
+        ],
+      ),
+    ],
+  ),
+);
 
 class PlayerDetail extends StatelessWidget {
   const PlayerDetail(this.store, this.id, {super.key});
@@ -301,31 +400,34 @@ class PlayerDetail extends StatelessWidget {
       }
       final logs = (computeLogs(store.snapshot)[id] ?? []).reversed;
       return ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(PatotaSpace.lg),
         children: [
-          Panel(
-            child: ListTile(
-              leading: PlayerAvatar(p),
-              title: Text(p.name),
-              subtitle: Text(
-                '@${p.username}\n${p.position} • ${p.type} • pé ${p.foot}',
-              ),
-            ),
-          ),
+          playerHero(context, p),
           statistics(context, store, p),
-          const Heading('Prêmios'),
+          const Heading('Destaques conquistados'),
           for (final type in awardLabels.keys)
-            ListTile(
-              title: Text(awardLabels[type]!),
-              trailing: Text(
-                '${store.snapshot.awards.where((a) => a.playerId == id && a.type == type).length}',
+            Panel(
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  type == 'goleiro_menos_vazado'
+                      ? Icons.sports_handball_rounded
+                      : Icons.emoji_events_rounded,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                title: Text(awardLabels[type]!),
+                subtitle: const Text('Prêmios de partidas apuradas'),
+                trailing: Text(
+                  '${store.snapshot.awards.where((a) => a.playerId == id && a.type == type).length}',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
               ),
             ),
           if (store.isAdmin) ...[
-            FilledButton.icon(
+            PrimaryButton(
+              label: 'Editar jogador',
               onPressed: () => openPage(context, PlayerForm(store, player: p)),
-              icon: const Icon(Icons.edit),
-              label: const Text('Editar jogador'),
+              icon: Icons.edit_rounded,
             ),
             if (p.userId != null && p.id != store.current?.id)
               const Panel(
@@ -335,6 +437,9 @@ class PlayerDetail extends StatelessWidget {
               ),
             if (p.id != store.current?.id)
               TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.error,
+                ),
                 onPressed: store.busy
                     ? null
                     : () async {
@@ -359,12 +464,27 @@ class PlayerDetail extends StatelessWidget {
           ],
           const Heading('Histórico'),
           if (logs.isEmpty)
-            const Panel(child: Text('Nenhuma partida encerrada.')),
+            const AppEmptyState(
+              icon: Icons.sports_soccer_rounded,
+              title: 'A história está começando',
+              message:
+                  'As partidas encerradas vão aparecer aqui, com gols, assistências e resultados.',
+            ),
           for (final log in logs)
             Panel(
               child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: IosBadge(
+                  {'V': 'Vitória', 'E': 'Empate', 'D': 'Derrota'}[log.result] ??
+                      log.result,
+                  color: log.result == 'V'
+                      ? PatotaColors.primary
+                      : log.result == 'D'
+                      ? PatotaColors.error
+                      : PatotaColors.info,
+                ),
                 title: Text(
-                  '${prettyDate(log.date)} • ${log.result} • ${log.scoreFor} × ${log.scoreAgainst}',
+                  '${prettyDate(log.date)} · ${log.scoreFor} × ${log.scoreAgainst}',
                 ),
                 subtitle: Text(
                   '${log.goals} gols • ${log.assists} assistências • ${log.position}',
@@ -384,22 +504,15 @@ class ProfilePage extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = store.current;
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.fromLTRB(
+        PatotaSpace.lg,
+        PatotaSpace.lg,
+        PatotaSpace.lg,
+        PatotaSpace.touch +
+            PatotaSpace.lg +
+            MediaQuery.viewPaddingOf(context).bottom,
+      ),
       children: [
-        ListTile(
-          title: Text(store.snapshot.patota?.name ?? 'Sua patota'),
-          subtitle: const Text('Criar, entrar ou trocar de patota'),
-          trailing: const Icon(Icons.groups),
-          onTap: () => openPage(context, PatotasPage(store)),
-        ),
-        ListTile(
-          title: const Text('E-mail da conta'),
-          subtitle: Text(
-            store.backend.accountEmail ?? 'Vincule um e-mail real',
-          ),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => openPage(context, AccountEmailPage(store)),
-        ),
         if (p == null)
           const Panel(
             child: Text(
@@ -407,14 +520,14 @@ class ProfilePage extends StatelessWidget {
             ),
           ),
         if (p != null) ...[
-          Panel(
-            child: ListTile(
-              leading: PlayerAvatar(p),
-              title: Text(p.name),
-              subtitle: Text('@${p.username} • ${p.role}'),
-            ),
+          playerHero(context, p),
+          PrimaryButton(
+            label: 'Minha ficha e histórico',
+            icon: Icons.history_rounded,
+            onPressed: () => openPage(context, PlayerDetail(store, p.id)),
           ),
           statistics(context, store, p),
+          const Heading('Seu perfil'),
           OutlinedButton.icon(
             onPressed: store.busy
                 ? null
@@ -443,7 +556,7 @@ class ProfilePage extends StatelessWidget {
                       });
                     });
                   }),
-            icon: const Icon(Icons.camera_alt),
+            icon: const Icon(Icons.camera_alt_rounded),
             label: const Text('Alterar foto'),
           ),
           if (p.photo != null)
@@ -462,15 +575,38 @@ class ProfilePage extends StatelessWidget {
             onPressed: () => openPage(context, PasswordPage(store)),
             child: const Text('Trocar senha'),
           ),
-          OutlinedButton(
-            onPressed: () => openPage(context, PlayerDetail(store, p.id)),
-            child: const Text('Minha ficha e histórico'),
-          ),
         ],
+        const Heading('Conta e patota'),
+        Panel(
+          child: Column(
+            children: [
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.groups_rounded),
+                title: Text(store.snapshot.patota?.name ?? 'Sua patota'),
+                subtitle: const Text('Criar, entrar ou trocar de patota'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => openPage(context, PatotasPage(store)),
+              ),
+              const Divider(),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.email_rounded),
+                title: const Text('E-mail da conta'),
+                subtitle: Text(
+                  store.backend.accountEmail ?? 'Vincule um e-mail real',
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => openPage(context, AccountEmailPage(store)),
+              ),
+            ],
+          ),
+        ),
         if (store.isAdmin)
-          FilledButton(
+          OutlinedButton.icon(
             onPressed: () => openPage(context, AdminPage(store)),
-            child: const Text('Administração'),
+            icon: const Icon(Icons.admin_panel_settings_rounded),
+            label: const Text('Administração'),
           ),
         if (store.backend.demo)
           const Panel(

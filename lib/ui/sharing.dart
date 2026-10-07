@@ -77,109 +77,154 @@ class _ShareState extends State<SharePage> {
         );
       }
       final message = shareMessage(s, r, widget.result);
-      return ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          RepaintBoundary(
-            key: boundary,
-            child: Container(
-              color: const Color(0xfff1f3f5),
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Text(
-                    'NOSSA PATOTA',
-                    style: TextStyle(
-                      color: brand,
-                      fontSize: 30,
-                      fontWeight: FontWeight.w900,
-                    ),
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(PatotaSpace.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            RepaintBoundary(
+              key: boundary,
+              child: MediaQuery.withNoTextScaling(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: PatotaColors.background,
+                    borderRadius: BorderRadius.circular(PatotaRadius.card),
+                    border: Border.all(color: PatotaColors.primary, width: 2),
                   ),
-                  if (widget.result)
-                    for (final m in s.matches.where((m) => m.roundId == r.id))
+                  padding: const EdgeInsets.all(PatotaSpace.lg),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.sports_soccer_rounded,
+                            color: PatotaColors.primary,
+                            size: 28,
+                          ),
+                          const SizedBox(width: PatotaSpace.sm),
+                          Expanded(
+                            child: Text(
+                              (s.patota?.name ?? 'Nossa Patota').toUpperCase(),
+                              style: const TextStyle(
+                                color: PatotaColors.primary,
+                                fontSize: 24,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: PatotaSpace.lg),
+                      if (widget.result)
+                        for (final m in s.matches.where(
+                          (m) => m.roundId == r.id,
+                        ))
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              bottom: PatotaSpace.lg,
+                            ),
+                            child: Theme(
+                              data: appTheme(Brightness.light),
+                              child: Scoreboard(
+                                teamA: s.team(m.teamA),
+                                teamB: s.team(m.teamB),
+                                scoreA: m.scoreA,
+                                scoreB: m.scoreB,
+                              ),
+                            ),
+                          ),
                       Text(
-                        '${m.scoreA} × ${m.scoreB}',
-                        textAlign: TextAlign.center,
+                        message,
                         style: const TextStyle(
-                          color: Color(0xff101418),
-                          fontSize: 84,
-                          fontWeight: FontWeight.w900,
+                          color: PatotaColors.textPrimary,
+                          fontSize: 16,
+                          height: 1.5,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                  Text(
-                    message,
-                    style: const TextStyle(
-                      color: Color(0xff101418),
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: busy
-                ? null
-                : () async {
-                    setState(() => busy = true);
-                    await perform(context, () async {
-                      await WidgetsBinding.instance.endOfFrame;
-                      final render =
-                          boundary.currentContext?.findRenderObject()
-                              as RenderRepaintBoundary?;
-                      if (render == null) {
-                        throw Exception('Aguarde o cartão carregar.');
-                      }
-                      final image = await render.toImage(pixelRatio: 2);
-                      final bytes = await image.toByteData(
-                        format: ui.ImageByteFormat.png,
-                      );
-                      image.dispose();
-                      if (bytes == null) {
-                        throw Exception('Não foi possível gerar a imagem.');
-                      }
-                      if (!context.mounted) return;
+            const SizedBox(height: PatotaSpace.lg),
+            ExpansionTile(
+              title: const Text('Ver mensagem em texto'),
+              leading: const Icon(Icons.article_rounded),
+              childrenPadding: const EdgeInsets.all(PatotaSpace.lg),
+              children: [
+                Align(alignment: Alignment.centerLeft, child: Text(message)),
+              ],
+            ),
+            const SizedBox(height: PatotaSpace.lg),
+            PrimaryButton(
+              loading: busy,
+              onPressed: busy
+                  ? null
+                  : () async {
+                      setState(() => busy = true);
+                      await perform(context, () async {
+                        await WidgetsBinding.instance.endOfFrame;
+                        final render =
+                            boundary.currentContext?.findRenderObject()
+                                as RenderRepaintBoundary?;
+                        if (render == null) {
+                          throw Exception('Aguarde o cartão carregar.');
+                        }
+                        final image = await render.toImage(pixelRatio: 2);
+                        final bytes = await image.toByteData(
+                          format: ui.ImageByteFormat.png,
+                        );
+                        image.dispose();
+                        if (bytes == null) {
+                          throw Exception('Não foi possível gerar a imagem.');
+                        }
+                        if (!context.mounted) return;
+                        final box = context.findRenderObject() as RenderBox?;
+                        await SharePlus.instance.share(
+                          ShareParams(
+                            text: message,
+                            files: [
+                              XFile.fromData(
+                                bytes.buffer.asUint8List(),
+                                mimeType: 'image/png',
+                                name: 'patota.png',
+                              ),
+                            ],
+                            fileNameOverrides: ['patota.png'],
+                            sharePositionOrigin: box == null
+                                ? null
+                                : box.localToGlobal(Offset.zero) & box.size,
+                          ),
+                        );
+                      });
+                      if (mounted) setState(() => busy = false);
+                    },
+              icon: Icons.share_rounded,
+              label: 'Compartilhar imagem e mensagem',
+            ),
+            OutlinedButton(
+              onPressed: busy
+                  ? null
+                  : () => perform(context, () async {
                       final box = context.findRenderObject() as RenderBox?;
                       await SharePlus.instance.share(
                         ShareParams(
                           text: message,
-                          files: [
-                            XFile.fromData(
-                              bytes.buffer.asUint8List(),
-                              mimeType: 'image/png',
-                              name: 'patota.png',
-                            ),
-                          ],
-                          fileNameOverrides: ['patota.png'],
                           sharePositionOrigin: box == null
                               ? null
                               : box.localToGlobal(Offset.zero) & box.size,
                         ),
                       );
-                    });
-                    if (mounted) setState(() => busy = false);
-                  },
-            icon: const Icon(Icons.share),
-            label: const Text('Compartilhar imagem e mensagem'),
-          ),
-          OutlinedButton(
-            onPressed: () => perform(context, () async {
-              final box = context.findRenderObject() as RenderBox?;
-              await SharePlus.instance.share(
-                ShareParams(
-                  text: message,
-                  sharePositionOrigin: box == null
-                      ? null
-                      : box.localToGlobal(Offset.zero) & box.size,
-                ),
-              );
-            }),
-            child: const Text('Compartilhar só a mensagem'),
-          ),
-        ],
+                    }),
+              child: const Text(
+                'Compartilhar só a mensagem',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ),
       );
     },
   );

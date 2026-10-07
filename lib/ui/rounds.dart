@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../domain.dart';
@@ -16,75 +15,44 @@ class RoundsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final rounds = [...store.snapshot.rounds]
       ..sort((a, b) => b.date.compareTo(a.date));
+    final upcoming =
+        rounds
+            .where((r) => !['encerrada', 'cancelada'].contains(r.status))
+            .toList()
+          ..sort((a, b) {
+            if (a.status == 'em_andamento' && b.status != 'em_andamento') {
+              return -1;
+            }
+            if (b.status == 'em_andamento' && a.status != 'em_andamento') {
+              return 1;
+            }
+            return '${a.date} ${a.time}'.compareTo('${b.date} ${b.time}');
+          });
+    final history = rounds.where(
+      (r) => ['encerrada', 'cancelada'].contains(r.status),
+    );
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(PatotaSpace.lg),
       children: [
         if (rounds.isEmpty)
-          const Panel(child: Text('Nenhuma partida marcada.')),
-        if (rounds.isNotEmpty)
-          Card(
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              children: [
-                for (final r in rounds) ...[
-                  ListTile(
-                    onTap: () => openPage(context, RoundDetail(store, r.id)),
-                    leading: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).scaffoldBackgroundColor,
-                        borderRadius: BorderRadius.circular(13),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            r.date.substring(8, 10),
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          Text(
-                            const [
-                              'JAN',
-                              'FEV',
-                              'MAR',
-                              'ABR',
-                              'MAI',
-                              'JUN',
-                              'JUL',
-                              'AGO',
-                              'SET',
-                              'OUT',
-                              'NOV',
-                              'DEZ',
-                            ][int.parse(r.date.substring(5, 7)) - 1],
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
-                      ),
-                    ),
-                    title: Text(r.title),
-                    subtitle: Text(
-                      '${store.snapshot.entries(r.id).length} jogadores · ${prettyDate(r.date)}',
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (r.status != 'encerrada')
-                          IosBadge(statusLabel(r.status)),
-                        const SizedBox(width: 8),
-                        const Icon(CupertinoIcons.chevron_right, size: 14),
-                      ],
-                    ),
-                  ),
-                  if (r != rounds.last) const Divider(indent: 72),
-                ],
-              ],
-            ),
+          AppEmptyState(
+            icon: Icons.sports_soccer_rounded,
+            title: 'Ainda não tem jogo por aqui',
+            message: store.isAdmin
+                ? 'Marque a primeira partida e comece a história da turma.'
+                : 'Quando o administrador marcar uma partida, você poderá confirmar sua presença aqui.',
+            action: store.isAdmin
+                ? PrimaryButton(
+                    label: 'Criar primeira partida',
+                    icon: Icons.add_rounded,
+                    onPressed: () => openPage(context, NewRoundPage(store)),
+                  )
+                : null,
           ),
+        if (upcoming.isNotEmpty) const Heading('Próximos jogos'),
+        for (final r in upcoming) roundTile(context, store, r),
+        if (history.isNotEmpty) const Heading('História da patota'),
+        for (final r in history) roundTile(context, store, r),
       ],
     );
   }
@@ -107,7 +75,7 @@ Widget roundTile(BuildContext context, AppStore store, Round r) {
     child: InkWell(
       onTap: () => openPage(context, RoundDetail(store, r.id)),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(PatotaSpace.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -119,55 +87,36 @@ Widget roundTile(BuildContext context, AppStore store, Round r) {
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
-                const SizedBox(width: 8),
-                IosBadge(
-                  statusLabel(r.status),
-                  color: r.status == 'em_andamento'
-                      ? brand
-                      : r.status == 'encerrada'
-                      ? muted
-                      : iosBlue,
-                ),
-                const SizedBox(width: 8),
-                Icon(CupertinoIcons.chevron_right, size: 13, color: muted),
+                const SizedBox(width: PatotaSpace.sm),
+                Icon(Icons.chevron_right_rounded, color: muted),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: PatotaSpace.sm),
+            IosBadge(
+              statusLabel(r.status),
+              color: statusColor(context, r.status),
+            ),
+            const SizedBox(height: PatotaSpace.sm),
             Text(
               '${prettyDate(r.date)} · ${r.time}',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             if (match != null) ...[
-              const SizedBox(height: 14),
+              const SizedBox(height: PatotaSpace.lg),
               const Divider(),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      s.team(match.teamA)?.name ?? 'Time A',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ),
-                  Text(
-                    '${match.scoreA}  ×  ${match.scoreB}',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  Expanded(
-                    child: Text(
-                      s.team(match.teamB)?.name ?? 'Time B',
-                      textAlign: TextAlign.end,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ),
-                ],
+              const SizedBox(height: PatotaSpace.lg),
+              Scoreboard(
+                teamA: s.team(match.teamA),
+                teamB: s.team(match.teamB),
+                scoreA: match.scoreA,
+                scoreB: match.scoreB,
               ),
             ] else ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: PatotaSpace.md),
               Row(
                 children: [
-                  Icon(CupertinoIcons.person_2, size: 15, color: muted),
-                  const SizedBox(width: 6),
+                  Icon(Icons.groups_rounded, size: 20, color: muted),
+                  const SizedBox(width: PatotaSpace.sm),
                   Expanded(
                     child: Text(
                       '$confirmed${r.maxPlayers > 0 ? '/${r.maxPlayers}' : ''} confirmados${waiting > 0 ? ' · $waiting na espera' : ''}',
@@ -176,6 +125,15 @@ Widget roundTile(BuildContext context, AppStore store, Round r) {
                   ),
                 ],
               ),
+              if (r.maxPlayers > 0 && r.status != 'cancelada') ...[
+                const SizedBox(height: PatotaSpace.md),
+                ProgressTrack(
+                  value: confirmed / r.maxPlayers,
+                  label: confirmed >= r.maxPlayers
+                      ? 'Vagas preenchidas · entre na fila'
+                      : '${r.maxPlayers - confirmed} vagas restantes',
+                ),
+              ],
             ],
           ],
         ),
@@ -224,7 +182,7 @@ class _NewRoundState extends State<NewRoundPage> {
         return const Center(child: Text('Acesso reservado ao administrador.'));
       }
       return ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(PatotaSpace.lg),
         children: [
           OutlinedButton.icon(
             onPressed: () async {
@@ -241,7 +199,7 @@ class _NewRoundState extends State<NewRoundPage> {
                 });
               }
             },
-            icon: const Icon(Icons.calendar_month),
+            icon: const Icon(Icons.calendar_month_rounded),
             label: Text(prettyDate(dateISO(date))),
           ),
           field('Título', title),
@@ -252,7 +210,10 @@ class _NewRoundState extends State<NewRoundPage> {
             decoration: const InputDecoration(labelText: 'Link do Google Maps'),
           ),
           field('Vagas (0 = sem limite)', max, number: true),
-          FilledButton(
+          PrimaryButton(
+            label: 'Criar partida',
+            icon: Icons.add_rounded,
+            loading: busy,
             onPressed: busy
                 ? null
                 : () async {
@@ -285,13 +246,13 @@ class _NewRoundState extends State<NewRoundPage> {
                           'max_players': capacity,
                         });
                       }, admin: true),
+                      successMessage: 'Partida criada',
                     );
                     if (mounted) {
                       setState(() => busy = false);
                       if (ok && context.mounted) Navigator.pop(context);
                     }
                   },
-            child: const Text('Criar partida'),
           ),
         ],
       );
@@ -324,17 +285,46 @@ class RoundDetail extends StatelessWidget {
               .firstOrNull;
       final matches = s.matches.where((m) => m.roundId == id).toList()
         ..sort((a, b) => a.sequence.compareTo(b.sequence));
+      final confirmed = rows
+          .where((rp) => rp.attendance == 'confirmado')
+          .length;
+      final waiting = rows.where((rp) => rp.attendance == 'espera').toList();
+      final capacityReached = r.maxPlayers > 0 && confirmed >= r.maxPlayers;
+      final confirmLabel = capacityReached
+          ? 'Entrar na fila de espera'
+          : 'Vou jogar';
+      final confirmIcon = capacityReached
+          ? Icons.schedule_rounded
+          : Icons.check_circle_rounded;
+      final VoidCallback? confirmPresence = store.busy
+          ? null
+          : () => perform(
+              context,
+              () => store.respond(id, 'confirmado'),
+              successMessage: capacityReached
+                  ? 'Você entrou na fila de espera'
+                  : 'Presença confirmada',
+            );
+      final activeMatch = matches
+          .where((m) => m.status == 'em_andamento')
+          .firstOrNull;
       return ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(PatotaSpace.lg),
         children: [
           Panel(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(r.title, style: Theme.of(context).textTheme.headlineSmall),
-                Text(
-                  '${prettyDate(r.date)} às ${r.time} • ${statusLabel(r.status)}',
+                IosBadge(
+                  statusLabel(r.status),
+                  color: r.status == 'cancelada'
+                      ? PatotaColors.error
+                      : PatotaColors.primary,
                 ),
+                const SizedBox(height: PatotaSpace.md),
+                Text(r.title, style: Theme.of(context).textTheme.headlineSmall),
+                const SizedBox(height: PatotaSpace.sm),
+                Text('${prettyDate(r.date)} às ${r.time}'),
                 if (r.location.isNotEmpty) Text(r.location),
                 if (r.location.isNotEmpty || r.locationUrl.isNotEmpty)
                   TextButton.icon(
@@ -352,9 +342,26 @@ class RoundDetail extends StatelessWidget {
                         throw Exception('Não foi possível abrir o mapa.');
                       }
                     }),
-                    icon: const Icon(Icons.location_on),
+                    icon: const Icon(Icons.location_on_rounded),
                     label: const Text('Abrir mapa'),
                   ),
+                if (!['encerrada', 'cancelada'].contains(r.status)) ...[
+                  const SizedBox(height: PatotaSpace.md),
+                  Text(
+                    '$confirmed confirmados${waiting.isNotEmpty ? ' · ${waiting.length} na fila' : ''}',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  if (r.maxPlayers > 0) ...[
+                    const SizedBox(height: PatotaSpace.sm),
+                    ProgressTrack(
+                      value: confirmed / r.maxPlayers,
+                      label: capacityReached
+                          ? 'Todas as vagas preenchidas'
+                          : '${r.maxPlayers - confirmed} vagas restantes',
+                    ),
+                  ] else
+                    const Text('Sem limite de vagas'),
+                ],
               ],
             ),
           ),
@@ -364,44 +371,69 @@ class RoundDetail extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('Sua presença: ${mine?.attendance ?? 'não respondeu'}'),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    children: [
-                      FilledButton(
-                        onPressed: store.busy
-                            ? null
-                            : () => perform(
-                                context,
-                                () => store.respond(id, 'confirmado'),
-                              ),
-                        child: const Text('Vou jogar'),
-                      ),
-                      OutlinedButton(
-                        onPressed: store.busy
-                            ? null
-                            : () => perform(
-                                context,
-                                () => store.respond(id, 'fora'),
-                              ),
-                        child: const Text('Não vou'),
-                      ),
-                    ],
+                  PresencePill(
+                    status: mine?.attendance ?? 'não respondeu',
+                    queuePosition: mine?.attendance == 'espera'
+                        ? waiting.indexOf(mine!) + 1
+                        : null,
                   ),
+                  const SizedBox(height: PatotaSpace.md),
+                  if (mine?.attendance != 'confirmado' &&
+                      mine?.attendance != 'espera')
+                    store.isAdmin
+                        ? OutlinedButton.icon(
+                            onPressed: confirmPresence,
+                            icon: Icon(confirmIcon),
+                            label: Text(confirmLabel),
+                          )
+                        : PrimaryButton(
+                            label: confirmLabel,
+                            icon: confirmIcon,
+                            loading: store.busy,
+                            onPressed: confirmPresence,
+                          ),
+                  if (mine?.attendance != 'fora')
+                    TextButton.icon(
+                      onPressed: store.busy
+                          ? null
+                          : () => perform(
+                              context,
+                              () => store.respond(id, 'fora'),
+                              successMessage:
+                                  'Presença atualizada: fora desta partida',
+                            ),
+                      icon: const Icon(Icons.close_rounded),
+                      label: const Text('Não vou'),
+                    ),
+                  if (mine?.attendance == 'espera')
+                    const Text(
+                      'Quando alguém desistir, a primeira pessoa da fila entra automaticamente.',
+                    ),
                 ],
               ),
             ),
           for (final m in matches)
             Panel(
-              child: ListTile(
-                title: Text(
-                  '${s.team(m.teamA)?.name ?? 'Time A'}  ${m.scoreA} × ${m.scoreB}  ${s.team(m.teamB)?.name ?? 'Time B'}',
-                  style: const TextStyle(fontWeight: FontWeight.w900),
-                ),
-                subtitle: Text(statusLabel(m.status)),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => openPage(context, LiveMatchPage(store, m.id)),
+              child: Column(
+                children: [
+                  Scoreboard(
+                    teamA: s.team(m.teamA),
+                    teamB: s.team(m.teamB),
+                    scoreA: m.scoreA,
+                    scoreB: m.scoreB,
+                    status: statusLabel(m.status),
+                  ),
+                  TextButton.icon(
+                    onPressed: () =>
+                        openPage(context, LiveMatchPage(store, m.id)),
+                    icon: const Icon(Icons.chevron_right_rounded),
+                    label: Text(
+                      m.status == 'em_andamento'
+                          ? 'Acompanhar placar'
+                          : 'Ver resumo da partida',
+                    ),
+                  ),
+                ],
               ),
             ),
           if (teams.isNotEmpty) ...[
@@ -419,10 +451,14 @@ class RoundDetail extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: teamColor(t.color),
                             shape: BoxShape.circle,
-                            border: Border.all(color: Colors.grey),
+                            border: Border.all(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.outlineVariant,
+                            ),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: PatotaSpace.sm),
                         Expanded(
                           child: Text(
                             t.name,
@@ -441,10 +477,15 @@ class RoundDetail extends StatelessWidget {
                               s.player(rp.playerId)?.position ??
                               'linha',
                         ),
-                        trailing: store.isAdmin && r.status != 'encerrada'
+                        leading: s.player(rp.playerId) == null
+                            ? null
+                            : PlayerAvatar(s.player(rp.playerId)!),
+                        trailing:
+                            store.isAdmin &&
+                                !['encerrada', 'cancelada'].contains(r.status)
                             ? IconButton(
                                 tooltip: 'Alternar posição',
-                                icon: const Icon(Icons.swap_vert),
+                                icon: const Icon(Icons.swap_vert_rounded),
                                 onPressed: store.busy
                                     ? null
                                     : () => perform(
@@ -474,19 +515,32 @@ class RoundDetail extends StatelessWidget {
               ),
             OutlinedButton.icon(
               onPressed: () => openPage(context, SharePage(store, id)),
-              icon: const Icon(Icons.share),
+              icon: const Icon(Icons.share_rounded),
               label: const Text('Compartilhar escalação'),
             ),
           ],
           if (store.isAdmin &&
               !['encerrada', 'cancelada'].contains(r.status)) ...[
-            if (teams.isEmpty)
-              FilledButton.icon(
+            if (activeMatch != null)
+              PrimaryButton(
+                label: 'Registrar gol',
+                icon: Icons.sports_soccer_rounded,
                 onPressed: store.busy
                     ? null
-                    : () => perform(context, () => store.buildTeams(id)),
-                icon: const Icon(Icons.shuffle),
-                label: const Text('Sortear times e iniciar partida'),
+                    : () => openPage(context, GoalForm(store, activeMatch)),
+              ),
+            if (teams.isEmpty)
+              PrimaryButton(
+                label: 'Sortear times e iniciar partida',
+                icon: Icons.shuffle_rounded,
+                loading: store.busy,
+                onPressed: store.busy
+                    ? null
+                    : () => perform(
+                        context,
+                        () => store.buildTeams(id),
+                        successMessage: 'Times definidos. Jogo iniciado!',
+                      ),
               ),
             OutlinedButton(
               onPressed: store.busy
@@ -495,7 +549,7 @@ class RoundDetail extends StatelessWidget {
               child: const Text('Montar ou ajustar times'),
             ),
             if (matches.isNotEmpty)
-              FilledButton(
+              OutlinedButton(
                 onPressed: store.busy
                     ? null
                     : () async {
@@ -505,7 +559,12 @@ class RoundDetail extends StatelessWidget {
                               'O placar entra nas estatísticas e a votação abre por 16 horas.',
                             ) &&
                             context.mounted) {
-                          await perform(context, () => store.closeRound(id));
+                          await perform(
+                            context,
+                            () => store.closeRound(id),
+                            successMessage:
+                                'Partida encerrada. A votação está aberta!',
+                          );
                         }
                       },
                 child: const Text('Encerrar partida'),
@@ -515,51 +574,96 @@ class RoundDetail extends StatelessWidget {
           const Text(
             'Fila por ordem de chegada. Uma desistência promove automaticamente o primeiro da espera.',
           ),
-          for (final group in ['confirmado', 'espera', 'fora']) ...[
-            Text(
-              '$group • ${rows.where((rp) => rp.attendance == group).length}',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+          if (rows.isEmpty)
+            const AppEmptyState(
+              icon: Icons.groups_rounded,
+              title: 'Quem vai jogar?',
+              message:
+                  'As confirmações e a fila de espera da turma aparecem aqui.',
             ),
-            for (final rp in rows.where((rp) => rp.attendance == group))
-              ListTile(
-                title: Text(s.player(rp.playerId)?.name ?? 'Jogador removido'),
-                subtitle: Text(
-                  group == 'espera'
-                      ? 'Posição ${rows.where((row) => row.attendance == "espera").toList().indexOf(rp) + 1} na fila'
-                      : 'Comparecimento: ${rp.actualAttendance ?? "não registrado"}',
-                ),
-                trailing:
-                    store.isAdmin &&
-                        !['encerrada', 'cancelada'].contains(r.status)
-                    ? PopupMenuButton<String>(
-                        onSelected: (value) => perform(
-                          context,
-                          () => ['presente', 'ausente'].contains(value)
-                              ? store.roundCommand(id, 'check_in', {
-                                  'player_id': rp.playerId,
-                                  'actual_attendance': value,
-                                })
-                              : value == 'remover'
-                              ? store.removeFromRound(rp)
-                              : store.setAttendance(id, rp.playerId, value),
+          for (final group in ['confirmado', 'espera', 'fora'])
+            if (rows.any((rp) => rp.attendance == group))
+              Panel(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(child: PresencePill(status: group)),
+                        Text(
+                          '${rows.where((rp) => rp.attendance == group).length}',
+                          style: Theme.of(context).textTheme.titleLarge,
                         ),
-                        itemBuilder: (_) =>
-                            [
-                                  'confirmado',
-                                  'fora',
-                                  'presente',
-                                  'ausente',
-                                  'remover',
-                                ]
-                                .map(
-                                  (v) =>
-                                      PopupMenuItem(value: v, child: Text(v)),
-                                )
-                                .toList(),
-                      )
-                    : null,
+                      ],
+                    ),
+                    const SizedBox(height: PatotaSpace.sm),
+                    for (final rp in rows.where((rp) => rp.attendance == group))
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: s.player(rp.playerId) == null
+                            ? null
+                            : PlayerAvatar(s.player(rp.playerId)!),
+                        title: Text(
+                          s.player(rp.playerId)?.name ?? 'Jogador removido',
+                        ),
+                        subtitle: Text(
+                          group == 'espera'
+                              ? '${waiting.indexOf(rp) + 1}º na fila de espera'
+                              : 'Comparecimento: ${rp.actualAttendance ?? "não registrado"}',
+                        ),
+                        trailing:
+                            store.isAdmin &&
+                                !['encerrada', 'cancelada'].contains(r.status)
+                            ? PopupMenuButton<String>(
+                                tooltip: 'Atualizar presença',
+                                enabled: !store.busy,
+                                onSelected: (value) => perform(
+                                  context,
+                                  () => ['presente', 'ausente'].contains(value)
+                                      ? store.roundCommand(id, 'check_in', {
+                                          'player_id': rp.playerId,
+                                          'actual_attendance': value,
+                                        })
+                                      : value == 'remover'
+                                      ? store.removeFromRound(rp)
+                                      : store.setAttendance(
+                                          id,
+                                          rp.playerId,
+                                          value,
+                                        ),
+                                  successMessage: 'Presença atualizada',
+                                ),
+                                itemBuilder: (_) =>
+                                    [
+                                          'confirmado',
+                                          'fora',
+                                          'presente',
+                                          'ausente',
+                                          'remover',
+                                        ]
+                                        .map(
+                                          (v) => PopupMenuItem(
+                                            value: v,
+                                            child: Text(
+                                              {
+                                                'confirmado':
+                                                    'Confirmar participação',
+                                                'fora': 'Marcar como fora',
+                                                'presente':
+                                                    'Compareceu à partida',
+                                                'ausente': 'Não compareceu',
+                                                'remover': 'Retirar da lista',
+                                              }[v]!,
+                                            ),
+                                          ),
+                                        )
+                                        .toList(),
+                              )
+                            : null,
+                      ),
+                  ],
+                ),
               ),
-          ],
           if (store.isAdmin && !['encerrada', 'cancelada'].contains(r.status))
             OutlinedButton.icon(
               onPressed: store.busy
@@ -589,29 +693,35 @@ class RoundDetail extends StatelessWidget {
                         );
                       }
                     },
-              icon: const Icon(Icons.person_add),
+              icon: const Icon(Icons.person_add_rounded),
               label: const Text('Adicionar participante'),
             ),
           if (r.status == 'encerrada') AwardsPanel(store, r),
           if (r.status == 'encerrada' && mine?.teamId != null)
-            OutlinedButton.icon(
+            PrimaryButton(
+              label: 'Meu card da partida',
+              icon: Icons.ios_share_rounded,
               onPressed: () => openPage(
                 context,
                 PlayerMatchCardPage(store, id, store.current!.id),
               ),
-              icon: const Icon(Icons.ios_share),
-              label: const Text('Meu card da partida'),
             ),
           if (r.status == 'cancelada')
             Panel(
-              child: Text(
-                'Partida cancelada: ${r.cancelReason ?? "Sem motivo informado"}',
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  Icons.event_busy_rounded,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                title: const Text('Partida cancelada'),
+                subtitle: Text(r.cancelReason ?? 'Sem motivo informado'),
               ),
             ),
           if (store.isAdmin)
             OutlinedButton.icon(
               onPressed: () => openPage(context, RoundHistoryPage(store, id)),
-              icon: const Icon(Icons.history),
+              icon: const Icon(Icons.history_rounded),
               label: const Text('Histórico e critérios'),
             ),
           if (store.isAdmin && r.status == 'rascunho')
@@ -629,6 +739,9 @@ class RoundDetail extends StatelessWidget {
             ),
           if (store.isAdmin && r.status == 'rascunho')
             TextButton(
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error,
+              ),
               onPressed: store.busy
                   ? null
                   : () async {
@@ -706,7 +819,7 @@ class _ManualTeamsState extends State<ManualTeamsPage> {
         return const Center(child: Text('Montagem indisponível.'));
       }
       return ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(PatotaSpace.lg),
         children: [
           const Panel(
             child: Text(
@@ -737,7 +850,10 @@ class _ManualTeamsState extends State<ManualTeamsPage> {
               (v) => setState(() => assignments[id] = int.tryParse(v)),
               labels: {'fora': 'Sem time', '0': aName.text, '1': bName.text},
             ),
-          FilledButton(
+          PrimaryButton(
+            label: 'Salvar times',
+            icon: Icons.check_rounded,
+            loading: widget.store.busy,
             onPressed: widget.store.busy
                 ? null
                 : () async {
@@ -749,10 +865,10 @@ class _ManualTeamsState extends State<ManualTeamsPage> {
                         names: [aName.text.trim(), bName.text.trim()],
                         colors: [aColor, bColor],
                       ),
+                      successMessage: 'Escalação salva',
                     );
                     if (ok && context.mounted) Navigator.pop(context);
                   },
-            child: const Text('Salvar times'),
           ),
         ],
       );
@@ -775,30 +891,24 @@ class LiveMatchPage extends StatelessWidget {
         return const Center(child: Text('Partida não encontrada.'));
       }
       return ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(PatotaSpace.lg),
         children: [
           Panel(
-            child: Column(
-              children: [
-                Text(statusLabel(m.status)),
-                Text(
-                  '${m.scoreA} × ${m.scoreB}',
-                  style: const TextStyle(
-                    fontSize: 72,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                Text('${s.team(m.teamA)?.name} × ${s.team(m.teamB)?.name}'),
-              ],
+            child: Scoreboard(
+              teamA: s.team(m.teamA),
+              teamB: s.team(m.teamB),
+              scoreA: m.scoreA,
+              scoreB: m.scoreB,
+              status: statusLabel(m.status),
             ),
           ),
           if (store.isAdmin && m.status == 'em_andamento') ...[
-            FilledButton.icon(
+            PrimaryButton(
+              label: 'Registrar gol',
+              icon: Icons.sports_soccer_rounded,
               onPressed: store.busy
                   ? null
                   : () => openPage(context, GoalForm(store, m)),
-              icon: const Icon(Icons.sports_soccer),
-              label: const Text('Registrar gol'),
             ),
             OutlinedButton(
               onPressed: store.busy
@@ -813,6 +923,8 @@ class LiveMatchPage extends StatelessWidget {
                         await perform(
                           context,
                           () => store.closeRound(m.roundId),
+                          successMessage:
+                              'Partida encerrada. A votação está aberta!',
                         );
                       }
                     },
@@ -832,17 +944,33 @@ class LiveMatchPage extends StatelessWidget {
                         await perform(
                           context,
                           () => store.reopen(m, reason: reason),
+                          successMessage: 'Partida reaberta para correção',
                         );
                       }
                     },
               child: const Text('Reabrir para corrigir'),
             ),
           const Heading('Gols'),
+          if (!s.events.any((e) => e.matchId == id))
+            AppEmptyState(
+              icon: Icons.sports_soccer_rounded,
+              title: m.status == 'encerrada'
+                  ? 'O placar ficou no zero'
+                  : 'A rede ainda não balançou',
+              message: m.status == 'encerrada'
+                  ? 'Nenhum gol foi registrado nesta partida.'
+                  : 'Cada gol e assistência registrados passam a fazer parte da história do jogo.',
+            ),
           for (final e
               in s.events.where((e) => e.matchId == id).toList().reversed)
             Panel(
               child: ListTile(
-                leading: const Icon(Icons.sports_soccer),
+                leading: Icon(
+                  Icons.sports_soccer_rounded,
+                  color: s.team(e.teamId) == null
+                      ? PatotaColors.primary
+                      : teamColor(s.team(e.teamId)!.color),
+                ),
                 title: Text(
                   '${s.player(e.scorerId)?.name ?? 'Sem autor'}${e.ownGoal ? ' (gol contra)' : ''}',
                 ),
@@ -863,6 +991,8 @@ class LiveMatchPage extends StatelessWidget {
                               await perform(
                                 context,
                                 () => store.deleteGoal(m, e.id, reason: reason),
+                                successMessage:
+                                    'Gol anulado. Placar atualizado',
                               );
                             }
                           }
@@ -935,7 +1065,7 @@ class _GoalFormState extends State<GoalForm> {
           .where((rp) => rp.teamId == team && rp.playerId != scorer)
           .toList();
       return ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(PatotaSpace.lg),
         children: [
           choice(
             'Time que recebe o ponto',
@@ -988,7 +1118,10 @@ class _GoalFormState extends State<GoalForm> {
             ),
           field('Minuto (opcional, 0 a 300)', minute, number: true),
           if (widget.event != null) field('Motivo da correção', reason),
-          FilledButton(
+          PrimaryButton(
+            label: widget.event == null ? 'Registrar gol' : 'Salvar correção',
+            icon: Icons.sports_soccer_rounded,
+            loading: widget.store.busy,
             onPressed: widget.store.busy
                 ? null
                 : () async {
@@ -1023,10 +1156,12 @@ class _GoalFormState extends State<GoalForm> {
                         eventId: widget.event?.id,
                         reason: reason.text.trim(),
                       ),
+                      successMessage: widget.event == null
+                          ? 'Gol registrado!'
+                          : 'Gol corrigido. Placar atualizado',
                     );
                     if (ok && context.mounted) Navigator.pop(context);
                   },
-            child: const Text('Salvar gol'),
           ),
         ],
       );
@@ -1083,7 +1218,7 @@ class AwardsPanel extends StatelessWidget {
                       height: 52,
                       width: 52,
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: PatotaSpace.md),
                     Expanded(
                       child: Text(
                         awardLabels[type]!,
@@ -1100,7 +1235,11 @@ class AwardsPanel extends StatelessWidget {
                         ?.playerId,
                     onChanged: (id) {
                       if (!store.busy) {
-                        perform(context, () => store.vote(round.id, type, id));
+                        perform(
+                          context,
+                          () => store.vote(round.id, type, id),
+                          successMessage: 'Voto registrado',
+                        );
                       }
                     },
                     child: Column(
@@ -1125,6 +1264,7 @@ class AwardsPanel extends StatelessWidget {
                           : () => perform(
                               context,
                               () => store.vote(round.id, type, null),
+                              successMessage: 'Voto retirado',
                             ),
                       child: const Text('Retirar meu voto'),
                     ),
@@ -1171,7 +1311,12 @@ class AwardsPanel extends StatelessWidget {
                           '${votes.map((v) => v.voterId).toSet().length} jogadores votaram. A apuração é definitiva e recusa novos votos.',
                         ) &&
                         context.mounted) {
-                      await perform(context, () => store.closeVoting(round.id));
+                      await perform(
+                        context,
+                        () => store.closeVoting(round.id),
+                        successMessage:
+                            'Votação encerrada. Destaques apurados!',
+                      );
                     }
                   },
             child: const Text('Encerrar votação e apurar'),
@@ -1180,7 +1325,7 @@ class AwardsPanel extends StatelessWidget {
           OutlinedButton.icon(
             onPressed: () =>
                 openPage(context, SharePage(store, round.id, result: true)),
-            icon: const Icon(Icons.share),
+            icon: const Icon(Icons.share_rounded),
             label: const Text('Compartilhar resultado'),
           ),
       ],

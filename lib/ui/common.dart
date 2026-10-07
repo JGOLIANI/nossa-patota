@@ -5,202 +5,291 @@ import '../models.dart';
 import '../store.dart';
 import 'auth.dart';
 
-const brand = Color(0xff34c759);
-const iosBlue = Color(0xff007aff);
+export 'design_system.dart';
+import 'design_system.dart';
+
+const brand = PatotaColors.primary;
+const iosBlue = PatotaColors.info;
 ThemeData appTheme(Brightness brightness) {
   final dark = brightness == Brightness.dark;
-  final surface = dark ? const Color(0xff1c1c1e) : Colors.white;
-  final canvas = dark ? const Color(0xff000000) : const Color(0xfff2f2f7);
-  final ink = dark ? const Color(0xffffffff) : const Color(0xff000000);
-  final muted = dark ? const Color(0xff98989f) : const Color(0xff6c6c70);
-  final scheme = ColorScheme.fromSeed(seedColor: brand, brightness: brightness)
-      .copyWith(
-        primary: dark ? const Color(0xff30d158) : brand,
-        onPrimary: dark ? const Color(0xff04220f) : Colors.white,
+  final surface = dark ? PatotaColors.darkSurface : PatotaColors.surface;
+  final canvas = dark ? PatotaColors.darkBackground : PatotaColors.background;
+  final ink = dark ? PatotaColors.darkTextPrimary : PatotaColors.textPrimary;
+  final muted = dark
+      ? PatotaColors.darkTextSecondary
+      : PatotaColors.textSecondary;
+  final outline = dark ? PatotaColors.darkOutline : PatotaColors.neutral200;
+  final primary = dark ? PatotaColors.darkPrimary : PatotaColors.primary;
+  final elevated = dark ? PatotaColors.darkElevated : PatotaColors.neutral100;
+  final scheme =
+      ColorScheme.fromSeed(
+        seedColor: PatotaColors.primary,
+        brightness: brightness,
+      ).copyWith(
+        primary: primary,
+        onPrimary: dark ? PatotaColors.primaryDark : PatotaColors.surface,
+        primaryContainer: dark
+            ? PatotaColors.darkElevated
+            : PatotaColors.primaryLight,
+        onPrimaryContainer: dark
+            ? PatotaColors.darkPrimary
+            : PatotaColors.primaryDark,
+        secondary: PatotaColors.secondary,
+        onSecondary: PatotaColors.neutral900,
+        secondaryContainer: dark
+            ? PatotaColors.darkElevated
+            : PatotaColors.secondary.withValues(alpha: .2),
+        onSecondaryContainer: dark
+            ? PatotaColors.secondary
+            : PatotaColors.warning,
         surface: surface,
+        surfaceContainer: surface,
+        surfaceContainerHighest: elevated,
+        surfaceContainerLow: canvas,
         onSurface: ink,
         onSurfaceVariant: muted,
-        outlineVariant: dark
-            ? const Color(0xff38383a)
-            : const Color(0xffd6d6da),
+        outline: dark ? PatotaColors.darkOutline : PatotaColors.neutral300,
+        outlineVariant: outline,
+        error: dark ? PatotaColors.darkError : PatotaColors.error,
+        onError: dark ? PatotaColors.neutral900 : PatotaColors.surface,
       );
   final base = ThemeData(brightness: brightness, fontFamily: 'Inter').textTheme;
+  TextStyle type(
+    TextStyle? style,
+    double size,
+    FontWeight weight, {
+    Color? colour,
+  }) => (style ?? const TextStyle()).copyWith(
+    fontSize: size,
+    fontWeight: weight,
+    color: colour ?? ink,
+    height: 1.3,
+    letterSpacing: 0,
+  );
+  final shape = RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(PatotaRadius.lg),
+  );
   return ThemeData(
     useMaterial3: true,
     platform: TargetPlatform.iOS,
     fontFamily: 'Inter',
     colorScheme: scheme,
     scaffoldBackgroundColor: canvas,
+    visualDensity: VisualDensity.standard,
+    materialTapTargetSize: MaterialTapTargetSize.padded,
+    textTheme: base.copyWith(
+      headlineLarge: type(base.headlineLarge, PatotaType.hero, FontWeight.w800),
+      headlineMedium: type(base.headlineMedium, 28, FontWeight.w800),
+      headlineSmall: type(
+        base.headlineSmall,
+        PatotaType.heading,
+        FontWeight.w800,
+      ),
+      titleLarge: type(base.titleLarge, PatotaType.title, FontWeight.w800),
+      titleMedium: type(base.titleMedium, 18, FontWeight.w700),
+      titleSmall: type(base.titleSmall, PatotaType.body, FontWeight.w700),
+      bodyLarge: type(base.bodyLarge, PatotaType.body, FontWeight.w500),
+      bodyMedium: type(base.bodyMedium, PatotaType.body, FontWeight.w400),
+      bodySmall: type(
+        base.bodySmall,
+        PatotaType.small,
+        FontWeight.w500,
+        colour: muted,
+      ),
+      labelLarge: type(base.labelLarge, PatotaType.body, FontWeight.w700),
+      labelMedium: type(base.labelMedium, PatotaType.small, FontWeight.w700),
+      labelSmall: type(base.labelSmall, PatotaType.caption, FontWeight.w700),
+    ),
     cupertinoOverrideTheme: CupertinoThemeData(
       brightness: brightness,
-      primaryColor: scheme.primary,
+      primaryColor: primary,
       scaffoldBackgroundColor: canvas,
-      barBackgroundColor: surface.withValues(alpha: .82),
+      barBackgroundColor: surface,
       textTheme: CupertinoTextThemeData(
-        textStyle: TextStyle(fontFamily: 'Inter', fontSize: 17, color: ink),
-        actionTextStyle: const TextStyle(
+        textStyle: TextStyle(
           fontFamily: 'Inter',
-          fontSize: 17,
-          color: iosBlue,
-        ),
-        tabLabelTextStyle: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 10,
-          fontWeight: FontWeight.w500,
-          color: muted,
-        ),
-        navTitleTextStyle: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 17,
-          fontWeight: FontWeight.w600,
+          fontSize: PatotaType.body,
           color: ink,
         ),
-        navLargeTitleTextStyle: TextStyle(
+        actionTextStyle: TextStyle(
           fontFamily: 'Inter',
-          fontSize: 34,
+          fontSize: PatotaType.body,
           fontWeight: FontWeight.w700,
-          color: ink,
+          color: primary,
         ),
-      ),
-    ),
-    textTheme: base.copyWith(
-      headlineLarge: base.headlineLarge?.copyWith(
-        fontSize: 34,
-        fontWeight: FontWeight.w700,
-        letterSpacing: -1.2,
-        color: ink,
-      ),
-      headlineMedium: base.headlineMedium?.copyWith(
-        fontSize: 28,
-        fontWeight: FontWeight.w700,
-        letterSpacing: -.8,
-        color: ink,
-      ),
-      headlineSmall: base.headlineSmall?.copyWith(
-        fontSize: 22,
-        fontWeight: FontWeight.w700,
-        letterSpacing: -.6,
-        color: ink,
-      ),
-      titleLarge: base.titleLarge?.copyWith(
-        fontSize: 20,
-        fontWeight: FontWeight.w600,
-        letterSpacing: -.5,
-        color: ink,
-      ),
-      titleMedium: base.titleMedium?.copyWith(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        letterSpacing: -.25,
-        color: ink,
-      ),
-      bodyLarge: base.bodyLarge?.copyWith(
-        fontSize: 16,
-        height: 1.4,
-        letterSpacing: -.25,
-        color: ink,
-      ),
-      bodyMedium: base.bodyMedium?.copyWith(
-        fontSize: 15,
-        height: 1.45,
-        letterSpacing: -.15,
-        color: ink,
-      ),
-      bodySmall: base.bodySmall?.copyWith(
-        fontSize: 13,
-        height: 1.4,
-        color: muted,
       ),
     ),
     appBarTheme: AppBarTheme(
-      centerTitle: true,
+      centerTitle: false,
       elevation: 0,
       scrolledUnderElevation: 0,
-      surfaceTintColor: Colors.transparent,
-      backgroundColor: dark ? surface : const Color(0xfff9f9fb),
+      surfaceTintColor: PatotaColors.transparent,
+      backgroundColor: canvas,
       foregroundColor: ink,
       titleTextStyle: TextStyle(
         fontFamily: 'Inter',
-        fontSize: 17,
-        fontWeight: FontWeight.w600,
+        fontSize: PatotaType.title,
+        fontWeight: FontWeight.w800,
         color: ink,
       ),
-      iconTheme: IconThemeData(color: scheme.primary, size: 22),
+      iconTheme: IconThemeData(color: primary, size: 24),
     ),
     inputDecorationTheme: InputDecorationTheme(
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
+        borderRadius: BorderRadius.circular(PatotaRadius.md),
+        borderSide: BorderSide(color: outline, width: 2),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
+        borderRadius: BorderRadius.circular(PatotaRadius.md),
+        borderSide: BorderSide(color: outline, width: 2),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: scheme.primary, width: 1.5),
+        borderRadius: BorderRadius.circular(PatotaRadius.md),
+        borderSide: BorderSide(color: primary, width: 2),
       ),
-      fillColor: dark ? const Color(0xff2c2c2e) : const Color(0xffeeeef2),
-      labelStyle: TextStyle(color: muted, fontWeight: FontWeight.w400),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 17),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(PatotaRadius.md),
+        borderSide: BorderSide(color: scheme.error, width: 2),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(PatotaRadius.md),
+        borderSide: BorderSide(color: scheme.error, width: 2),
+      ),
+      fillColor: surface,
+      labelStyle: TextStyle(color: muted, fontWeight: FontWeight.w600),
+      contentPadding: const EdgeInsets.all(PatotaSpace.lg),
       filled: true,
     ),
     cardTheme: CardThemeData(
       color: surface,
-      surfaceTintColor: Colors.transparent,
+      surfaceTintColor: PatotaColors.transparent,
       elevation: 0,
-      margin: const EdgeInsets.symmetric(vertical: 5),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      margin: const EdgeInsets.symmetric(vertical: PatotaSpace.sm),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(PatotaRadius.card),
+        side: BorderSide(color: outline, width: 2),
+      ),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        minimumSize: const Size(48, 50),
+        minimumSize: const Size(PatotaSpace.touch, PatotaLayout.buttonHeight),
+        padding: const EdgeInsets.symmetric(
+          horizontal: PatotaSpace.xl,
+          vertical: PatotaSpace.md,
+        ),
         textStyle: const TextStyle(
           fontFamily: 'Inter',
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
+          fontSize: PatotaType.body,
+          fontWeight: FontWeight.w800,
         ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: shape,
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        minimumSize: const Size(48, 48),
+        minimumSize: const Size(PatotaSpace.touch, PatotaLayout.buttonHeight),
         foregroundColor: ink,
-        backgroundColor: dark
-            ? const Color(0xff2c2c2e)
-            : const Color(0xffeeeef2),
-        side: BorderSide.none,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        backgroundColor: surface,
+        side: BorderSide(color: outline, width: 2),
+        padding: const EdgeInsets.symmetric(
+          horizontal: PatotaSpace.lg,
+          vertical: PatotaSpace.md,
+        ),
+        textStyle: const TextStyle(
+          fontFamily: 'Inter',
+          fontSize: PatotaType.body,
+          fontWeight: FontWeight.w700,
+        ),
+        shape: shape,
       ),
     ),
     textButtonTheme: TextButtonThemeData(
-      style: TextButton.styleFrom(foregroundColor: scheme.primary),
+      style: TextButton.styleFrom(
+        minimumSize: const Size(PatotaSpace.touch, PatotaSpace.touch),
+        foregroundColor: primary,
+        textStyle: const TextStyle(
+          fontFamily: 'Inter',
+          fontSize: PatotaType.small,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    ),
+    iconButtonTheme: IconButtonThemeData(
+      style: IconButton.styleFrom(
+        minimumSize: const Size(PatotaSpace.touch, PatotaSpace.touch),
+        foregroundColor: muted,
+      ),
     ),
     listTileTheme: ListTileThemeData(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: PatotaSpace.lg,
+        vertical: PatotaSpace.sm,
+      ),
+      minTileHeight: 64,
       titleTextStyle: TextStyle(
         fontFamily: 'Inter',
-        fontSize: 16,
-        fontWeight: FontWeight.w500,
+        fontSize: PatotaType.body,
+        fontWeight: FontWeight.w700,
         color: ink,
       ),
       subtitleTextStyle: TextStyle(
         fontFamily: 'Inter',
-        fontSize: 13,
-        height: 1.45,
+        fontSize: PatotaType.small,
+        height: 1.4,
         color: muted,
       ),
-      iconColor: muted,
+      iconColor: primary,
     ),
-    dividerTheme: DividerThemeData(
-      color: scheme.outlineVariant,
-      thickness: .5,
-      space: 1,
+    dividerTheme: DividerThemeData(color: outline, thickness: 1, space: 1),
+    chipTheme: ChipThemeData(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(PatotaRadius.md),
+      ),
+      labelStyle: TextStyle(
+        fontFamily: 'Inter',
+        fontSize: PatotaType.small,
+        fontWeight: FontWeight.w700,
+        color: ink,
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: PatotaSpace.sm,
+        vertical: PatotaSpace.sm,
+      ),
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(PatotaRadius.modal),
+      ),
+    ),
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: surface,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(PatotaRadius.modal),
+        ),
+      ),
     ),
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      backgroundColor: dark
+          ? PatotaColors.darkElevated
+          : PatotaColors.neutral900,
+      contentTextStyle: const TextStyle(
+        fontFamily: 'Inter',
+        fontSize: PatotaType.small,
+        color: PatotaColors.surface,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(PatotaRadius.lg),
+      ),
+    ),
+    progressIndicatorTheme: ProgressIndicatorThemeData(
+      color: primary,
+      linearTrackColor: outline,
+      circularTrackColor: outline,
+      borderRadius: BorderRadius.circular(PatotaRadius.sm),
     ),
     pageTransitionsTheme: PageTransitionsTheme(
       builders: {
@@ -213,19 +302,42 @@ ThemeData appTheme(Brightness brightness) {
 
 Future<bool> perform(
   BuildContext context,
-  Future<void> Function() action,
-) async {
+  Future<void> Function() action, {
+  String? successMessage,
+}) async {
   try {
     await action();
+    if (successMessage != null && context.mounted) {
+      showFeedback(context, successMessage);
+    }
     return true;
   } catch (e) {
     if (context.mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(translateError(e))));
+      showFeedback(context, translateError(e), error: true);
     }
     return false;
   }
+}
+
+void showFeedback(BuildContext context, String message, {bool error = false}) {
+  final messenger = ScaffoldMessenger.of(context);
+  messenger.hideCurrentSnackBar();
+  messenger.showSnackBar(
+    SnackBar(
+      content: Row(
+        children: [
+          Icon(
+            error ? Icons.error_rounded : Icons.check_circle_rounded,
+            color: PatotaColors.shareText,
+            size: 24,
+          ),
+          const SizedBox(width: PatotaSpace.md),
+          Expanded(child: Text(message)),
+        ],
+      ),
+      backgroundColor: error ? PatotaColors.error : PatotaColors.primaryDark,
+    ),
+  );
 }
 
 Future<bool> confirm(
@@ -287,22 +399,27 @@ class Frame extends StatelessWidget {
               ? CupertinoButton(
                   padding: EdgeInsets.zero,
                   onPressed: () => Navigator.maybePop(context),
-                  child: const Icon(CupertinoIcons.chevron_back, size: 23),
+                  child: const Icon(Icons.arrow_back_rounded, size: 24),
                 )
               : null,
         ),
-        body: Column(
-          children: [
-            if (store.busy) const LinearProgressIndicator(),
-            Expanded(
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 512),
-                  child: builder(context),
+        body: SafeArea(
+          top: false,
+          child: Column(
+            children: [
+              if (store.busy) const LinearProgressIndicator(),
+              Expanded(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: PatotaLayout.contentWidth,
+                    ),
+                    child: builder(context),
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       );
     },
@@ -322,20 +439,25 @@ class IosHeader extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback onProfile;
   final Widget? action;
   @override
-  Size get preferredSize => const Size.fromHeight(108);
+  Size get preferredSize => const Size.fromHeight(112);
   @override
   Widget build(BuildContext context) => SafeArea(
     bottom: false,
     child: Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 512),
+        constraints: const BoxConstraints(maxWidth: PatotaLayout.contentWidth),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          padding: const EdgeInsets.fromLTRB(
+            PatotaSpace.lg,
+            PatotaSpace.sm,
+            PatotaSpace.lg,
+            PatotaSpace.lg,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(
-                height: 36,
+                height: PatotaSpace.touch,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -347,8 +469,8 @@ class IosHeader extends StatelessWidget implements PreferredSizeWidget {
                         child: GestureDetector(
                           onTap: onProfile,
                           child: SizedBox(
-                            width: 32,
-                            height: 32,
+                            width: PatotaSpace.touch,
+                            height: PatotaSpace.touch,
                             child: PlayerAvatar(store.current!),
                           ),
                         ),
@@ -358,7 +480,7 @@ class IosHeader extends StatelessWidget implements PreferredSizeWidget {
               ),
               Text(
                 title,
-                style: Theme.of(context).textTheme.headlineLarge,
+                style: Theme.of(context).textTheme.headlineSmall,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -376,18 +498,24 @@ class IosBadge extends StatelessWidget {
   final Color? color;
   @override
   Widget build(BuildContext context) {
-    final tint = color ?? Theme.of(context).colorScheme.primary;
+    final tint = interfaceTint(
+      context,
+      color ?? Theme.of(context).colorScheme.primary,
+    );
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(
+        horizontal: PatotaSpace.md,
+        vertical: PatotaSpace.sm,
+      ),
       decoration: BoxDecoration(
         color: tint.withValues(alpha: .10),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(PatotaRadius.md),
       ),
       child: Text(
         label,
         style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
+          fontSize: PatotaType.small,
+          fontWeight: FontWeight.w700,
           color: tint,
         ),
       ),
@@ -407,25 +535,8 @@ class MetricTile extends StatelessWidget {
   final IconData icon;
   final Color color;
   @override
-  Widget build(BuildContext context) => Panel(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: .12),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, size: 19, color: color),
-        ),
-        const SizedBox(height: 16),
-        Text(value, style: Theme.of(context).textTheme.headlineMedium),
-        const SizedBox(height: 3),
-        Text(label, style: Theme.of(context).textTheme.bodySmall),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) =>
+      StatCard(value: value, label: label, icon: icon, color: color);
 }
 
 class Panel extends StatelessWidget {
@@ -433,8 +544,8 @@ class Panel extends StatelessWidget {
   final Widget child;
   @override
   Widget build(BuildContext context) => Card(
-    margin: const EdgeInsets.symmetric(vertical: 6),
-    child: Padding(padding: const EdgeInsets.all(16), child: child),
+    margin: const EdgeInsets.symmetric(vertical: PatotaSpace.sm),
+    child: Padding(padding: const EdgeInsets.all(PatotaSpace.lg), child: child),
   );
 }
 
@@ -443,13 +554,8 @@ class Heading extends StatelessWidget {
   final String text;
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 20, bottom: 8),
-    child: Text(
-      text,
-      style: Theme.of(
-        context,
-      ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
-    ),
+    padding: const EdgeInsets.only(top: PatotaSpace.xl, bottom: PatotaSpace.md),
+    child: Text(text, style: Theme.of(context).textTheme.titleLarge),
   );
 }
 
@@ -495,15 +601,15 @@ Widget choice(
   builder: (context) {
     final selected = values.contains(value) ? value : values.first;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: PatotaSpace.sm),
       child: Semantics(
         button: true,
         label: '$label: ${labels?[selected] ?? selected}',
         child: Material(
           color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(PatotaRadius.md),
           child: InkWell(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(PatotaRadius.md),
             onTap: () async {
               FocusManager.instance.primaryFocus?.unfocus();
               final next = await showCupertinoModalPopup<String>(
@@ -528,7 +634,10 @@ Widget choice(
               if (next != null && context.mounted) onChange(next);
             },
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(
+                horizontal: PatotaSpace.lg,
+                vertical: PatotaSpace.md,
+              ),
               child: Row(
                 children: [
                   Expanded(
@@ -539,7 +648,7 @@ Widget choice(
                           label,
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: PatotaSpace.xs),
                         Text(
                           labels?[selected] ?? selected,
                           style: Theme.of(context).textTheme.bodyLarge,
@@ -548,8 +657,8 @@ Widget choice(
                     ),
                   ),
                   Icon(
-                    CupertinoIcons.chevron_up_chevron_down,
-                    size: 15,
+                    Icons.unfold_more_rounded,
+                    size: 24,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ],
@@ -567,13 +676,15 @@ Widget field(
   bool password = false,
   bool number = false,
 }) => Padding(
-  padding: const EdgeInsets.symmetric(vertical: 8),
+  padding: const EdgeInsets.symmetric(vertical: PatotaSpace.sm),
   child: TextFormField(
     controller: controller,
     obscureText: password,
     keyboardType: number ? TextInputType.number : TextInputType.text,
     decoration: InputDecoration(labelText: label),
-    validator: (v) => (v ?? '').trim().isEmpty ? 'Preencha este campo' : null,
+    validator: (v) => (v ?? '').trim().isEmpty
+        ? 'Informe ${label.toLowerCase()} para continuar.'
+        : null,
   ),
 );
 String prettyDate(String date) => date.length >= 10

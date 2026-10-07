@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nossa_patota/data/backend.dart';
 import 'package:nossa_patota/main.dart';
 import 'package:nossa_patota/store.dart';
+import 'package:nossa_patota/ui/players.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -57,7 +58,12 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('Sair da conta'),
       250,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: find
+          .descendant(
+            of: find.byType(ProfilePage),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Sair da conta'));

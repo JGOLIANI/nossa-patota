@@ -18,6 +18,7 @@ class _LoginState extends State<LoginPage> {
       password = TextEditingController(),
       name = TextEditingController();
   bool register = false, recover = false, legacy = false, busy = false;
+  bool showPassword = false;
   String? error, message;
   @override
   void dispose() {
@@ -29,6 +30,7 @@ class _LoginState extends State<LoginPage> {
 
   Future<void> submit() async {
     if (!form.currentState!.validate()) return;
+    FocusManager.instance.primaryFocus?.unfocus();
     setState(() {
       busy = true;
       error = null;
@@ -68,6 +70,8 @@ class _LoginState extends State<LoginPage> {
   }
 
   void mode({bool signup = false, bool recovery = false, bool old = false}) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    form.currentState?.reset();
     setState(() {
       register = signup;
       recover = recovery;
@@ -79,157 +83,264 @@ class _LoginState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    body: Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 384),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: form,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: Container(
-                    width: 72,
-                    height: 72,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary,
-                      borderRadius: BorderRadius.circular(22),
-                    ),
-                    child: Icon(
-                      Icons.sports_soccer,
-                      size: 40,
-                      color: Theme.of(context).colorScheme.onPrimary,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Nossa Patota',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  recover
-                      ? 'Recuperar o acesso'
-                      : register
-                      ? 'Crie seu acesso de jogador'
-                      : 'Entre para ver a partida',
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 28),
-                if (register) field('Nome completo', name),
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: TextFormField(
-                    controller: email,
-                    keyboardType: legacy
-                        ? TextInputType.text
-                        : TextInputType.emailAddress,
-                    autocorrect: false,
-                    autofillHints: legacy ? null : const [AutofillHints.email],
-                    decoration: InputDecoration(
-                      labelText: legacy ? 'Usuário da conta antiga' : 'E-mail',
-                      hintText: legacy ? 'seu.usuario' : 'voce@exemplo.com',
-                    ),
-                    validator: (v) {
-                      if ((v ?? '').trim().isEmpty) {
-                        return 'Preencha este campo';
-                      }
-                      if (!legacy && !validEmail(v!)) {
-                        return 'Informe um e-mail válido';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-                if (!recover)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: TextFormField(
-                      controller: password,
-                      obscureText: true,
-                      autofillHints: [
-                        register
-                            ? AutofillHints.newPassword
-                            : AutofillHints.password,
-                      ],
-                      decoration: const InputDecoration(labelText: 'Senha'),
-                      validator: (v) => (v ?? '').length < 6
-                          ? 'Use pelo menos 6 caracteres'
-                          : null,
-                      onFieldSubmitted: (_) => busy ? null : submit(),
-                    ),
-                  ),
-                if (legacy)
-                  const Panel(
-                    child: Text(
-                      'Use sua conta anterior para manter o histórico. Depois de entrar, vincule um e-mail real pelo perfil.',
-                    ),
-                  ),
-                if (error != null)
-                  Panel(
-                    child: Text(
-                      error!,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
+    body: SafeArea(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 440),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(PatotaSpace.xl),
+            child: Form(
+              key: form,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(PatotaRadius.modal),
+                        border: Border.all(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: .2),
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.sports_soccer_rounded,
+                        size: 48,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                   ),
-                if (message != null) Panel(child: Text(message!)),
-                const SizedBox(height: 12),
-                FilledButton(
-                  onPressed: busy ? null : submit,
-                  child: Text(
-                    busy
-                        ? 'Aguarde…'
-                        : recover
+                  const SizedBox(height: PatotaSpace.lg),
+                  Text(
+                    'Nossa Patota',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: PatotaSpace.sm),
+                  Text(
+                    recover
+                        ? 'Vamos recuperar seu acesso'
+                        : register
+                        ? 'Seu lugar no time começa aqui'
+                        : 'Entre para ver a partida',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: PatotaSpace.xl),
+                  if (register)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: PatotaSpace.sm,
+                      ),
+                      child: TextFormField(
+                        controller: name,
+                        textCapitalization: TextCapitalization.words,
+                        autofillHints: const [AutofillHints.name],
+                        textInputAction: TextInputAction.next,
+                        decoration: const InputDecoration(
+                          labelText: 'Nome completo',
+                          prefixIcon: Icon(Icons.person_rounded),
+                        ),
+                        validator: (v) => (v ?? '').trim().isEmpty
+                            ? 'Conte como a turma pode chamar você.'
+                            : null,
+                      ),
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: PatotaSpace.sm,
+                    ),
+                    child: TextFormField(
+                      controller: email,
+                      keyboardType: legacy
+                          ? TextInputType.text
+                          : TextInputType.emailAddress,
+                      autocorrect: false,
+                      autofillHints: legacy
+                          ? null
+                          : const [AutofillHints.email],
+                      textInputAction: recover
+                          ? TextInputAction.done
+                          : TextInputAction.next,
+                      decoration: InputDecoration(
+                        labelText: legacy
+                            ? 'Usuário da conta antiga'
+                            : 'E-mail',
+                        hintText: legacy ? 'seu.usuario' : 'voce@exemplo.com',
+                        prefixIcon: Icon(
+                          legacy ? Icons.person_rounded : Icons.mail_rounded,
+                        ),
+                      ),
+                      validator: (v) {
+                        if ((v ?? '').trim().isEmpty) {
+                          return legacy
+                              ? 'Informe seu usuário para entrar.'
+                              : 'Informe seu e-mail para continuar.';
+                        }
+                        if (!legacy && !validEmail(v!)) {
+                          return 'Confira o e-mail. Exemplo: voce@exemplo.com';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  if (!recover)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: PatotaSpace.sm,
+                      ),
+                      child: TextFormField(
+                        controller: password,
+                        obscureText: !showPassword,
+                        textInputAction: TextInputAction.done,
+                        autofillHints: [
+                          register
+                              ? AutofillHints.newPassword
+                              : AutofillHints.password,
+                        ],
+                        decoration: InputDecoration(
+                          labelText: 'Senha',
+                          prefixIcon: const Icon(Icons.lock_rounded),
+                          suffixIcon: IconButton(
+                            tooltip: showPassword
+                                ? 'Ocultar senha'
+                                : 'Mostrar senha',
+                            onPressed: () =>
+                                setState(() => showPassword = !showPassword),
+                            icon: Icon(
+                              showPassword
+                                  ? Icons.visibility_off_rounded
+                                  : Icons.visibility_rounded,
+                            ),
+                          ),
+                        ),
+                        validator: (v) => (v ?? '').length < 6
+                            ? 'Use pelo menos 6 caracteres'
+                            : null,
+                        onFieldSubmitted: (_) => busy ? null : submit(),
+                      ),
+                    ),
+                  if (legacy)
+                    const _AuthNotice(
+                      icon: Icons.history_rounded,
+                      message:
+                          'Seu histórico vem com você. Entre com a conta anterior e vincule um e-mail real pelo perfil.',
+                    ),
+                  if (error != null)
+                    _AuthNotice(
+                      icon: Icons.error_outline_rounded,
+                      message: error!,
+                      isError: true,
+                    ),
+                  if (message != null)
+                    _AuthNotice(
+                      icon: Icons.check_circle_rounded,
+                      message: message!,
+                    ),
+                  const SizedBox(height: PatotaSpace.lg),
+                  PrimaryButton(
+                    onPressed: busy ? null : submit,
+                    loading: busy,
+                    error: error != null,
+                    icon: recover
+                        ? Icons.mail_rounded
+                        : Icons.arrow_forward_rounded,
+                    label: recover
                         ? 'Enviar link de recuperação'
                         : register
                         ? 'Criar meu acesso'
                         : 'Entrar',
                   ),
-                ),
-                const SizedBox(height: 16),
-                TextButton(
-                  onPressed: busy
-                      ? null
-                      : () => mode(signup: !register && !recover),
-                  child: Text(
-                    register || recover
-                        ? 'Já tenho conta, quero entrar'
-                        : 'Primeiro acesso? Criar minha conta',
-                  ),
-                ),
-                if (!register && !recover)
+                  const SizedBox(height: PatotaSpace.lg),
                   TextButton(
-                    onPressed: busy ? null : () => mode(recovery: true),
-                    child: const Text('Esqueci minha senha'),
-                  ),
-                if (!register && !recover)
-                  TextButton(
-                    onPressed: busy ? null : () => mode(old: !legacy),
+                    onPressed: busy
+                        ? null
+                        : () => mode(signup: !register && !recover),
                     child: Text(
-                      legacy
-                          ? 'Entrar com e-mail'
-                          : 'Conta antiga? Entrar com usuário',
+                      register || recover
+                          ? 'Já tenho conta, quero entrar'
+                          : 'Primeiro acesso? Criar minha conta',
                     ),
                   ),
-                if (widget.store.backend.demo)
-                  const Panel(
-                    child: Text(
-                      'Modo demonstração. Use admin@exemplo.com ou igor@exemplo.com e uma senha de 6 caracteres. Não envia e-mails e os dados ficam neste aparelho.',
+                  if (!register && !recover)
+                    TextButton(
+                      onPressed: busy ? null : () => mode(recovery: true),
+                      child: const Text('Esqueci minha senha'),
                     ),
-                  ),
-              ],
+                  if (!register && !recover)
+                    TextButton(
+                      onPressed: busy ? null : () => mode(old: !legacy),
+                      child: Text(
+                        legacy
+                            ? 'Entrar com e-mail'
+                            : 'Conta antiga? Entrar com usuário',
+                      ),
+                    ),
+                  if (widget.store.backend.demo)
+                    const _AuthNotice(
+                      icon: Icons.sports_soccer_rounded,
+                      message:
+                          'Experimente a patota\nUse admin@exemplo.com ou igor@exemplo.com e uma senha de 6 caracteres. A demonstração salva os dados neste aparelho e não envia e-mails.',
+                    ),
+                ],
+              ),
             ),
           ),
         ),
       ),
     ),
   );
+}
+
+class _AuthNotice extends StatelessWidget {
+  const _AuthNotice({
+    required this.icon,
+    required this.message,
+    this.isError = false,
+  });
+  final IconData icon;
+  final String message;
+  final bool isError;
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Semantics(
+      liveRegion: true,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: PatotaSpace.sm),
+        padding: const EdgeInsets.all(PatotaSpace.lg),
+        decoration: BoxDecoration(
+          color: isError ? scheme.errorContainer : scheme.surfaceContainer,
+          borderRadius: BorderRadius.circular(PatotaRadius.lg),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              icon,
+              size: 24,
+              color: isError ? scheme.error : scheme.primary,
+            ),
+            const SizedBox(width: PatotaSpace.md),
+            Expanded(
+              child: Text(
+                message,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: isError ? scheme.onErrorContainer : scheme.onSurface,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class AccountEmailPage extends StatefulWidget {
@@ -254,23 +365,30 @@ class _AccountEmailState extends State<AccountEmailPage> {
     store: widget.store,
     title: 'E-mail da conta',
     builder: (context) => ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(PatotaSpace.lg),
       children: [
         Text(
           'E-mail atual: ${widget.store.backend.accountEmail ?? 'não informado'}',
         ),
-        const Panel(
-          child: Text(
-            'Vincule um e-mail real para recuperar a senha. A alteração mantém a mesma conta e o histórico. Confirme os links enviados pelo Supabase; a troca só se conclui após a verificação.',
-          ),
+        const _AuthNotice(
+          icon: Icons.verified_user_rounded,
+          message:
+              'Um e-mail real ajuda a recuperar sua senha. A troca mantém sua conta e seu histórico. Confirme os links enviados para concluir a alteração.',
         ),
         TextField(
           controller: email,
           keyboardType: TextInputType.emailAddress,
-          decoration: const InputDecoration(labelText: 'Novo e-mail'),
+          autocorrect: false,
+          decoration: const InputDecoration(
+            labelText: 'Novo e-mail',
+            prefixIcon: Icon(Icons.mail_rounded),
+          ),
         ),
-        const SizedBox(height: 16),
-        FilledButton(
+        const SizedBox(height: PatotaSpace.lg),
+        PrimaryButton(
+          label: 'Vincular e-mail',
+          icon: Icons.check_rounded,
+          loading: busy,
           onPressed: busy
               ? null
               : () async {
@@ -294,9 +412,9 @@ class _AccountEmailState extends State<AccountEmailPage> {
                     });
                   }
                 },
-          child: const Text('Vincular e-mail'),
         ),
-        if (message != null) Panel(child: Text(message!)),
+        if (message != null)
+          _AuthNotice(icon: Icons.info_rounded, message: message!),
       ],
     ),
   );
@@ -333,15 +451,18 @@ class _PasswordState extends State<PasswordPage> {
           constraints: const BoxConstraints(maxWidth: 460),
           child: ListView(
             shrinkWrap: true,
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(PatotaSpace.xl),
             children: [
               if (widget.requiredChange)
                 const Text(
-                  'Você entrou com uma senha provisória. Escolha uma nova senha para continuar.',
+                  'Escolha uma nova senha para continuar com sua patota.',
                 ),
               field('Nova senha', password, password: true),
               field('Repita a senha', repeated, password: true),
-              FilledButton(
+              PrimaryButton(
+                label: 'Salvar senha',
+                icon: Icons.check_rounded,
+                loading: busy,
                 onPressed: busy
                     ? null
                     : () async {
@@ -365,7 +486,6 @@ class _PasswordState extends State<PasswordPage> {
                           }
                         }
                       },
-                child: const Text('Salvar senha'),
               ),
               if (widget.requiredChange)
                 TextButton(

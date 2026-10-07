@@ -17,12 +17,12 @@ class AdminPage extends StatelessWidget {
         return const Center(child: Text('Acesso reservado ao administrador.'));
       }
       return ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(PatotaSpace.lg),
         children: [
           Panel(
             child: ListTile(
               title: const Text('Identidade, times e convite'),
-              trailing: const Icon(Icons.chevron_right),
+              trailing: const Icon(Icons.chevron_right_rounded),
               onTap: () => openPage(context, PatotaConfigPage(store)),
             ),
           ),
@@ -32,7 +32,7 @@ class AdminPage extends StatelessWidget {
               subtitle: Text(
                 '${weekdays[store.snapshot.settings.weekday]} às ${store.snapshot.settings.time}',
               ),
-              trailing: const Icon(Icons.chevron_right),
+              trailing: const Icon(Icons.chevron_right_rounded),
               onTap: () => openPage(context, SettingsPage(store)),
             ),
           ),
@@ -139,7 +139,7 @@ class _SettingsState extends State<SettingsPage> {
         return const Center(child: Text('Acesso reservado ao administrador.'));
       }
       return ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(PatotaSpace.lg),
         children: [
           choice(
             'Dia da semana',
@@ -161,7 +161,8 @@ class _SettingsState extends State<SettingsPage> {
               'O aplicativo cria as próximas partidas quando um administrador abre a patota. Ao mudar o dia, cancela rascunhos futuros sem respostas e preserva o histórico.',
             ),
           ),
-          FilledButton(
+          PrimaryButton(
+            loading: busy,
             onPressed: busy
                 ? null
                 : () async {
@@ -205,7 +206,7 @@ class _SettingsState extends State<SettingsPage> {
                       if (ok && context.mounted) Navigator.pop(context);
                     }
                   },
-            child: const Text('Salvar agenda'),
+            label: 'Salvar agenda',
           ),
         ],
       );

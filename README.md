@@ -8,6 +8,9 @@ Consulte [implantação e validação](docs/fases-0-2.md) antes de conectar o ap
 ao banco existente. `supabase/schema.sql` é referência histórica, não instalação
 do backend novo.
 
+O visual segue as regras de design do Nossa Patota. Consulte o
+[sistema de design e escopo aplicado](docs/design-system.md).
+
 Requer Flutter **3.47.6** (Dart 3.13). Instale o SDK oficial e coloque `flutter`
 no PATH ([instalação oficial](https://docs.flutter.dev/install/manual)). O SDK
 baixado para validar esta migração está em `.tools/flutter`,

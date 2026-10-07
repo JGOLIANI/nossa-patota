@@ -9,8 +9,7 @@ import '../models.dart';
 import '../store.dart';
 import 'common.dart';
 
-Color teamColor(String value) =>
-    Color(int.parse('ff${value.replaceFirst('#', '')}', radix: 16));
+Color teamColor(String value) => teamTint(value);
 
 Future<String?> askReason(BuildContext context, String title) async {
   final controller = TextEditingController();
@@ -31,13 +30,13 @@ Future<String?> askReason(BuildContext context, String title) async {
           onPressed: () => Navigator.pop(ctx),
           child: const Text('Voltar'),
         ),
-        FilledButton(
+        PrimaryButton(
           onPressed: () {
             if (controller.text.trim().isNotEmpty) {
               Navigator.pop(ctx, controller.text.trim());
             }
           },
-          child: const Text('Confirmar'),
+          label: 'Confirmar',
         ),
       ],
     ),
@@ -97,7 +96,7 @@ class _PatotaConfigState extends State<PatotaConfigPage> {
     store: widget.store,
     title: 'Configurações da patota',
     builder: (context) => ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(PatotaSpace.lg),
       children: [
         field('Nome da patota', name),
         choice(
@@ -107,55 +106,62 @@ class _PatotaConfigState extends State<PatotaConfigPage> {
           (v) => setState(() => modality = v),
           labels: modalityLabels,
         ),
-        choice('Fuso horário', zone, [
-          'America/Sao_Paulo',
-          'America/Manaus',
-          'America/Recife',
-          'America/Fortaleza',
-          'America/Rio_Branco',
-          'Europe/Lisbon',
-          'UTC',
-        ], (v) => setState(() => zone = v)),
-        const Panel(
-          child: Text(
-            'Mudanças de modalidade, fuso e cores padrão valem para novas partidas. O histórico mantém as regras e cores publicadas.',
-          ),
-        ),
-        field('Tamanho sugerido do time', size, number: true),
-        const Heading('Identidade dos times'),
-        field('Nome do time A', aLabel),
-        choice(
-          'Cor do time A',
-          aColor,
-          teamPalette.keys.toList(),
-          (v) => setState(() => aColor = v),
-          labels: teamPalette,
-        ),
-        field('Nome do time B', bLabel),
-        choice(
-          'Cor do time B',
-          bColor,
-          teamPalette.keys.toList(),
-          (v) => setState(() => bColor = v),
-          labels: teamPalette,
-        ),
-        Row(
+        ExpansionTile(
+          title: const Text('Regras e identidade dos times'),
+          leading: const Icon(Icons.tune_rounded),
           children: [
-            Expanded(
-              child: ListTile(
-                leading: Icon(Icons.circle, color: teamColor(aColor)),
-                title: Text(aLabel.text),
+            choice('Fuso horário', zone, [
+              'America/Sao_Paulo',
+              'America/Manaus',
+              'America/Recife',
+              'America/Fortaleza',
+              'America/Rio_Branco',
+              'Europe/Lisbon',
+              'UTC',
+            ], (v) => setState(() => zone = v)),
+            const Panel(
+              child: Text(
+                'Mudanças de modalidade, fuso e cores padrão valem para novas partidas. O histórico mantém as regras e cores publicadas.',
               ),
             ),
-            Expanded(
-              child: ListTile(
-                leading: Icon(Icons.circle, color: teamColor(bColor)),
-                title: Text(bLabel.text),
-              ),
+            field('Tamanho sugerido do time', size, number: true),
+            const Heading('Identidade dos times'),
+            field('Nome do time A', aLabel),
+            choice(
+              'Cor do time A',
+              aColor,
+              teamPalette.keys.toList(),
+              (v) => setState(() => aColor = v),
+              labels: teamPalette,
+            ),
+            field('Nome do time B', bLabel),
+            choice(
+              'Cor do time B',
+              bColor,
+              teamPalette.keys.toList(),
+              (v) => setState(() => bColor = v),
+              labels: teamPalette,
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: ListTile(
+                    leading: Icon(Icons.circle, color: teamColor(aColor)),
+                    title: Text(aLabel.text),
+                  ),
+                ),
+                Expanded(
+                  child: ListTile(
+                    leading: Icon(Icons.circle, color: teamColor(bColor)),
+                    title: Text(bLabel.text),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
-        FilledButton(
+        PrimaryButton(
+          loading: busy,
           onPressed: busy
               ? null
               : () async {
@@ -202,13 +208,14 @@ class _PatotaConfigState extends State<PatotaConfigPage> {
                   if (mounted) {
                     setState(() => busy = false);
                     if (ok && context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Configurações salvas.')),
+                      showFeedback(
+                        context,
+                        'Pronto! Sua patota está do seu jeito.',
                       );
                     }
                   }
                 },
-          child: const Text('Salvar configurações'),
+          label: 'Salvar configurações',
         ),
         const Heading('Convide sua patota'),
         if (code == null)
@@ -224,13 +231,18 @@ class _PatotaConfigState extends State<PatotaConfigPage> {
                 const Text(
                   'O código permite entrar como jogador; nunca como administrador.',
                 ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                const SizedBox(height: PatotaSpace.md),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: PatotaSpace.sm,
                   children: [
                     TextButton(
-                      onPressed: () =>
-                          Clipboard.setData(ClipboardData(text: code!)),
+                      onPressed: () => perform(
+                        context,
+                        () => Clipboard.setData(ClipboardData(text: code!)),
+                        successMessage:
+                            'Código copiado. Agora é só convidar a turma!',
+                      ),
                       child: const Text('Copiar'),
                     ),
                     TextButton(
@@ -309,7 +321,7 @@ class _EditRoundState extends State<EditRoundPage> {
     store: widget.store,
     title: 'Editar partida',
     builder: (context) => ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(PatotaSpace.lg),
       children: [
         field('Título', title),
         OutlinedButton(
@@ -328,8 +340,9 @@ class _EditRoundState extends State<EditRoundPage> {
         field('Local', location),
         field('Vagas (0 = sem limite)', capacity, number: true),
         Text('Fuso da partida: ${widget.round.timezone}'),
-        const SizedBox(height: 16),
-        FilledButton(
+        const SizedBox(height: PatotaSpace.lg),
+        PrimaryButton(
+          loading: busy,
           onPressed: busy
               ? null
               : () async {
@@ -364,7 +377,7 @@ class _EditRoundState extends State<EditRoundPage> {
                     if (ok && context.mounted) Navigator.pop(context);
                   }
                 },
-          child: const Text('Salvar partida'),
+          label: 'Salvar partida',
         ),
       ],
     ),
@@ -390,10 +403,10 @@ class RoundHistoryPage extends StatelessWidget {
         }
         final rows = state.data as List;
         return ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(PatotaSpace.lg),
           children: [
             if (rows.isEmpty)
-              const Text('Nenhuma alteração registrada após a migração.'),
+              const Text('As alterações da partida aparecerão aqui.'),
             for (final row in rows)
               Panel(
                 child: Column(
@@ -455,6 +468,217 @@ class RoundHistoryPage extends StatelessWidget {
   );
 }
 
+String playerMatchCardText(Json payload) {
+  final text = StringBuffer(
+    '${payload['name']}\n${payload['patota']} · ${prettyDate(payload['date'] as String)}\n',
+  );
+  if (payload['team'] != null) text.writeln(payload['team']['name']);
+  text.writeln(
+    '${payload['goals']} gols · ${payload['assists']} assistências · ${payload['wins']} vitórias',
+  );
+  for (final score in payload['scores'] as List) {
+    text.writeln(
+      '${score['team_a']} ${score['score_a']} × ${score['score_b']} ${score['team_b']}',
+    );
+  }
+  for (final award in payload['awards'] as List) {
+    text.writeln(awardLabels[award] ?? award);
+  }
+  return text.toString().trim();
+}
+
+/// The image keeps its typography when the device uses larger accessibility text.
+/// The page offers the same data as scalable text outside this export canvas.
+class ExportPlayerMatchCard extends StatelessWidget {
+  const ExportPlayerMatchCard({super.key, required this.payload});
+  final Json payload;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    image: true,
+    label: playerMatchCardText(payload),
+    child: AspectRatio(
+      aspectRatio: 9 / 16,
+      child: FittedBox(
+        fit: BoxFit.contain,
+        child: SizedBox(
+          width: 360,
+          height: 640,
+          child: MediaQuery.withNoTextScaling(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: PatotaColors.shareBackground,
+                borderRadius: BorderRadius.circular(PatotaRadius.card),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(PatotaSpace.xl),
+                child: DefaultTextStyle(
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 14,
+                    color: PatotaColors.shareText,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        (payload['patota'] as String).toUpperCase(),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          letterSpacing: 2,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: PatotaSpace.sm),
+                      Text(
+                        prettyDate(payload['date'] as String),
+                        style: const TextStyle(color: PatotaColors.shareMuted),
+                      ),
+                      const SizedBox(height: PatotaSpace.xl),
+                      Expanded(
+                        child: Center(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: SizedBox(
+                              width: 312,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Text(
+                                    payload['name'] as String,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  const SizedBox(height: PatotaSpace.sm),
+                                  if (payload['team'] != null)
+                                    Row(
+                                      children: [
+                                        Container(
+                                          width: 16,
+                                          height: 16,
+                                          decoration: BoxDecoration(
+                                            color: teamColor(
+                                              payload['team']['color']
+                                                  as String,
+                                            ),
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color: PatotaColors.shareMuted,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: PatotaSpace.sm),
+                                        Expanded(
+                                          child: Text(
+                                            payload['team']['name'] as String,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  const SizedBox(height: PatotaSpace.sm),
+                                  const Text(
+                                    'MINHA PARTIDA',
+                                    style: TextStyle(
+                                      color: PatotaColors.shareAccent,
+                                      letterSpacing: 2,
+                                    ),
+                                  ),
+                                  const SizedBox(height: PatotaSpace.xl),
+                                  Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      for (final metric in {
+                                        'Gols': payload['goals'],
+                                        'Assistências': payload['assists'],
+                                        'Vitórias': payload['wins'],
+                                      }.entries)
+                                        Expanded(
+                                          child: Column(
+                                            children: [
+                                              FittedBox(
+                                                fit: BoxFit.scaleDown,
+                                                child: Text(
+                                                  '${metric.value}',
+                                                  style: const TextStyle(
+                                                    fontSize: 40,
+                                                    fontWeight: FontWeight.w800,
+                                                  ),
+                                                ),
+                                              ),
+                                              Text(
+                                                metric.key,
+                                                textAlign: TextAlign.center,
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: PatotaSpace.xl),
+                                  for (final score in payload['scores'] as List)
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                        bottom: PatotaSpace.sm,
+                                      ),
+                                      child: Text(
+                                        '${score['team_a']}  ${score['score_a']} × ${score['score_b']}  ${score['team_b']}',
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(fontSize: 14),
+                                      ),
+                                    ),
+                                  for (final award in payload['awards'] as List)
+                                    Text(
+                                      awardLabels[award] ?? '',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        color: PatotaColors.shareAccent,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: PatotaSpace.xl),
+                      const Text(
+                        'NOSSA PATOTA',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                      const SizedBox(height: PatotaSpace.xs),
+                      Text(
+                        'Dados da partida · versão ${payload['round_version']}',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: PatotaColors.shareMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 class PlayerMatchCardPage extends StatefulWidget {
   const PlayerMatchCardPage(
     this.store,
@@ -496,217 +720,100 @@ class _PlayerMatchCardState extends State<PlayerMatchCardPage> {
         }
         final record = Map<String, dynamic>.from(state.data as Map),
             payload = Map<String, dynamic>.from(record['payload'] as Map);
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            const Text(
-              'Revise seus números antes de compartilhar. Somente seus dados pessoais aparecem no card; foto e métricas não registradas ficam de fora.',
-            ),
-            const SizedBox(height: 16),
-            RepaintBoundary(
-              key: boundary,
-              child: AspectRatio(
-                aspectRatio: 9 / 16,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xff102d20),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  padding: const EdgeInsets.all(24),
-                  child: DefaultTextStyle(
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      color: Colors.white,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          (payload['patota'] as String).toUpperCase(),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            letterSpacing: 2,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          prettyDate(payload['date'] as String),
-                          style: const TextStyle(color: Colors.white70),
-                        ),
-                        const Spacer(),
-                        Text(
-                          payload['name'] as String,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 30,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        if (payload['team'] != null)
-                          Row(
-                            children: [
-                              Container(
-                                width: 16,
-                                height: 16,
-                                decoration: BoxDecoration(
-                                  color: teamColor(
-                                    payload['team']['color'] as String,
-                                  ),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white54),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  payload['team']['name'] as String,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        const Text(
-                          'MINHA PARTIDA',
-                          style: TextStyle(
-                            color: Color(0xff30d158),
-                            letterSpacing: 2,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        Row(
-                          children: [
-                            for (final metric in {
-                              'Gols': payload['goals'],
-                              'Assistências': payload['assists'],
-                              'Vitórias': payload['wins'],
-                            }.entries)
-                              Expanded(
-                                child: Column(
-                                  children: [
-                                    Text(
-                                      '${metric.value}',
-                                      style: const TextStyle(
-                                        fontSize: 36,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                    Text(
-                                      metric.key,
-                                      style: const TextStyle(fontSize: 12),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-                        for (final score in payload['scores'] as List)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Text(
-                              '${score['team_a']}  ${score['score_a']} × ${score['score_b']}  ${score['team_b']}',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(fontSize: 13),
-                            ),
-                          ),
-                        for (final award in payload['awards'] as List)
-                          Text(
-                            awardLabels[award] ?? '',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(color: Color(0xff30d158)),
-                          ),
-                        const Spacer(),
-                        const Text(
-                          'NOSSA PATOTA',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 2,
-                          ),
-                        ),
-                        Text(
-                          'Dados da partida · versão ${payload['round_version']}',
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: Colors.white54,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(PatotaSpace.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Revise seus números antes de compartilhar. Somente seus dados pessoais aparecem no card; foto e métricas não registradas ficam de fora.',
               ),
-            ),
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: busy
-                  ? null
-                  : () async {
-                      setState(() => busy = true);
-                      await perform(context, () async {
-                        final fresh = await widget.store.backend
-                            .rpc('player_match_card', {
-                              'p_round_id': widget.roundId,
-                              'p_player_id': widget.playerId,
-                            });
-                        if (jsonEncode(fresh['payload']) !=
-                            jsonEncode(payload)) {
-                          throw Exception(
-                            'Os dados foram atualizados. Abra novamente o card antes de compartilhar.',
+              const SizedBox(height: PatotaSpace.lg),
+              RepaintBoundary(
+                key: boundary,
+                child: ExportPlayerMatchCard(payload: payload),
+              ),
+              const SizedBox(height: PatotaSpace.lg),
+              ExpansionTile(
+                title: const Text('Ver dados em texto'),
+                leading: const Icon(Icons.article_rounded),
+                childrenPadding: const EdgeInsets.all(PatotaSpace.lg),
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(playerMatchCardText(payload)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: PatotaSpace.lg),
+              PrimaryButton(
+                loading: busy,
+                onPressed: busy
+                    ? null
+                    : () async {
+                        setState(() => busy = true);
+                        await perform(context, () async {
+                          final fresh = await widget.store.backend
+                              .rpc('player_match_card', {
+                                'p_round_id': widget.roundId,
+                                'p_player_id': widget.playerId,
+                              });
+                          if (jsonEncode(fresh['payload']) !=
+                              jsonEncode(payload)) {
+                            throw Exception(
+                              'Os dados foram atualizados. Abra novamente o card antes de compartilhar.',
+                            );
+                          }
+                          final current = widget.store.snapshot.round(
+                            widget.roundId,
                           );
-                        }
-                        final current = widget.store.snapshot.round(
-                          widget.roundId,
-                        );
-                        if (current?.status != 'encerrada' ||
-                            current!.version != payload['round_version']) {
-                          throw Exception(
-                            'A partida foi corrigida. Abra novamente o card para gerar a versão atual.',
+                          if (current?.status != 'encerrada' ||
+                              current!.version != payload['round_version']) {
+                            throw Exception(
+                              'A partida foi corrigida. Abra novamente o card para gerar a versão atual.',
+                            );
+                          }
+                          await WidgetsBinding.instance.endOfFrame;
+                          final render =
+                              boundary.currentContext!.findRenderObject()
+                                  as RenderRepaintBoundary;
+                          final img = await render.toImage(
+                            pixelRatio: 1080 / render.size.width,
                           );
-                        }
-                        await WidgetsBinding.instance.endOfFrame;
-                        final render =
-                            boundary.currentContext!.findRenderObject()
-                                as RenderRepaintBoundary;
-                        final img = await render.toImage(
-                          pixelRatio: 1080 / render.size.width,
-                        );
-                        try {
-                          final bytes = (await img.toByteData(
-                            format: ui.ImageByteFormat.png,
-                          ))!.buffer.asUint8List();
-                          if (!context.mounted) return;
-                          final box = context.findRenderObject() as RenderBox?;
-                          await SharePlus.instance.share(
-                            ShareParams(
-                              files: [
-                                XFile.fromData(
-                                  bytes,
-                                  mimeType: 'image/png',
-                                  name: 'minha-partida.png',
-                                ),
-                              ],
-                              fileNameOverrides: ['minha-partida.png'],
-                              text: 'Minha partida na ${payload['patota']}',
-                              sharePositionOrigin: box == null
-                                  ? null
-                                  : box.localToGlobal(Offset.zero) & box.size,
-                            ),
-                          );
-                        } finally {
-                          img.dispose();
-                        }
-                      });
-                      if (mounted) setState(() => busy = false);
-                    },
-              icon: const Icon(Icons.ios_share),
-              label: const Text('Compartilhar card'),
-            ),
-          ],
+                          try {
+                            final bytes = (await img.toByteData(
+                              format: ui.ImageByteFormat.png,
+                            ))!.buffer.asUint8List();
+                            if (!context.mounted) return;
+                            final box =
+                                context.findRenderObject() as RenderBox?;
+                            await SharePlus.instance.share(
+                              ShareParams(
+                                files: [
+                                  XFile.fromData(
+                                    bytes,
+                                    mimeType: 'image/png',
+                                    name: 'minha-partida.png',
+                                  ),
+                                ],
+                                fileNameOverrides: ['minha-partida.png'],
+                                text: 'Minha partida na ${payload['patota']}',
+                                sharePositionOrigin: box == null
+                                    ? null
+                                    : box.localToGlobal(Offset.zero) & box.size,
+                              ),
+                            );
+                          } finally {
+                            img.dispose();
+                          }
+                        });
+                        if (mounted) setState(() => busy = false);
+                      },
+                icon: Icons.ios_share_rounded,
+                label: 'Compartilhar card',
+              ),
+            ],
+          ),
         );
       },
     ),

@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -47,7 +46,7 @@ Future<void> main() async {
         home: Scaffold(
           body: Center(
             child: Padding(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(PatotaSpace.xl),
               child: SelectableText(
                 'Não foi possível iniciar o aplicativo.\n${translateError(e)}',
               ),
@@ -205,53 +204,67 @@ class _ShellState extends State<AppShell> {
       RankingsPage(store),
       ProfilePage(store),
     ];
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final navIndices = [0, 2, 3, 1];
-    final navLabels = ['Início', 'Partidas', 'Rankings', 'Elenco'];
+    final scheme = Theme.of(context).colorScheme;
+    final compactNav =
+        MediaQuery.textScalerOf(context).scale(PatotaType.caption) >
+            PatotaType.caption * 1.3 &&
+        MediaQuery.sizeOf(context).width <= PatotaLayout.contentWidth;
+    final navIndices = [0, 2, 3, 1, 4];
+    final navLabels = ['Início', 'Partidas', 'Rankings', 'Elenco', 'Perfil'];
     final navIcons = [
-      CupertinoIcons.house,
-      CupertinoIcons.calendar,
-      CupertinoIcons.rosette,
-      CupertinoIcons.person_2,
+      Icons.home_rounded,
+      Icons.calendar_month_rounded,
+      Icons.emoji_events_rounded,
+      Icons.groups_rounded,
+      Icons.person_rounded,
     ];
     return Scaffold(
-      appBar: IosHeader(
-        title: selected == 0
-            ? 'Olá, ${store.current?.name.split(' ').first ?? 'jogador'}'
-            : selected == 1
-            ? 'Elenco'
-            : titles[selected],
-        store: store,
-        onProfile: () => setState(() => selected = 4),
-        action: store.isAdmin && [1, 2].contains(selected)
-            ? CupertinoButton(
-                padding: const EdgeInsets.all(8),
-                onPressed: () => openPage(
-                  context,
-                  selected == 1 ? PlayerForm(store) : NewRoundPage(store),
-                ),
-                child: Semantics(
-                  label: selected == 1 ? 'Adicionar jogador' : 'Nova partida',
-                  child: const Icon(CupertinoIcons.add, size: 24),
-                ),
-              )
-            : null,
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(
+          PatotaSpace.touch +
+              PatotaSpace.xl +
+              PatotaSpace.sm +
+              MediaQuery.textScalerOf(context).scale(PatotaType.heading) * 1.3,
+        ),
+        child: IosHeader(
+          title: selected == 0
+              ? 'Olá, ${store.current?.name.split(' ').first ?? 'jogador'}'
+              : selected == 1
+              ? 'Elenco'
+              : titles[selected],
+          store: store,
+          onProfile: () => setState(() => selected = 4),
+          action: store.isAdmin && [1, 2].contains(selected)
+              ? IconButton(
+                  onPressed: () => openPage(
+                    context,
+                    selected == 1 ? PlayerForm(store) : NewRoundPage(store),
+                  ),
+                  icon: Semantics(
+                    label: selected == 1 ? 'Adicionar jogador' : 'Nova partida',
+                    child: const Icon(Icons.add_circle_rounded, size: 28),
+                  ),
+                )
+              : null,
+        ),
       ),
       body: Column(
         children: [
           if (store.backend.demo)
             Container(
               width: double.infinity,
-              color: dark ? const Color(0xff2e2312) : const Color(0xfffff2e5),
-              padding: const EdgeInsets.symmetric(vertical: 4),
+              color: scheme.secondaryContainer,
+              padding: const EdgeInsets.symmetric(
+                vertical: PatotaSpace.sm,
+                horizontal: PatotaSpace.lg,
+              ),
               child: Text(
                 'Modo demonstração · dados só neste aparelho',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 11,
-                  color: dark
-                      ? const Color(0xffff9f0a)
-                      : const Color(0xffb25000),
+                  fontSize: PatotaType.caption,
+                  fontWeight: FontWeight.w600,
+                  color: scheme.onSecondaryContainer,
                 ),
               ),
             ),
@@ -259,11 +272,25 @@ class _ShellState extends State<AppShell> {
           Expanded(
             child: Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 512),
+                constraints: const BoxConstraints(
+                  maxWidth: PatotaLayout.contentWidth,
+                ),
                 child: IndexedStack(
                   key: ValueKey(store.snapshot.activePatotaId),
                   index: selected,
-                  children: pages,
+                  children: List.generate(
+                    pages.length,
+                    (i) => Offstage(
+                      offstage: i != selected,
+                      child: TickerMode(
+                        enabled: i == selected,
+                        child: ExcludeFocus(
+                          excluding: i != selected,
+                          child: pages[i],
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -271,28 +298,87 @@ class _ShellState extends State<AppShell> {
         ],
       ),
       bottomNavigationBar: Container(
-        color: dark ? const Color(0xff1c1c1e) : const Color(0xfff9f9fb),
+        decoration: BoxDecoration(
+          color: scheme.surface,
+          border: Border(
+            top: BorderSide(color: scheme.outlineVariant, width: 2),
+          ),
+        ),
         child: Center(
           heightFactor: 1,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 512),
-            child: CupertinoTabBar(
-              currentIndex: navIndices.indexOf(selected).clamp(0, 3),
-              onTap: (i) => setState(() => selected = navIndices[i]),
-              activeColor: Theme.of(context).colorScheme.primary,
-              inactiveColor: dark
-                  ? const Color(0xff68686e)
-                  : const Color(0xffa3a3a8),
-              backgroundColor: dark
-                  ? const Color(0xff1c1c1e)
-                  : const Color(0xfff9f9fb),
-              iconSize: 26,
-              height: 52,
-              items: List.generate(
-                4,
-                (i) => BottomNavigationBarItem(
-                  icon: Icon(navIcons[i]),
-                  label: navLabels[i],
+            constraints: const BoxConstraints(
+              maxWidth: PatotaLayout.contentWidth,
+            ),
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.all(PatotaSpace.sm),
+                child: Row(
+                  children: List.generate(navIndices.length, (i) {
+                    final active = selected == navIndices[i];
+                    final colour = active
+                        ? scheme.primary
+                        : scheme.onSurfaceVariant;
+                    return Expanded(
+                      flex: compactNav && active ? 2 : 1,
+                      child: Semantics(
+                        selected: active,
+                        button: true,
+                        label: navLabels[i],
+                        child: Material(
+                          color: PatotaColors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(
+                              PatotaRadius.lg,
+                            ),
+                            onTap: () =>
+                                setState(() => selected = navIndices[i]),
+                            child: AnimatedContainer(
+                              duration: PatotaMotion.duration(
+                                context,
+                                PatotaMotion.fast,
+                              ),
+                              constraints: const BoxConstraints(minHeight: 64),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: PatotaSpace.sm,
+                                horizontal: PatotaSpace.xs,
+                              ),
+                              decoration: BoxDecoration(
+                                color: active
+                                    ? scheme.primaryContainer
+                                    : PatotaColors.transparent,
+                                borderRadius: BorderRadius.circular(
+                                  PatotaRadius.lg,
+                                ),
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(navIcons[i], color: colour, size: 26),
+                                  if (!compactNav || active)
+                                    const SizedBox(height: PatotaSpace.xs),
+                                  if (!compactNav || active)
+                                    Text(
+                                      navLabels[i],
+                                      maxLines: 2,
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: PatotaType.caption,
+                                        fontWeight: active
+                                            ? FontWeight.w800
+                                            : FontWeight.w600,
+                                        color: colour,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
                 ),
               ),
             ),
