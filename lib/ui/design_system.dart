@@ -118,12 +118,16 @@ class PrimaryButton extends StatefulWidget {
     this.success = false,
     this.error = false,
     this.successLabel,
+    this.background,
+    this.labelOverlay,
   });
   final String label;
   final VoidCallback? onPressed;
   final IconData? icon;
   final bool loading, success, error;
   final String? successLabel;
+  final Widget? background;
+  final Widget? labelOverlay;
   @override
   State<PrimaryButton> createState() => _PrimaryButtonState();
 }
@@ -179,6 +183,9 @@ class _PrimaryButtonState extends State<PrimaryButton> {
             bottom: pressed ? 0 : PatotaSpace.xs,
           ),
           child: FilledButton(
+            clipBehavior: widget.background == null
+                ? Clip.none
+                : Clip.antiAlias,
             statesController: states,
             onPressed: disabled
                 ? null
@@ -187,6 +194,7 @@ class _PrimaryButtonState extends State<PrimaryButton> {
                     widget.onPressed!();
                   },
             style: FilledButton.styleFrom(
+              padding: widget.background == null ? null : EdgeInsets.zero,
               disabledForegroundColor: scheme.onSurfaceVariant,
               disabledBackgroundColor: scheme.surfaceContainerHighest,
               backgroundColor: colour,
@@ -199,47 +207,83 @@ class _PrimaryButtonState extends State<PrimaryButton> {
                 borderRadius: BorderRadius.circular(PatotaRadius.lg),
               ),
             ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: PatotaSpace.sm),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
+            child: SizedBox(
+              width: widget.background == null ? null : double.infinity,
+              child: Stack(
+                alignment: Alignment.center,
                 children: [
-                  if (widget.loading)
-                    SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: scheme.onSurfaceVariant,
+                  if (widget.background != null)
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: ExcludeSemantics(child: widget.background!),
                       ),
-                    )
-                  else if (widget.success ||
-                      widget.error ||
-                      widget.icon != null)
-                    Icon(
-                      widget.success
-                          ? Icons.check_circle_rounded
-                          : widget.error
-                          ? Icons.error_rounded
-                          : widget.icon,
-                      size: 22,
                     ),
-                  if (widget.loading ||
-                      widget.success ||
-                      widget.error ||
-                      widget.icon != null)
-                    const SizedBox(width: PatotaSpace.sm),
-                  Flexible(
-                    child: Text(
-                      widget.loading
-                          ? 'Aguarde…'
-                          : widget.success
-                          ? widget.successLabel ?? widget.label
-                          : widget.label,
-                      textAlign: TextAlign.center,
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      vertical: PatotaSpace.sm,
+                      horizontal: widget.background == null
+                          ? 0
+                          : PatotaSpace.xl,
+                    ),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: widget.background == null ? 0 : 56,
+                      ),
+                      child: Opacity(
+                        opacity: widget.labelOverlay != null && !widget.loading
+                            ? 0
+                            : 1,
+                        alwaysIncludeSemantics: true,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (widget.loading)
+                              SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                              )
+                            else if (widget.success ||
+                                widget.error ||
+                                widget.icon != null)
+                              Icon(
+                                widget.success
+                                    ? Icons.check_circle_rounded
+                                    : widget.error
+                                    ? Icons.error_rounded
+                                    : widget.icon,
+                                size: 22,
+                              ),
+                            if (widget.loading ||
+                                widget.success ||
+                                widget.error ||
+                                widget.icon != null)
+                              const SizedBox(width: PatotaSpace.sm),
+                            Flexible(
+                              child: Text(
+                                widget.loading
+                                    ? 'Aguarde…'
+                                    : widget.success
+                                    ? widget.successLabel ?? widget.label
+                                    : widget.label,
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
+                  if (widget.labelOverlay != null && !widget.loading)
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: ExcludeSemantics(child: widget.labelOverlay!),
+                      ),
+                    ),
                 ],
               ),
             ),

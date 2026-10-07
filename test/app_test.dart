@@ -22,6 +22,9 @@ void main() {
     final store = AppStore(await demo());
     await store.initialize();
     await tester.pumpWidget(PatotaApp(store));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Já tenho conta'));
+    await tester.pumpAndSettle();
     expect(find.text('Entre para ver a partida'), findsOneWidget);
     await tester.enterText(
       find.byType(TextFormField).first,

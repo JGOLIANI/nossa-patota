@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/backend.dart';
+import '../acquisition.dart';
 import '../store.dart';
 import 'common.dart';
 
@@ -50,6 +51,11 @@ class _PatotasState extends State<PatotasPage> {
       if (zones.containsKey(savedZone)) timezone = savedZone!;
       final savedStep = p.getInt('$draftKey.step') ?? 0;
       step = name.text.trim().isEmpty ? 0 : savedStep.clamp(0, 3);
+      final intro = IntroDraft.load(p);
+      if (widget.store.snapshot.patotas.isEmpty && intro.completed) {
+        if (intro.role == IntroRole.organizer) view = 'create';
+        if (intro.role == IntroRole.player) view = 'join';
+      }
     });
     name.addListener(saveDraft);
   }

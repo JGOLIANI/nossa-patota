@@ -8,6 +8,7 @@ import 'common.dart';
 import 'auth.dart';
 import 'settings.dart';
 import 'patotas.dart';
+import 'paywall.dart';
 
 class PlayersPage extends StatefulWidget {
   const PlayersPage(this.store, {super.key});
@@ -577,6 +578,19 @@ class ProfilePage extends StatelessWidget {
           ),
         ],
         const Heading('Conta e patota'),
+        Panel(
+          child: ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.workspace_premium_rounded),
+            title: const Text('Plano da patota'),
+            subtitle: const Text('Gratuito para toda a turma · conheça o Pro'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => openPage(
+              context,
+              PaywallPage(patotaName: store.snapshot.patota?.name),
+            ),
+          ),
+        ),
         Panel(
           child: Column(
             children: [

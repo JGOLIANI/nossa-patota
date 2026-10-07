@@ -6,8 +6,9 @@ bool validEmail(String value) =>
     RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(value.trim());
 
 class LoginPage extends StatefulWidget {
-  const LoginPage(this.store, {super.key});
+  const LoginPage(this.store, {super.key, this.createAccount = false});
   final AppStore store;
+  final bool createAccount;
   @override
   State<LoginPage> createState() => _LoginState();
 }
@@ -20,6 +21,12 @@ class _LoginState extends State<LoginPage> {
   bool register = false, recover = false, legacy = false, busy = false;
   bool showPassword = false;
   String? error, message;
+  @override
+  void initState() {
+    super.initState();
+    register = widget.createAccount;
+  }
+
   @override
   void dispose() {
     email.dispose();

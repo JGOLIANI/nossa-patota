@@ -35,5 +35,6 @@ flutter:
         - asset: assets/fonts/Inter.ttf
   assets:
     - assets/demo.json
+    - assets/patota_offer.json
     - assets/awards/
     - assets/icon.png

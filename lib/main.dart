@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'data/backend.dart';
 import 'store.dart';
 import 'ui/auth.dart';
+import 'ui/onboarding.dart';
 import 'ui/common.dart';
 import 'ui/home.dart';
 import 'ui/players.dart';
@@ -111,20 +112,23 @@ class _PatotaAppState extends State<PatotaApp> {
       builder: (context) => ListenableBuilder(
         listenable: widget.store,
         builder: (context, _) {
+          final path = Uri.tryParse(route.name ?? '/')?.pathSegments ?? [];
+          if (path.length == 1 && path.single == 'onboarding') {
+            return const OnboardingPreviewPage();
+          }
           final store = widget.store;
           if (!store.ready) {
             return const Scaffold(
               body: Center(child: CircularProgressIndicator()),
             );
           }
-          if (!store.signedIn) return LoginPage(store);
+          if (!store.signedIn) return EntryPage(store);
           if (store.backend.recoveryPending) {
             return PasswordPage(store, requiredChange: true);
           }
           if (store.current?.mustChangePassword == true) {
             return PasswordPage(store, requiredChange: true);
           }
-          final path = Uri.tryParse(route.name ?? '/')?.pathSegments ?? [];
           if (store.snapshot.activePatotaId == null) return PatotasPage(store);
           if (path.length == 2 && path[0] == 'jogadores') {
             return PlayerDetail(store, path[1]);
@@ -163,7 +167,7 @@ class _PatotaAppState extends State<PatotaApp> {
             body: Center(child: CircularProgressIndicator()),
           );
         }
-        if (!store.signedIn) return LoginPage(store);
+        if (!store.signedIn) return EntryPage(store);
         if (store.backend.recoveryPending) {
           return PasswordPage(store, requiredChange: true);
         }

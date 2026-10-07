@@ -11,6 +11,10 @@ do backend novo.
 O visual segue as regras de design do Nossa Patota. Consulte o
 [sistema de design e escopo aplicado](docs/design-system.md).
 
+A introdução personalizada e a tela configurável de planos estão descritas em
+[onboarding e paywall](docs/onboarding-paywall.md). Todos os recursos atuais
+continuam gratuitos; a oferta do Pro é por patota e ainda não inicia compras.
+
 Requer Flutter **3.47.6** (Dart 3.13). Instale o SDK oficial e coloque `flutter`
 no PATH ([instalação oficial](https://docs.flutter.dev/install/manual)). O SDK
 baixado para validar esta migração está em `.tools/flutter`,
