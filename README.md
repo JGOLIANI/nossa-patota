@@ -215,3 +215,27 @@ ninguém vê número diferente do que vai ser gravado.
 
 > Quem pode votar, em quem, e até quando são regras do servidor, na função
 > `cast_vote`: no navegador seriam só uma sugestão.
+
+---
+
+## Contribuindo com o Claude Code
+
+O projeto já vem com um hook do Claude Code para o
+[rtk](https://github.com/rtk-ai/rtk), que enxuga a saída de comandos como
+`git status` e `npm test` antes de ela chegar ao modelo e economiza tokens. É
+opcional: sem o rtk instalado, o hook não faz nada.
+
+Para instalar e já deixar o rtk ligado ao Claude Code:
+
+```bash
+bash scripts/setup-rtk.sh
+```
+
+O script instala o rtk (Homebrew ou instalador oficial no macOS/Linux, `winget`
+no Windows), confere a versão e testa o hook. No Windows, rode pelo Git Bash.
+Não é preciso rodar `rtk init`. Depois, reinicie o Claude Code.
+
+- `bash scripts/setup-rtk.sh --check` só verifica, sem instalar nada.
+- `rtk gain` mostra quanto já foi economizado.
+- Para desligar só para você, coloque `"env": { "RTK_DISABLED": "1" }` no
+  `.claude/settings.local.json`.

@@ -1,0 +1,3 @@
+# Scripts de shell precisam de LF mesmo em checkouts no Windows (core.autocrlf),
+# senão o bash do Git Bash/WSL falha com "$'\r': command not found".
+*.sh text eol=lf
