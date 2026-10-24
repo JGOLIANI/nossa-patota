@@ -215,3 +215,41 @@ ninguém vê número diferente do que vai ser gravado.
 
 > Quem pode votar, em quem, e até quando são regras do servidor, na função
 > `cast_vote`: no navegador seriam só uma sugestão.
+
+---
+
+## Contribuindo com o Claude Code
+
+### graphify
+
+O projeto já vem com um hook do Claude Code para o
+[graphify](https://github.com/Graphify-Labs/graphify), que monta um grafo do
+código (componentes, funções, quem chama quem, o SQL do Supabase). Com o grafo,
+o Claude consulta `graphify query` em vez de sair lendo arquivo por arquivo, e
+gasta menos tokens para se achar no projeto. É opcional: sem o grafo, o hook
+não faz nada.
+
+Para instalar e já gerar o grafo:
+
+```bash
+bash scripts/setup-graphify.sh
+```
+
+O script instala o graphify (via `uv` ou `pipx`; se não houver nenhum dos dois,
+oferece instalar o `uv`), gera o grafo em `graphify-out/` (fora do git) e instala
+a skill `/graphify` no seu Claude Code. Gerar o grafo do código é análise local:
+não usa API nem gasta tokens. No Windows, rode pelo Git Bash. Depois, reinicie o
+Claude Code.
+
+O grafo não se atualiza sozinho. Depois de mudar o código (ou trocar de branch,
+ou dar pull), atualize com:
+
+```bash
+graphify update .
+```
+
+- `bash scripts/setup-graphify.sh --check` só verifica, sem instalar nada.
+- `--no-skill` não instala a skill `/graphify`.
+- `graphify-out/graph.html` abre o grafo no navegador.
+- Para desligar só para você, coloque `"env": { "GRAPHIFY_DISABLED": "1" }` no
+  `.claude/settings.local.json`. Para remover tudo: `graphify uninstall`.
