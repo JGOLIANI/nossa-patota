@@ -17,3 +17,6 @@ coverage/
 .smoke.mjs
 .dbg.mjs
 .perf.mjs
+
+# Grafo do código gerado localmente pelo graphify (scripts/setup-graphify.sh)
+graphify-out/
