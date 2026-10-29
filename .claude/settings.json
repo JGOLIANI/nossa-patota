@@ -19,6 +19,26 @@
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/rtk.mjs\""
           }
         ]
+      },
+      {
+        "matcher": "Bash|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/graphify.mjs\" search",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "Read|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/graphify.mjs\" read",
+            "timeout": 15
+          }
+        ]
       }
     ]
   }
