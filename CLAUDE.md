@@ -62,3 +62,5 @@ Dependências só apontam para a direita.
 | `awards_settled_at` | Apuração da votação |
 
 Rótulos oficiais em `AWARD_LABELS` (`src/types.ts`).
+
+Glossário completo (todos os valores de domínio, rotas, ações e as armadilhas de nome, como `/partidas/:id` ser o placar e não a partida) em [`docs/glossario.md`](docs/glossario.md).
