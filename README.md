@@ -278,3 +278,8 @@ graphify update .
 - `graphify-out/graph.html` abre o grafo no navegador.
 - Para desligar só para você, coloque `"env": { "GRAPHIFY_DISABLED": "1" }` no
   `.claude/settings.local.json`. Para remover tudo: `graphify uninstall`.
+
+---
+
+Quer contribuir? Leia o [CONTRIBUTING.md](CONTRIBUTING.md): como rodar o
+projeto, os testes, o fluxo de branches e o padrão de commit.
