@@ -220,6 +220,10 @@ ninguém vê número diferente do que vai ser gravado.
 
 ## Contribuindo com o Claude Code
 
+Os nomes do código nem sempre batem com os da tela: `Round` é a Partida,
+`pior_jogador` é o Bagre da Rodada, `/partidas/:id` é o placar. Antes de mexer,
+vale passar pelo [glossário](docs/glossario.md).
+
 ### rtk-ai
 O projeto já vem com um hook do Claude Code para o
 [rtk](https://github.com/rtk-ai/rtk), que enxuga a saída de comandos como
