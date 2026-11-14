@@ -114,13 +114,24 @@ baixo nesta lista:
 | `types.ts` | As entidades (`Player`, `Round`, `Match`…) e o `Snapshot` com o acervo inteiro. |
 | `lib/` | Utilitários usados por todas as camadas: formatação, mapas, instalação do PWA, imagens. |
 
-`src/welcome/` (a tela de boas-vindas animada) é a exceção: está organizada por
-funcionalidade, com seu próprio `index.ts`.
+Não existe pasta por funcionalidade (`src/features/`): uma funcionalidade nova
+se espalha pelas camadas. O porquê está no
+[ADR 0001](docs/adr/0001-pastas-por-camada.md).
 
 Na prática:
 
-- **Tela nova:** arquivo em `pages/`, rota em `src/App.tsx`. Tela não importa
-  nada de `data/`.
+- **Tela nova:** `pages/<Nome>Page.tsx`, com a rota em `src/App.tsx`. Ex.:
+  `pages/RoundsPage.tsx`. Tela não importa nada de `data/`.
+- **Componente novo:** `components/<Nome>.tsx`, mesmo que só uma tela o use.
+  Ex.: `components/TeamBuilder.tsx`. Componentes básicos (`Button`, `Card`…)
+  ficam juntos em `ui.tsx`.
+- **Hook de React para telas e componentes:** `components/use<Nome>.ts`. Não vai
+  para `lib/`, que não importa React porque `data/` também a usa.
+- **Arquivo grande demais, ou três ou mais arquivos do mesmo assunto:** subpasta
+  dentro da própria camada, com um `index.ts` reexportando o que é usado de
+  fora, para os imports existentes não mudarem. Ex.: as seções do
+  `RoundDetailPage` em `components/round/`, os componentes de `ui.tsx` em
+  `components/ui/`. A subpasta segue as mesmas regras de import da camada.
 - **Regra de cálculo nova:** função em `domain/`, recebendo o `Snapshot` como
   primeiro parâmetro e a data atual como parâmetro (sem `new Date()` por
   dentro, para o teste controlar o relógio). Com teste.
@@ -131,6 +142,13 @@ Na prática:
   (`src/data/types.ts`), implementado nos **dois** backends.
 - **Número derivado** (placar, estatística, ranking): calcula a partir do
   `Snapshot`, não grava no banco.
+
+A única exceção às camadas é `src/welcome/`, a abertura animada da tela de
+entrar. É um módulo de interface autocontido: não importa `store/`, `data/`,
+`domain/`, `pages/` nem `components/`, e quem está fora usa só o que o
+`index.ts` exporta. Um módulo novo só pode seguir esse formato se cumprir as
+mesmas condições; se precisar de `useApp()` ou de uma regra de domínio, suas
+peças vão para as camadas.
 
 Mais convenções (named exports, unions de string em vez de `enum`, comentários
 explicando o porquê) estão no [CLAUDE.md](CLAUDE.md), que vale para pessoas
@@ -182,7 +200,8 @@ graphify, que economizam tokens; a instalação está no README, em
 
 ## Decisões de arquitetura
 
-Ainda não há um registro formal das decisões de arquitetura. Até lá, o porquê
-dos padrões acima está nos comentários do código (o JSDoc de `Backend` e de
-`AppActions` é um bom começo) e nas mensagens de commit: `git log` vale a
+As decisões que mexem na forma do código ficam em [`docs/adr/`](docs/adr/),
+uma por arquivo; o README da pasta explica como escrever a próxima. As decisões
+anteriores ao registro estão nos comentários do código (o JSDoc de `Backend` e
+de `AppActions` é um bom começo) e nas mensagens de commit: `git log` vale a
 leitura.

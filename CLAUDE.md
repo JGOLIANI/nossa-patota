@@ -17,6 +17,17 @@ Dependências só apontam para a direita.
 - Telas não importam `data/*`. No máximo `import type` de `data/types` (ex.: `PlayerFormModal.tsx`). O `resetDemoData` em `AdminPage.tsx` é um desvio conhecido; não repita.
 - `domain/` é puro: não importa React, `lib/`, `localStorage` nem rede (`rankings.ts` → `lib/format` é desvio conhecido).
 
+## Onde criar cada arquivo
+
+Pastas por camada ([ADR 0001](docs/adr/0001-pastas-por-camada.md)). Não crie `src/features/`.
+
+- Tela nova: `pages/<Nome>Page.tsx` + rota em `App.tsx`.
+- Regra nova: `domain/<assunto>.ts` + `domain/<assunto>.test.ts`.
+- Componente novo: `components/<Nome>.tsx`. Componente básico (botão, campo) junto dos outros em `ui.tsx`.
+- Hook de tela ou componente: `components/use<Nome>.ts`. `lib/` não importa React, porque `data/` também usa.
+- Arquivo grande dividido, ou 3+ arquivos do mesmo assunto: subpasta na própria camada, com `index.ts` reexportando o que é usado de fora (`components/ui/`, `components/round/`, `store/actions/`). A subpasta segue as regras de import da camada.
+- `src/welcome/` é a única exceção: módulo de interface autocontido (não importa `store`, `data`, `domain`, `pages` nem `components`; de fora, só pelo `index.ts`). Não ponha código do app lá dentro. Se precisar de `useApp()`, não é autocontido.
+
 ## Padrões obrigatórios
 
 - **Persistência passa pela interface `Backend`** (`src/data/types.ts`). Método novo = implementar em `supabaseBackend.ts` **e** em `localBackend.ts`.
